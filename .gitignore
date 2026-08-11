@@ -1,0 +1,111 @@
+# ---------------------------------------------------------------------------
+# Arna (Speakly) monorepo — .gitignore
+# ---------------------------------------------------------------------------
+
+# --- Dependencies ---
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# --- Ortam değişkenleri (ASLA commit edilmez) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p8
+*.p12
+*.mobileprovision
+*.keystore
+!debug.keystore
+service-account*.json
+google-services.json
+GoogleService-Info.plist
+
+# --- Build çıktıları ---
+dist/
+build/
+out/
+.next/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+# --- Expo / React Native (apps/mobile) ---
+# ios/ + android/ yalnızca mobile altında ignore edilir (Expo CNG bunları üretir).
+# Global kalıp kullanmıyoruz; başka yerde "ios" adlı klasör sessizce kaybolmasın.
+.expo/
+.expo-shared/
+web-build/
+apps/mobile/ios/
+apps/mobile/android/
+*.jsbundle
+.eas/
+!.eas/workflows
+
+# --- Test / coverage ---
+coverage/
+*.lcov
+.nyc_output/
+
+# --- Loglar ---
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-debug.log*
+
+# --- Cache ---
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+.vercel/
+.wrangler/
+
+# --- Editör / IDE ---
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# --- OS ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# --- Geçici / scratch ---
+tmp/
+temp/
+*.tmp
+scratchpad/
+
+# --- Ses/TTS önbelleği (R2'ye gider, repo'ya değil) ---
+# Global *.mp3/*.wav kullanmıyoruz: test fixture'ları sessizce kaybolmasın.
+# Yalnızca üretilen önbellek dizinleri ignore edilir.
+.tts-cache/
+.audio-cache/
+apps/backend/tmp/
+
+# --- Commit EDİLENLER (bilinçli karar — ignore etmiyoruz) ---
+# apps/backend/drizzle/   → migration'lar ve journal repo'da durur
+# apps/web/public/fatman.glb → satın alınmış ana avatar (~25MB), repo'da tutuluyor
+# docs/                   → mimari PDF + araştırma raporları
+
+# --- Claude Code (kişisel ayarlar) ---
+.claude/settings.local.json

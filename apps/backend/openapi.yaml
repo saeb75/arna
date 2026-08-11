@@ -1,0 +1,663 @@
+openapi: 3.0.3
+info:
+  title: Arna (Speakly) API
+  version: 0.2.0
+  description: |
+    Praktika benzeri AI İngilizce öğretmeni — backend API'si.
+
+    **Kimlik doğrulama:** Tüm `/v1` uçları Supabase Auth JWT'si ister
+    (`Authorization: Bearer <access_token>`). Token, istemcide `@supabase/supabase-js`
+    ile login sonrası `session.access_token`'dan alınır.
+
+    **Faz durumu:** Tüm uçlar aktif — Onboarding, Program (Faz 2), Ders (Faz 3),
+    Oturum (Faz 4). Tipik akış: onboarding → programs/current → lessons/:id →
+    lessons/:id/sessions → chat/tts/stt döngüsü → sessions/:id/end.
+  contact:
+    name: Arna
+servers:
+  - url: http://localhost:4000
+    description: Yerel geliştirme
+tags:
+  - name: Sistem
+    description: Sağlık ve operasyon uçları (auth istemez)
+  - name: Onboarding
+    description: Kayıt sonrası profil + kişisel program üretimi
+  - name: Program
+    description: Kullanıcının aktif ders planı
+  - name: Ders
+    description: Tembel ders içeriği üretimi ("plan peşin, içerik tembel")
+  - name: Oturum
+    description: Ders çalışma zamanı — chat / TTS / STT / bitirme
+
+security:
+  - bearerAuth: []
+
+paths:
+  /healthz:
+    get:
+      tags: [Sistem]
+      summary: Sağlık kontrolü
+      security: []
+      responses:
+        "200":
+          description: Servis ayakta
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  ts: { type: string, format: date-time }
+
+  /v1/onboarding:
+    post:
+      tags: [Onboarding]
+      summary: Profili kaydet ve kişisel ders planını üret
+      description: |
+        Kullanıcı profili yazılır (upsert), varsa eski aktif program **arşivlenir**
+        (silinmez — ilerleme ve profil korunur) ve seçilen seviyenin tamamı için
+        45–55 derslik plan iskeleti tek LLM çağrısıyla üretilir.
+
+        Yanıt ~20–60 sn sürer (gerçek LLM üretimi). İstemci bu süreçte
+        "Programın hazırlanıyor" ekranı göstermelidir.
+
+        **Rate limit:** kullanıcı başına saatte 5 istek.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OnboardingInput" }
+      responses:
+        "201":
+          description: Program üretildi
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Program" }
+        "400": { $ref: "#/components/responses/InvalidInput" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /v1/programs/current:
+    get:
+      tags: [Program]
+      summary: Aktif programı ve ders listesini getir
+      description: |
+        En güncel aktif (`ready`/`generating`) programı, tüm ders satırları ve
+        durumlarıyla döner. Dersler **sıra zorunluluğu olmadan** açıktır;
+        istemci istediği derse girebilir.
+      responses:
+        "200":
+          description: Aktif program
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Program" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: Kullanıcının aktif programı yok (onboarding tamamlanmamış)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { error: no_program }
+
+  /v1/programs/regenerate:
+    post:
+      tags: [Program]
+      summary: Seviye/track değişikliğiyle planı yeniden üret
+      description: |
+        Kullanıcı ayarlardan seviye veya track değiştirdiğinde çağrılır.
+        Profil güncellenir, eski program **arşivlenir** (ilerleme kayıtları ve
+        profil korunur), aynı profil bağlamıyla yeni plan üretilir.
+        Gövdedeki iki alan da opsiyoneldir; verilmeyen alan profildeki değeriyle kalır.
+
+        **Rate limit:** kullanıcı başına saatte 5 istek.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cefrLevel: { $ref: "#/components/schemas/CefrLevel" }
+                track: { $ref: "#/components/schemas/Track" }
+            example: { cefrLevel: B1 }
+      responses:
+        "201":
+          description: Yeni program üretildi
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Program" }
+        "400": { $ref: "#/components/responses/InvalidInput" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: Profil bulunamadı (önce onboarding gerekir)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { error: no_profile }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/lessons/{programLessonId}:
+    get:
+      tags: [Ders]
+      summary: Ders içeriğini getir (yoksa üret)
+      description: |
+        İçerik daha önce üretildiyse anında döner (~200 ms); üretilmediyse güçlü
+        modelle üretilir (10–30 sn — istemci "Ders hazırlanıyor" göstermeli),
+        şema + deterministik lint doğrulamasından geçer ve kaydedilir.
+        İlk açılışta ders satırı `in_progress` işaretlenir.
+
+        **Rate limit:** kullanıcı başına saatte 30 istek.
+      parameters:
+        - name: programLessonId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Ders içeriği
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  lessonId: { type: string, format: uuid }
+                  lesson: { $ref: "#/components/schemas/LessonContent" }
+                  warnings:
+                    type: array
+                    items: { type: string }
+                    description: Lint uyarıları (engelleyici değil)
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: Ders bulunamadı veya kullanıcıya ait değil
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { error: not_found }
+        "409":
+          description: Üretim başka bir istekte sürüyor (kısa süre sonra tekrar dene)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { error: in_progress_elsewhere }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "500":
+          description: Üretim başarısız (yeniden denenebilir)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { error: generation_failed }
+
+  /v1/lessons/{programLessonId}/sessions:
+    post:
+      tags: [Oturum]
+      summary: Ders oturumu başlat
+      description: |
+        Ders için konuşma oturumu açar. Ders içeriği hazır (`ready`) olmalıdır —
+        değilse 409 `lesson_not_ready` döner (önce `GET /v1/lessons/:id` çağır).
+
+        Bu çağrı ayrıca **oturum script'ini üretir**: öğrencinin adı, hafızası ve
+        geçen dersi kullanılarak hocanın söyleyeceği cümleler kurulur. Ders ancak
+        burada `in_progress` olur — içeriği getirmek veya ön-üretmek durumu değiştirmez.
+
+        **Rate limit:** kullanıcı başına saatte 20.
+      parameters:
+        - name: programLessonId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "201":
+          description: |
+            Oturum açıldı. Yanıt, hocanın bu oturumda söyleyeceği cümleleri (`script`)
+            de taşır — bu üretim birkaç saniye sürebilir.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessionId: { type: string, format: uuid }
+                  script:
+                    allOf: [{ $ref: "#/components/schemas/SessionScript" }]
+                    nullable: true
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: Ders bulunamadı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: Ders içeriği henüz üretilmemiş
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { error: lesson_not_ready }
+
+  /v1/sessions/{sessionId}/chat:
+    post:
+      tags: [Oturum]
+      summary: Öğretmenle konuşma turu
+      description: |
+        Kullanıcı mesajını alır. Emma'nın sistem prompt'u **sunucuda** montajlanır —
+        istemciye asla gitmez. Her tur transkripte yazılır.
+
+        **Bağlam yalıtımı:** `lecture` fazında geçmiş HİÇ gönderilmez (gereken her şey
+        o anki beat bağlamındadır); `practice` ve `wrapup` yalnızca KENDİ fazlarının
+        turlarını görür. Aksi hâlde model roleplay ortasında eski alıştırmalara
+        dönüyordu.
+
+        **Akış kararı istemcide/kodda verilir, bu ucun METNİNE bakılmaz.** Sunucu
+        yalnızca yapısal bayrak döndürür (`segmentDone`, `beatDone`).
+
+        **Rate limit:** kullanıcı başına saatte 120.
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, maxLength: 1000, example: "I am a developer." }
+                phase:
+                  type: string
+                  enum: [lecture, practice, wrapup]
+                  default: lecture
+                  description: |
+                    `lecture` beat bağlamı · `practice` roleplay (hoca karakterde) ·
+                    `wrapup` kapanış (hoca karakterden ÇIKAR, ders bu fazda sayaçla bitmez).
+                beatId: { type: string, maxLength: 40, description: Lecture fazında aktif beat, example: b3 }
+                turnIndex: { type: integer, minimum: 0, maximum: 20, description: Practice fazında kaçıncı tur }
+                attempt: { type: integer, minimum: 0, maximum: 5, description: Alıştırmada kaçıncı deneme }
+                lastExchange:
+                  type: boolean
+                  description: |
+                    Soru penceresinin izin verilen SON turu. İstemci sayaçtan hesaplar;
+                    hoca "başka sorun var mı?" demek yerine kapanış yapar, böylece
+                    akış ilerlerken hocayla çelişmez.
+      responses:
+        "200":
+          description: Emma'nın yanıtı
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  text: { type: string, example: "Nice to meet you! What do you develop?" }
+                  segmentDone:
+                    type: boolean
+                    description: |
+                      Yalnızca `practice`: sahne bitti. İki deterministik nedenden biri —
+                      tur tavanı doldu ya da öğrenci hedef kalıbı `minTargetUses` kez
+                      üretti (en erken 4. turda). Modelin cevabına BAKILMAZ.
+                      İstemci bunu görünce dersi bitirmez, **kapanış fazına** geçer.
+                    example: false
+                  beatDone:
+                    type: boolean
+                    description: |
+                      Yalnızca `open_response`: adım tamamlandı — rubrik cevabı kabul etti
+                      ya da deneme hakkı bitti.
+                    example: false
+                  isAttempt:
+                    type: boolean
+                    description: |
+                      Alıştırma / açık uçlu adımda: öğrencinin sözü bir CEVAP DENEMESİ miydi?
+                      `false` ise (selamlama, konu dışı laf) deneme hakkı YANMAZ; hoca konudan
+                      kopmadan soruyu yeniden sorar. "Bilmiyorum" denemedir — sunucuda
+                      deterministik belirlenir, modele bırakılmaz.
+                    example: true
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: Oturum bulunamadı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: Oturum kapatılmış
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { error: session_ended }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/sessions/{sessionId}/tts:
+    post:
+      tags: [Oturum]
+      summary: Metni sese çevir (zaman damgalı)
+      description: |
+        ElevenLabs `with-timestamps` proxy'si; ses (base64 MP3) + karakter
+        hizalaması (`normalized_alignment` tercihli) döner. Avatar lip-sync
+        bu hizalamayı kullanır. Metin ≤500 karakter.
+
+        **Rate limit:** kullanıcı başına saatte 120. TTS yapılandırılmamışsa 502.
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string }
+      responses:
+        "200":
+          description: Ses + hizalama
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  audioBase64: { type: string }
+                  alignment: { type: object }
+
+  /v1/sessions/{sessionId}/stt:
+    post:
+      tags: [Oturum]
+      summary: Sesi metne çevir
+      description: |
+        Kullanıcı ses kaydını transkribe eder (multipart `file`, ≤10 MB;
+        webm/mp4/mp3/wav/ogg — iOS Safari'nin mp4 çıktısı desteklenir).
+        1 KB altı kayıtlar `audio_too_short` ile reddedilir.
+
+        **Rate limit:** kullanıcı başına saatte 120.
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        "200":
+          description: Transkript
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  text: { type: string }
+
+  /v1/sessions/{sessionId}/end:
+    post:
+      tags: [Oturum]
+      summary: Oturumu bitir
+      description: |
+        İdempotent — iki kez çağrılabilir; ders satırı `completed` işaretlenir.
+        Faz 6'dan itibaren memory çıkarım işini de tetikleyecek.
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Oturum kapatıldı
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  turns: { type: integer, description: Oturumdaki toplam transkript turu, example: 14 }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: Oturum bulunamadı
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase Auth access token'ı
+
+  responses:
+    Unauthorized:
+      description: Token yok veya geçersiz
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          examples:
+            eksik: { value: { error: missing_token } }
+            gecersiz: { value: { error: invalid_token } }
+    InvalidInput:
+      description: Gövde şema doğrulamasından geçemedi
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Error"
+              - type: object
+                properties:
+                  issues:
+                    type: array
+                    items: { type: object }
+          example: { error: invalid_input, issues: [] }
+    RateLimited:
+      description: Rate limit aşıldı
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ServerError:
+      description: Beklenmeyen hata (LLM çıktısı 2 denemede doğrulanamaması dahil)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string, description: Makine-okunur hata kodu }
+
+    CefrLevel:
+      type: string
+      enum: [A1, A2, B1, B2, C1]
+      description: CEFR seviyesi (onboarding'de select box ile kullanıcı seçer)
+
+    Track:
+      type: string
+      enum: [business, conversation, exam]
+      description: Öğrenme hedefi
+
+    Interest:
+      type: string
+      enum:
+        [technology, business, travel, movies_tv, music, sports, gaming, food,
+         science, health, finance, art_design, fashion, education, news_politics, nature]
+
+    OnboardingInput:
+      type: object
+      required: [displayName, dailyGoalMinutes, track, interests, cefrLevel]
+      properties:
+        displayName: { type: string, maxLength: 60, example: Saeb }
+        dailyGoalMinutes:
+          type: integer
+          enum: [5, 10, 15]
+          description: Günlük hedef (streak çıtası)
+        track: { $ref: "#/components/schemas/Track" }
+        interests:
+          type: array
+          minItems: 1
+          maxItems: 8
+          items: { $ref: "#/components/schemas/Interest" }
+        occupation:
+          type: string
+          maxLength: 120
+          description: Serbest metin; ders temalarının kişiselleştirilmesinde kullanılır
+          example: front-end developer / takım lideri
+        cefrLevel: { $ref: "#/components/schemas/CefrLevel" }
+
+    ProgramLesson:
+      type: object
+      description: |
+        Plan satırı — dersin İÇERİĞİ değil, tanımı. Program ÜNİTELERDEN oluşur
+        (unitIndex/unitTitle); her ünitede 3 tipli ders: `phrases` (kalıp/tüyo
+        öğretimi) → `grammar` (üniteye hizmet eden gramer) → `practice`
+        (ikisini birleştiren konuşma).
+      properties:
+        id: { type: string, format: uuid }
+        position: { type: integer, example: 1 }
+        unitIndex: { type: integer, example: 1 }
+        unitTitle: { type: string, example: Sosyal Medyada Kendini Tanıtma }
+        kind:
+          type: string
+          enum: [phrases, grammar, practice]
+        title:
+          type: string
+          description: |
+            Ders başlığı — öğrencinin ANA DİLİNDE üretilir (profildeki `nativeLanguage`).
+            Hedef dil daima İngilizce; backend hiçbir ana dile sabitlenmez.
+          example: Küçük Sohbet Tüyoları
+        focus:
+          type: string
+          description: "phrases: kalıp odağı · grammar: gramer konusu · practice: konuşma hedefi"
+          example: "kendini tanıtma kalıpları (I'm..., I work as...)"
+        theme:
+          type: string
+          description: Kullanıcının meslek/ilgisine göre kişiselleştirilmiş bağlam
+        status:
+          type: string
+          enum: [not_started, in_progress, completed]
+
+    Program:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        level: { $ref: "#/components/schemas/CefrLevel" }
+        track: { $ref: "#/components/schemas/Track" }
+        status:
+          type: string
+          enum: [generating, ready, failed]
+        lessons:
+          type: array
+          items: { $ref: "#/components/schemas/ProgramLesson" }
+
+    LessonContent:
+      type: object
+      description: |
+        Üretilmiş ders içeriği — **pedagojik sözleşme** (`formatVersion: 6`).
+
+        Ders bir oynatma script'i DEĞİLDİR: hocanın birebir cümleleri burada durmaz.
+        Beat'ler `intent` (ne yapılacağı) taşır; hocanın söyleyeceği cümle oturum
+        açılışında öğrenciye göre üretilir → `SessionScript`.
+
+        İçerikte kullanıcıya özel hiçbir veri YOKTUR (isim yok) — aynı içerik ileride
+        kullanıcılar arasında paylaşılabilsin diye. Akış kontrolü (tur tavanı, faz
+        geçişi, deneme sınırı) içerikte değil, SUNUCU KODUNDADIR.
+
+        İki faz: LECTURE (beats) → PRACTICE (roleplay). Tam şema
+        `packages/contracts` içindedir (tek doğruluk kaynağı).
+      properties:
+        formatVersion: { type: integer, enum: [6] }
+        title: { type: string, description: "Öğrencinin ana dilinde" }
+        topic: { type: string, description: "Kısa İngilizce konu adı" }
+        focus: { type: string, description: "Öğretilen tek şey (İngilizce)" }
+        theme: { type: string, description: "Bağlam — ana dilde" }
+        objectives:
+          type: array
+          description: "2-3 ölçülebilir can-do hedefi (İngilizce)"
+          items: { type: string }
+        communicationGoal: { type: string }
+        estMinutes: { type: integer, example: 6 }
+        tutorNotes:
+          type: object
+          description: "Derse ÖZEL pedagoji notları (global politika tutorPrompt'ta)"
+          properties:
+            target: { type: string }
+            commonErrors: { type: array, items: { type: string } }
+            correction: { type: string }
+        lecture:
+          type: object
+          properties:
+            beats:
+              type: array
+              items:
+                type: object
+                required: [id, kind]
+                description: |
+                  Ayrımcı `kind` alanlı birleşim:
+                  - `ask` — hoca konuşur ve CEVAP BEKLER; `purpose: readiness|questions`, `intent`
+                  - `say` — hoca konuşur, akış kendiliğinden ilerler; `intent`
+                  - `teach` — `introIntent` + ekranda gösterilen `points[]` (authored)
+                  - `exercise` — `prompt`, `options?`, `answers[]`, `hint` (hepsi authored)
+                properties:
+                  id: { type: string }
+                  kind: { type: string, enum: [say, ask, teach, exercise] }
+                additionalProperties: true
+        practice:
+          type: object
+          properties:
+            introIntent: { type: string }
+            persona:
+              type: object
+              properties:
+                name: { type: string }
+                role: { type: string }
+                mood: { type: string }
+                goal: { type: string, description: "Karakterin sahnedeki amacı" }
+            scenario: { type: string }
+            userGoal: { type: string }
+            avatarOpening: { type: string }
+            mustUse: { type: array, items: { type: string } }
+            minTargetUses:
+              type: integer
+              description: "Hedef yapı kaç turda üretilirse sahne başarılı sayılır (sunucuda deterministik sayılır)"
+            successCriteria: { type: string }
+            maxTurns: { type: integer }
+        summary: { type: string, description: "Ana dilde kapanış özeti" }
+        quiz:
+          type: array
+          description: "Ders sonrası İSTEĞE BAĞLI mini test (3-5 soru)"
+          items: { type: object, additionalProperties: true }
+
+    SessionScript:
+      type: object
+      description: |
+        Hocanın BU oturumda söyleyeceği cümleler. Oturum açılışında bir kez üretilir
+        (öğrencinin adı + hafızası + geçen dersi ile) ve `sessions.state`'e yazılır.
+        Ders içeriğinden ayrıdır: içerik kullanıcıdan bağımsızdır, script kişiseldir.
+
+        Üretim başarısız olursa sunucu deterministik bir yedek script döner — ders
+        asla bu yüzden bloke olmaz.
+      properties:
+        v: { type: integer, enum: [1] }
+        beats:
+          type: object
+          description: "beatId → hocanın o beat'te söyleyeceği cümle (say/ask/teach girişi)"
+          additionalProperties: { type: string }
+        practiceIntro: { type: string }
+        inviteQuestion:
+          type: string
+          description: "Öğrenci 'sorum var' deyince söylenen davet — soruyla biter"
+        wrapup:
+          type: string
+          description: |
+            Kapanış: hoca rol karakterinden çıkıp dersi bitirir, tek cümlelik özet +
+            "sormak istediğin bir şey var mı?". Soruyla biter.
+        farewell:
+          type: string
+          description: "Öğrenci 'hayır' deyince söylenen veda — soru içermez, ders yine bitmez"
+        praise:
+          type: array
+          description: "Doğru cevaplarda sırayla kullanılan kısa övgüler (LLM çağrısı yapılmaz)"
+          items: { type: string }
