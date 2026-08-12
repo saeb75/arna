@@ -1,21 +1,30 @@
-import { programPlanSchema, type OnboardingInput, type ProgramResponse } from "@arna/contracts";
+import type { CurriculumResponse, OnboardingInput } from "@arna/contracts";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "../../db/client.js";
-import { programLessons, programs, userProfiles } from "../../db/schema.js";
-import { completeJson } from "../llm/index.js";
-import { buildPlanGenPrompt, PLAN_GEN_VERSION } from "../llm/prompts/plan-gen.v3.js";
+import { programs, userProfiles } from "../../db/schema.js";
+import { normalizeNativeLanguage } from "../../lib/language.js";
+import { getCurriculumForUser } from "../curriculum/queries.js";
 
-/** Profili yazar, aktif programları arşivler, düz konu yolunu üretip kaydeder. */
+/**
+ * Profili yazar ve kullanıcının seviyesini işaretler, sonra SABİT katalog
+ * görünümünü döner.
+ *
+ * LLM ÇAĞRISI YOK. Eskiden burada `plan-gen` ile kullanıcıya özel 28-36 satırlık
+ * bir ders planı üretiliyor ve istek içinde 20-60 sn bekleniyordu. Müfredat artık
+ * repo'da versiyonlanan sabit katalog; onboarding milisaniyeler sürüyor.
+ */
 export async function createProgramForUser(
   userId: string,
   input: OnboardingInput,
-): Promise<ProgramResponse> {
+): Promise<CurriculumResponse> {
+  const nativeLanguage = normalizeNativeLanguage(input.nativeLanguage);
+
   await db
     .insert(userProfiles)
     .values({
       userId,
       displayName: input.displayName,
-      nativeLanguage: input.nativeLanguage,
+      nativeLanguage,
       cefrLevel: input.cefrLevel,
       track: input.track,
       dailyGoalMinutes: input.dailyGoalMinutes,
@@ -26,6 +35,9 @@ export async function createProgramForUser(
       target: userProfiles.userId,
       set: {
         displayName: input.displayName,
+        // nativeLanguage eskiden burada YOKTU: mevcut kullanıcı yeniden onboard
+        // olduğunda ana dili sessizce eski değerinde kalıyordu.
+        nativeLanguage,
         cefrLevel: input.cefrLevel,
         track: input.track,
         dailyGoalMinutes: input.dailyGoalMinutes,
@@ -35,65 +47,22 @@ export async function createProgramForUser(
       },
     });
 
-  const { system, user } = buildPlanGenPrompt(input);
-  const plan = await completeJson({
-    purpose: "plan_gen",
-    system,
-    user,
-    schema: programPlanSchema,
-    promptVersion: PLAN_GEN_VERSION,
-    userId,
-  });
-
-  const rows: (typeof programLessons.$inferInsert)[] = plan.lessons.map((l, i) => ({
-    programId: "", // transaksiyon içinde doldurulur
-    position: i + 1,
-    title: l.title,
-    focus: l.focus,
-    theme: l.theme,
-  }));
-
-  const [program] = await db.transaction(async (tx) => {
+  // `programs` artık ders satırı taşımıyor; kullanıcının hangi seviye/track'te
+  // olduğunun kaydı. İlerleme buna değil, katalog kimliğine bağlı olduğu için
+  // yeni program satırı açmak ilerlemeyi ETKİLEMEZ.
+  await db.transaction(async (tx) => {
     await tx
       .update(programs)
       .set({ status: "archived" })
       .where(and(eq(programs.userId, userId), inArray(programs.status, ["ready", "generating"])));
 
-    const inserted = await tx
-      .insert(programs)
-      .values({
-        userId,
-        track: input.track,
-        level: input.cefrLevel,
-        status: "ready",
-        generatedByModel: "gpt-4.1",
-        promptVersion: PLAN_GEN_VERSION,
-      })
-      .returning();
-
-    const prog = inserted[0]!;
-    await tx.insert(programLessons).values(rows.map((r) => ({ ...r, programId: prog.id })));
-    return inserted;
+    await tx.insert(programs).values({
+      userId,
+      track: input.track,
+      level: input.cefrLevel,
+      status: "ready",
+    });
   });
 
-  const saved = await db
-    .select()
-    .from(programLessons)
-    .where(eq(programLessons.programId, program!.id))
-    .orderBy(programLessons.position);
-
-  return {
-    id: program!.id,
-    level: input.cefrLevel,
-    track: input.track,
-    status: "ready",
-    lessons: saved.map((r) => ({
-      id: r.id,
-      position: r.position,
-      title: r.title,
-      focus: r.focus,
-      theme: r.theme,
-      status: r.status as "not_started" | "in_progress" | "completed",
-    })),
-  };
+  return await getCurriculumForUser(userId);
 }

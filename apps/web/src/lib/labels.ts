@@ -25,10 +25,26 @@ export const TRACK_LABELS: Record<Track, { title: string; desc: string }> = {
   exam: { title: "Sınav İngilizcesi", desc: "IELTS / TOEFL hazırlık" },
 };
 
+/**
+ * Seviye seçiminde gösterilen tek satırlık tarif. `LEVEL_NAMES` ile ayrı tutuluyor:
+ * eskiden başlık `" · "` ile bölünerek kod adı geri çıkarılıyordu ve tarifteki bir
+ * nokta işaretini değiştiren herkes o ayrıştırmayı sessizce kırıyordu.
+ */
 export const LEVEL_LABELS: Record<CefrLevel, string> = {
   A1: "A1 · Yeni başlıyorum",
   A2: "A2 · Basit cümleler kurabiliyorum",
   B1: "B1 · Günlük konularda konuşabiliyorum",
   B2: "B2 · Rahat konuşuyorum, akıcılık istiyorum",
   C1: "C1 · İleri seviye, incelik istiyorum",
+  C2: "C2 · Ana dili gibi, nüans istiyorum",
+};
+
+/** Basamağın kısa adı — başlık satırında kullanılır. */
+export const LEVEL_NAMES: Record<CefrLevel, string> = {
+  A1: "A1",
+  A2: "A2",
+  B1: "B1",
+  B2: "B2",
+  C1: "C1",
+  C2: "C2",
 };

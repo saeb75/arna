@@ -3,7 +3,7 @@ import { and, asc, cosineDistance, desc, eq, isNotNull, sql } from "drizzle-orm"
 import { z } from "zod";
 import { db } from "../../db/client.js";
 import {
-  lessons,
+  lessonContents,
   memories,
   sessionSummaries,
   sessions,
@@ -58,9 +58,9 @@ export interface ExtractionResult {
  */
 export async function extractSessionMemory(sessionId: string): Promise<ExtractionResult> {
   const [row] = await db
-    .select({ session: sessions, lesson: lessons })
+    .select({ session: sessions, lesson: lessonContents })
     .from(sessions)
-    .leftJoin(lessons, eq(sessions.lessonId, lessons.id))
+    .leftJoin(lessonContents, eq(sessions.contentId, lessonContents.id))
     .where(eq(sessions.id, sessionId))
     .limit(1);
 

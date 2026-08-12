@@ -12,10 +12,9 @@ import {
   type Track,
 } from "@arna/contracts";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -24,12 +23,6 @@ import { api, DEFAULT_NATIVE_LANGUAGE } from "@/lib/api";
 import { INTEREST_LABELS, LEVEL_LABELS, TRACK_LABELS } from "@/lib/labels";
 
 const GOALS = [5, 10, 15] as const;
-const TIPS = [
-  "Programın seviyene ve ilgi alanlarına göre hazırlanıyor…",
-  "Her dersin senaryosu senin dünyandan seçiliyor…",
-  "Dersleri istediğin sırada yapabilirsin…",
-  "Seviyeni ayarlardan her zaman değiştirebilirsin…",
-];
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -40,21 +33,15 @@ export default function OnboardingPage() {
   const [occupation, setOccupation] = useState("");
   const [level, setLevel] = useState<CefrLevel | "">("");
   const [generating, setGenerating] = useState(false);
-  const [tipIndex, setTipIndex] = useState(0);
-  const [progress, setProgress] = useState(8);
 
   async function submit() {
     if (!displayName.trim()) return toast.error("Adını yaz");
     if (interests.length === 0) return toast.error("En az bir ilgi alanı seç");
     if (!level) return toast.error("Seviyeni seç");
 
+    // Müfredat sabit katalogdan geldiği için burada LLM beklemesi YOK; eskiden
+    // 20-60 sn süren plan üretimini örtmek için sahte bir ilerleme çubuğu vardı.
     setGenerating(true);
-    // Sahte ilerleme + ipucu rotasyonu (gerçek üretim 20-60 sn sürer)
-    const timer = setInterval(() => {
-      setProgress((p) => Math.min(p + Math.random() * 7, 92));
-      setTipIndex((i) => i + 1);
-    }, 4000);
-
     try {
       await api("/v1/onboarding", {
         method: "POST",
@@ -68,13 +55,10 @@ export default function OnboardingPage() {
           cefrLevel: level,
         }),
       });
-      setProgress(100);
       router.replace("/lessons");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Program oluşturulamadı");
+      toast.error(err instanceof Error ? err.message : "Profilin kaydedilemedi");
       setGenerating(false);
-    } finally {
-      clearInterval(timer);
     }
   }
 
@@ -83,13 +67,9 @@ export default function OnboardingPage() {
       <main className="flex h-dvh items-center justify-center p-4">
         <Card className="w-full max-w-md text-center">
           <CardHeader>
-            <CardTitle>Programın hazırlanıyor</CardTitle>
-            <CardDescription>{TIPS[tipIndex % TIPS.length]}</CardDescription>
+            <CardTitle>Hazırlanıyor…</CardTitle>
+            <CardDescription>Derslerin birazdan karşında.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Progress value={progress} />
-            <p className="mt-3 text-xs text-muted-foreground">Bu bir dakikadan kısa sürer</p>
-          </CardContent>
         </Card>
       </main>
     );
@@ -170,7 +150,7 @@ export default function OnboardingPage() {
           </Label>
           <Input
             id="occupation" value={occupation} onChange={(e) => setOccupation(e.target.value)}
-            placeholder="ör. yazılım geliştirici — ders senaryoları buna göre kişiselleşir"
+            placeholder="ör. yazılım geliştirici — öğretmenin sohbette bunu bilir"
             maxLength={120}
           />
         </section>

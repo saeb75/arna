@@ -17,7 +17,7 @@ export default function Home() {
         return;
       }
       try {
-        await api("/v1/programs/current");
+        await api("/v1/curriculum/current");
         router.replace("/lessons");
       } catch (err) {
         if (err instanceof ApiError && err.status === 404) router.replace("/onboarding");

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import type { CefrLevel } from "@arna/contracts";
 import { A1 } from "./a1.js";
 import { A2 } from "./a2.js";
-import type { CurriculumLesson, CurriculumLevel } from "./types.js";
+import type { LessonSpec, LevelSpec } from "./types.js";
 
 export * from "./types.js";
 
@@ -11,7 +11,7 @@ export * from "./types.js";
  * Henüz yazılmamış seviyeler burada yoktur; lint ve seed eksik seviyeyi hata
  * saymaz, yalnızca raporlar (B1–C2 sonraki turda aynı kalıpla eklenecek).
  */
-export const CURRICULUM: Partial<Record<CefrLevel, CurriculumLevel>> = {
+export const CURRICULUM: Partial<Record<CefrLevel, LevelSpec>> = {
   A1,
   A2,
 };
@@ -28,7 +28,7 @@ function slugify(input: string): string {
 }
 
 /** Katalog satırının kalıcı kimliği: açıkça yazılmışsa o, değilse başlıktan türetilir. */
-export function lessonId(level: CefrLevel, lesson: CurriculumLesson): string {
+export function lessonId(level: CefrLevel, lesson: LessonSpec): string {
   return lesson.id ?? `${level.toLowerCase()}-${slugify(lesson.title)}`;
 }
 
@@ -45,7 +45,7 @@ export function unitId(level: CefrLevel, unitIndex: number): string {
  * `position`, `unitIndex` ve `title` KASTEN dışarıda: sıra değişikliği ya da
  * başlık düzeltmesi üretilmiş içeriği geçersiz kılmamalı.
  */
-export function specHash(level: CefrLevel, lesson: CurriculumLesson): string {
+export function specHash(level: CefrLevel, lesson: LessonSpec): string {
   const canonical = JSON.stringify([
     level,
     lesson.kind,

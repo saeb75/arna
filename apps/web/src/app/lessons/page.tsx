@@ -4,11 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import {
-  CEFR_LEVELS,
-  type CefrLevel,
-  type ProgramResponse,
-} from "@arna/contracts";
+import { CEFR_LEVELS, type CefrLevel, type CurriculumResponse, type LessonKind } from "@arna/contracts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +16,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, ApiError } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
-import { LEVEL_LABELS, TRACK_LABELS } from "@/lib/labels";
+import { LEVEL_LABELS, LEVEL_NAMES, TRACK_LABELS } from "@/lib/labels";
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   completed: { label: "Tamamlandı", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
@@ -28,19 +24,27 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   not_started: { label: "", cls: "" },
 };
 
+/** Ders tipi rozetleri — müfredatın ritmi listede de görünsün diye. */
+const KIND_BADGE: Record<LessonKind, { label: string; cls: string }> = {
+  grammar: { label: "Dilbilgisi", cls: "bg-sky-500/10 text-sky-400 border-sky-500/25" },
+  phrases: { label: "Kalıplar", cls: "bg-violet-500/10 text-violet-400 border-violet-500/25" },
+  practice: { label: "Konuşma", cls: "bg-orange-500/10 text-orange-400 border-orange-500/25" },
+};
 
 export default function LessonsPage() {
   const router = useRouter();
-  const [program, setProgram] = useState<ProgramResponse | null>(null);
+  const [curriculum, setCurriculum] = useState<CurriculumResponse | null>(null);
   const [newLevel, setNewLevel] = useState<CefrLevel | "">("");
-  const [regenBusy, setRegenBusy] = useState(false);
+  const [levelBusy, setLevelBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      setProgram(await api<ProgramResponse>("/v1/programs/current"));
+      setCurriculum(await api<CurriculumResponse>("/v1/curriculum/current"));
     } catch (err) {
+      // 404 burada YALNIZCA "profil yok" demek. Yeni kullanıcının hiç ilerleme
+      // satırı olmaması normaldir ve dolu bir liste döner, 404 değil.
       if (err instanceof ApiError && err.status === 404) router.replace("/onboarding");
-      else toast.error("Program yüklenemedi");
+      else toast.error("Müfredat yüklenemedi");
     }
   }, [router]);
 
@@ -48,23 +52,25 @@ export default function LessonsPage() {
     void load();
   }, [load]);
 
-  async function regenerate(body: { cefrLevel?: CefrLevel } = {}) {
-    setRegenBusy(true);
+  /** Seviye değişimi artık yalnızca profili günceller — ilerleme korunur. */
+  async function changeLevel(cefrLevel: CefrLevel) {
+    setLevelBusy(true);
     try {
-      await api("/v1/programs/regenerate", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
-      toast.success("Yeni programın hazır!");
-      await load();
+      setCurriculum(
+        await api<CurriculumResponse>("/v1/me/profile", {
+          method: "PATCH",
+          body: JSON.stringify({ cefrLevel }),
+        }),
+      );
+      toast.success("Seviyen güncellendi");
     } catch {
-      toast.error("Program yeniden oluşturulamadı");
+      toast.error("Seviye değiştirilemedi");
     } finally {
-      setRegenBusy(false);
+      setLevelBusy(false);
     }
   }
 
-  if (!program) {
+  if (!curriculum) {
     return (
       <main className="mx-auto max-w-2xl p-4 pt-10">
         {[...Array(6)].map((_, i) => (
@@ -74,27 +80,18 @@ export default function LessonsPage() {
     );
   }
 
-  const done = program.lessons.filter((l) => l.status === "completed").length;
-
   return (
     <main className="mx-auto max-w-2xl p-4 pb-16">
       <header className="flex items-center justify-between py-6">
         <div>
           <h1 className="text-2xl font-bold">Derslerin</h1>
           <p className="text-sm text-muted-foreground">
-            {LEVEL_LABELS[program.level].split(" · ")[0]} · {TRACK_LABELS[program.track].title} ·{" "}
-            {done}/{program.lessons.length} tamamlandı
+            {LEVEL_NAMES[curriculum.level]} · {curriculum.label} ·{" "}
+            {TRACK_LABELS[curriculum.track].title} · {curriculum.totals.completed}/
+            {curriculum.totals.lessons} tamamlandı
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline" size="sm"
-            disabled={regenBusy}
-            onClick={() => void regenerate()}
-            title="Mevcut profil ve seviyeyle programı baştan üretir"
-          >
-            {regenBusy ? "Oluşturuluyor…" : "↻ Yeniden oluştur"}
-          </Button>
           <Dialog>
             <DialogTrigger render={<Button variant="outline" size="sm" />}>
               Ayarlar
@@ -103,8 +100,8 @@ export default function LessonsPage() {
               <DialogHeader>
                 <DialogTitle>Seviyeni değiştir</DialogTitle>
                 <DialogDescription>
-                  Yeni seviye için program baştan oluşturulur. Tamamladığın dersler ve profilin
-                  kaybolmaz — sadece ders listesi yenilenir.
+                  Seçtiğin seviyenin ders listesi açılır. Tamamladığın dersler ve ilerlemen
+                  olduğu gibi kalır — istediğin zaman geri dönebilirsin.
                 </DialogDescription>
               </DialogHeader>
               <Select value={newLevel} onValueChange={(v) => setNewLevel(v as CefrLevel)}>
@@ -119,10 +116,10 @@ export default function LessonsPage() {
               </Select>
               <DialogFooter>
                 <Button
-                  onClick={() => newLevel && void regenerate({ cefrLevel: newLevel })}
-                  disabled={!newLevel || regenBusy}
+                  onClick={() => newLevel && void changeLevel(newLevel)}
+                  disabled={!newLevel || levelBusy}
                 >
-                  {regenBusy ? "Oluşturuluyor… (1 dk sürebilir)" : "Programı yeniden oluştur"}
+                  {levelBusy ? "Değiştiriliyor…" : "Seviyeyi değiştir"}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -139,32 +136,67 @@ export default function LessonsPage() {
         </div>
       </header>
 
-      <div className="grid gap-2">
-        {program.lessons.map((l) => {
-          const badge = STATUS_BADGE[l.status];
-          return (
-            <Link
-              key={l.id}
-              href={`/lesson/${l.id}`}
-              className="group rounded-xl border border-border bg-card p-4 transition hover:border-primary/50"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-muted-foreground">{l.position}</span>
-                    <h3 className="font-semibold group-hover:text-primary">{l.title}</h3>
+      {curriculum.units.length === 0 ? (
+        <p className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+          Bu seviyenin dersleri henüz hazırlanmadı. Başka bir seviye seçebilirsin.
+        </p>
+      ) : (
+        <div className="grid gap-8">
+          {curriculum.units.map((unit) => {
+            const unitDone = unit.lessons.filter((l) => l.status === "completed").length;
+            return (
+              <section key={unit.index}>
+                <div className="mb-3 border-b border-border/60 pb-2">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <h2 className="font-semibold">
+                      <span className="mr-2 font-mono text-xs text-muted-foreground">
+                        {unit.index}
+                      </span>
+                      {unit.title}
+                    </h2>
+                    <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                      {unitDone}/{unit.lessons.length}
+                    </span>
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{l.focus}</p>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground/70">🎬 {l.theme}</p>
+                  <p className="mt-1 text-xs text-muted-foreground/80">{unit.goal}</p>
                 </div>
-                {badge?.label && (
-                  <Badge variant="outline" className={badge.cls}>{badge.label}</Badge>
-                )}
-              </div>
-            </Link>
-          );
-        })}
-      </div>
+
+                <div className="grid gap-2">
+                  {unit.lessons.map((l) => {
+                    const badge = STATUS_BADGE[l.status];
+                    const kind = KIND_BADGE[l.kind];
+                    return (
+                      <Link
+                        key={l.id}
+                        href={`/lesson/${l.id}`}
+                        className="group rounded-xl border border-border bg-card p-4 transition hover:border-primary/50"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-xs text-muted-foreground">
+                                {l.position}
+                              </span>
+                              <h3 className="font-semibold group-hover:text-primary">{l.title}</h3>
+                            </div>
+                            <p className="mt-1 text-sm text-muted-foreground">{l.focus}</p>
+                          </div>
+                          <div className="flex shrink-0 flex-col items-end gap-1">
+                            {badge?.label && (
+                              <Badge variant="outline" className={badge.cls}>{badge.label}</Badge>
+                            )}
+                            <Badge variant="outline" className={kind.cls}>{kind.label}</Badge>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
     </main>
   );
 }

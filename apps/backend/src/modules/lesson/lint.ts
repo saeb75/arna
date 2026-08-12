@@ -7,10 +7,12 @@ export interface LintReport {
 
 export interface LintContext {
   /**
-   * Öğrencinin adı — İÇERİĞE GİRMEMESİ gerekiyor. v6'da ders kullanıcıdan
-   * bağımsızdır; ad yalnızca sızıntıyı YAKALAMAK için veriliyor.
+   * İÇERİKTE GEÇMEMESİ gereken kullanıcıya özel değerler (ad, meslek…).
+   * İçerik artık kullanıcılar ARASINDA PAYLAŞILIYOR, yani buradaki bir sızıntı
+   * tek kullanıcıyı değil o dersi açan herkesi ilgilendirir. Değerler yalnızca
+   * yakalamak için veriliyor; üretime hiçbiri girmiyor.
    */
-  displayName: string;
+  forbidden: string[];
 }
 
 /**
@@ -94,16 +96,16 @@ export function lintLesson(content: LessonContent, ctx: LintContext): LintReport
   const ids = beats.map((b) => b.id);
   if (new Set(ids).size !== ids.length) errors.push("Beat id'leri benzersiz değil");
 
-  // KULLANICI VERİSİ SIZINTISI — v6'nın en kritik kuralı.
-  // İçerik kullanıcıdan bağımsız olmalı; ad gömülürse ders paylaşılamaz ve
-  // selamlama hafızadan haberdar olamaz. (Çok kısa adlarda yanlış pozitif riski
-  // olduğu için 3 karakterden kısa adlar aranmaz.)
-  const name = ctx.displayName.trim();
-  if (name.length >= 3) {
-    const haystack = JSON.stringify(content).toLowerCase();
-    if (haystack.includes(name.toLowerCase())) {
+  // KULLANICI VERİSİ SIZINTISI — en kritik kural, artık bir GİZLİLİK denetimi.
+  // İçerik kullanıcılar arasında paylaşıldığı için buraya sızan bir ad ya da
+  // meslek, dersi açan HERKESE servis edilir. (Çok kısa değerlerde yanlış pozitif
+  // riski olduğu için 3 karakterden kısa olanlar aranmaz — çağıran taraf eler.)
+  const haystack = JSON.stringify(content).toLowerCase();
+  for (const value of ctx.forbidden) {
+    const needle = value.trim().toLowerCase();
+    if (needle.length >= 3 && haystack.includes(needle)) {
       errors.push(
-        `Ders içeriğinde öğrencinin adı ("${name}") geçiyor — içerik kullanıcıdan BAĞIMSIZ olmalı, isim oturum script'inde eklenir`,
+        `Ders içeriğinde kullanıcıya özel bir değer ("${value}") geçiyor — içerik PAYLAŞIMLI, kişisel veri oturum script'inde eklenir`,
       );
     }
   }

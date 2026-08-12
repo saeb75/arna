@@ -1,12 +1,13 @@
+import { catalogLessonIdSchema } from "@arna/contracts";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { getOrGenerateLesson, LessonError, pregenerateNext } from "./service.js";
 
-const paramsSchema = z.object({ programLessonId: z.string().uuid() });
+const paramsSchema = z.object({ catalogLessonId: catalogLessonIdSchema });
 
 export default async function lessonRoutes(app: FastifyInstance) {
   app.get(
-    "/lessons/:programLessonId",
+    "/lessons/:catalogLessonId",
     {
       preHandler: app.requireAuth,
       config: {
@@ -24,9 +25,9 @@ export default async function lessonRoutes(app: FastifyInstance) {
       }
 
       try {
-        const result = await getOrGenerateLesson(request.userId, parsed.data.programLessonId);
+        const result = await getOrGenerateLesson(request.userId, parsed.data.catalogLessonId);
         // Algılanan hız: sıradaki dersi arka planda üret (beklenmez, hata yutulur)
-        void pregenerateNext(request.userId, parsed.data.programLessonId);
+        void pregenerateNext(request.userId, parsed.data.catalogLessonId);
         return {
           lessonId: result.lessonId,
           lesson: result.content,

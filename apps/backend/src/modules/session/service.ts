@@ -9,22 +9,22 @@ import {
   type LessonPhase,
   type SessionScript,
 } from "@arna/contracts";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { toFile } from "openai";
 import { z } from "zod";
 import { db } from "../../db/client.js";
 import { env } from "../../config/env.js";
 import { languageName, nativeLanguageOf } from "../../lib/language.js";
 import {
-  lessons,
-  programLessons,
-  programs,
+  lessonContents,
+  lessonProgress,
   sessions,
   transcriptTurns,
   userProfiles,
 } from "../../db/schema.js";
 import { completeJson, completeText } from "../llm/index.js";
 import { openaiClient } from "../llm/openai.js";
+import { findReadyContent } from "../lesson/service.js";
 import { buildTutorPrompt } from "../lesson/tutorPrompt.js";
 import { extractSessionMemory } from "../memory/extract.js";
 import { buildMemoryBlock } from "../memory/retrieve.js";
@@ -44,12 +44,12 @@ export class SessionError extends Error {
   }
 }
 
-/** Oturumu sahiplik kontrolüyle getirir (ders + plan satırı ile birlikte). */
+/** Oturumu sahiplik kontrolüyle getirir (oynatılan paylaşımlı içerik satırıyla birlikte). */
 async function getOwnedSession(userId: string, sessionId: string) {
   const [row] = await db
-    .select({ session: sessions, lesson: lessons })
+    .select({ session: sessions, lesson: lessonContents })
     .from(sessions)
-    .leftJoin(lessons, eq(sessions.lessonId, lessons.id))
+    .leftJoin(lessonContents, eq(sessions.contentId, lessonContents.id))
     .where(and(eq(sessions.id, sessionId), eq(sessions.userId, userId)))
     .limit(1);
   return row ?? null;
@@ -59,49 +59,46 @@ async function getOwnedSession(userId: string, sessionId: string) {
 // Oturum açma
 // ---------------------------------------------------------------------------
 
-export async function openSession(userId: string, programLessonId: string) {
-  const [owned] = await db
-    .select({ pl: programLessons })
-    .from(programLessons)
-    .innerJoin(programs, eq(programLessons.programId, programs.id))
-    .where(and(eq(programLessons.id, programLessonId), eq(programs.userId, userId)))
-    .limit(1);
-  if (!owned) throw new SessionError("not_found", "Ders bulunamadı");
-
-  const [lessonRow] = await db
-    .select()
-    .from(lessons)
-    .where(and(eq(lessons.programLessonId, programLessonId), eq(lessons.status, "ready")))
-    .limit(1);
-  if (!lessonRow) {
-    throw new SessionError("lesson_not_ready", "Ders içeriği henüz üretilmemiş — önce GET /v1/lessons/:id çağır");
+export async function openSession(userId: string, catalogLessonId: string) {
+  // Sahiplik join'i yok: katalog herkese açık, içerik kullanıcıdan bağımsız.
+  // Kullanıcıya ait olan tek şey OTURUM ve İLERLEME — ikisi de aşağıda yazılıyor.
+  const ready = await findReadyContent(userId, catalogLessonId);
+  if (!ready) {
+    throw new SessionError(
+      "lesson_not_ready",
+      "Ders içeriği henüz üretilmemiş — önce GET /v1/lessons/:id çağır",
+    );
   }
 
   // Bayat formatta içerikle oturum AÇILMAZ: script üretimi v6 alanlarını okur,
-  // eski satırda anlamsız cümleler çıkardı. GET /v1/lessons/:id bayat satırı
-  // otomatik yeniden üretir — istemci oradan geçtiği için normalde buraya düşmez.
-  if ((lessonRow.content as { formatVersion?: number } | null)?.formatVersion !== CONTENT_FORMAT) {
+  // eski satırda anlamsız cümleler çıkardı. (Anahtar zaten formatVersion taşıdığı
+  // için normalde buraya düşülmez; kontrol savunma amaçlı duruyor.)
+  if (ready.content.formatVersion !== CONTENT_FORMAT) {
     throw new SessionError("lesson_not_ready", "Ders içeriği eski formatta — önce GET /v1/lessons/:id çağır");
   }
 
   const [session] = await db
     .insert(sessions)
-    .values({ userId, lessonId: lessonRow.id })
+    .values({ userId, contentId: ready.row.id, catalogLessonId })
     .returning();
   const sessionId = session!.id;
 
   // Ders ancak öğrenci GERÇEKTEN başlattığında "devam ediyor" olur.
   // (İçeriği getirmek veya arka planda önceden üretmek durumu değiştirmez —
   //  aksi halde hiç girilmemiş dersler de "devam ediyor" görünüyordu.)
-  if (owned.pl.status === "not_started") {
-    await db
-      .update(programLessons)
-      .set({ status: "in_progress" })
-      .where(eq(programLessons.id, programLessonId));
-  }
+  // İLERLEME SATIRI BURADA DOĞAR: yokluğu "not_started" demek.
+  await db
+    .insert(lessonProgress)
+    .values({ userId, catalogLessonId, status: "in_progress", sessionCount: 1 })
+    .onConflictDoUpdate({
+      target: [lessonProgress.userId, lessonProgress.catalogLessonId],
+      set: {
+        sessionCount: sql`${lessonProgress.sessionCount} + 1`,
+        updatedAt: new Date(),
+      },
+    });
 
-  const content = lessonRow.content as LessonContent | null;
-  if (!content) return { sessionId, script: null };
+  const content = ready.content;
 
   const [profile] = await db
     .select()
@@ -801,11 +798,18 @@ export async function endSession(
   if (firstClose) {
     await db.update(sessions).set({ endedAt: new Date() }).where(eq(sessions.id, sessionId));
 
-    if (owned.lesson) {
+    // İlerleme MÜFREDAT YUVASI üzerinden işaretlenir, oynatılan içerik sürümünden
+    // değil: içerik yeniden üretilse de "bu dersi bitirdim" bilgisi ayakta kalır.
+    if (owned.session.catalogLessonId) {
       await db
-        .update(programLessons)
-        .set({ status: "completed" })
-        .where(eq(programLessons.id, owned.lesson.programLessonId));
+        .update(lessonProgress)
+        .set({ status: "completed", completedAt: new Date(), updatedAt: new Date() })
+        .where(
+          and(
+            eq(lessonProgress.userId, userId),
+            eq(lessonProgress.catalogLessonId, owned.session.catalogLessonId),
+          ),
+        );
     }
   }
 

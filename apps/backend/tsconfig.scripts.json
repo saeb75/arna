@@ -1,0 +1,12 @@
+{
+  // scripts/ üretim derlemesine girmez (tsconfig.json yalnızca src'yi alır) ama
+  // TİP DENETİMİNDEN de kaçıyordu: şema değişince on test script'i sessizce
+  // kırılıyor, ancak elle koşulunca fark ediliyordu. `npm run typecheck` artık
+  // bu dosyayı kullanır.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "include": ["src", "scripts"]
+}

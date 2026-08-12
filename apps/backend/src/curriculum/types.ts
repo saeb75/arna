@@ -26,7 +26,7 @@ export type LessonKind = z.infer<typeof lessonKindSchema>;
  */
 const targetPhraseSchema = z.string().trim().min(1).max(60);
 
-export const curriculumLessonSchema = z.object({
+export const lessonSpecSchema = z.object({
   /**
    * Kalıcı kimlik. Verilmezse başlıktan türetilir ("a1-she-works-at-night").
    * İlerleme ve içerik önbelleği bu kimliğe bağlı olduğu için BAŞLIK DEĞİŞİRSE
@@ -51,21 +51,21 @@ export const curriculumLessonSchema = z.object({
   themeHint: z.string().trim().min(1).max(160),
   targetPhrases: z.array(targetPhraseSchema).min(1).max(5),
 });
-export type CurriculumLesson = z.infer<typeof curriculumLessonSchema>;
+export type LessonSpec = z.infer<typeof lessonSpecSchema>;
 
-export const curriculumUnitSchema = z.object({
+export const unitSpecSchema = z.object({
   index: z.number().int().min(1),
   title: z.string().trim().min(1).max(80),
   /** Ünite sonunda öğrencinin yapabilecek olduğu şey (can-do, İngilizce) */
   goal: z.string().trim().min(1).max(200),
 });
-export type CurriculumUnit = z.infer<typeof curriculumUnitSchema>;
+export type UnitSpec = z.infer<typeof unitSpecSchema>;
 
-export const curriculumLevelSchema = z.object({
+export const levelSpecSchema = z.object({
   level: cefrLevelSchema,
   /** Kullanıcıya görünen basamak adı: Beginner, Pre-Intermediate, … */
   label: z.string().trim().min(1).max(40),
-  units: z.array(curriculumUnitSchema).min(1),
-  lessons: z.array(curriculumLessonSchema).min(1),
+  units: z.array(unitSpecSchema).min(1),
+  lessons: z.array(lessonSpecSchema).min(1),
 });
-export type CurriculumLevel = z.infer<typeof curriculumLevelSchema>;
+export type LevelSpec = z.infer<typeof levelSpecSchema>;

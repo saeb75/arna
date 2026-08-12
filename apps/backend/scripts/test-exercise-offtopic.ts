@@ -7,10 +7,10 @@
  *  Çalıştırma: apps/backend içinde `npx tsx scripts/test-exercise-offtopic.ts` */
 import { eq } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
-import { lessons, llmCalls, programLessons, programs, userProfiles } from "../src/db/schema.js";
+import { llmCalls, userProfiles } from "../src/db/schema.js";
 import { lintLesson } from "../src/modules/lesson/lint.js";
 import { chatTurn, openSession } from "../src/modules/session/service.js";
-import { makeLessonContent } from "./_fixture.js";
+import { makeLessonContent, seedTestCatalogLesson , seedTestContent} from "./_fixture.js";
 
 const testUserId = "00000000-0000-4000-8000-000000000014";
 
@@ -52,24 +52,19 @@ const content = makeLessonContent({
   },
 });
 
-const report = lintLesson(content, { displayName: "Saeb" });
+const report = lintLesson(content, { forbidden: ["Saeb"] });
 check("lint temiz (şıklar prompt'a gömülü değil)", report.errors.length === 0, report.errors.join("; "));
 
-await sql`delete from programs where user_id = ${testUserId}`;
 await sql`delete from user_profiles where user_id = ${testUserId}`;
 await db.insert(userProfiles).values({
   userId: testUserId, displayName: "Saeb", nativeLanguage: "tr",
   cefrLevel: "A2", track: "business", dailyGoalMinutes: 10,
   occupation: "backend developer", interests: ["technology"],
 });
-const [program] = await db.insert(programs)
-  .values({ userId: testUserId, track: "business", level: "A2", status: "ready" }).returning();
-const [pl] = await db.insert(programLessons)
-  .values({ programId: program!.id, position: 1, title: content.title, focus: content.focus, theme: content.theme }).returning();
-await db.insert(lessons)
-  .values({ programLessonId: pl!.id, userId: testUserId, status: "ready", content });
+const catalogLesson = await seedTestCatalogLesson({});
+await seedTestContent({ userId: testUserId, catalogLessonId: catalogLesson.id, content });
 
-const { sessionId } = await openSession(testUserId, pl!.id);
+const { sessionId } = await openSession(testUserId, catalogLesson.id);
 
 /** Hoca hangi şıkkın doğru olduğunu ele veriyor mu? (şıkları saymak serbest) */
 const revealsAnswer = (t: string) =>
@@ -119,7 +114,6 @@ check("son denemede doğru cevap veriliyor", last.text.toLowerCase().includes("d
 const before = (await db.select().from(llmCalls).where(eq(llmCalls.userId, testUserId))).length;
 console.log(`\nLLM çağrısı sayısı: ${before} (doğru cevaplar istemcide eşleştiği için buraya hiç gelmez)`);
 
-await sql`delete from programs where user_id = ${testUserId}`;
 await sql`delete from user_profiles where user_id = ${testUserId}`;
 await sql`delete from llm_calls where user_id = ${testUserId}`;
 await sql.end();

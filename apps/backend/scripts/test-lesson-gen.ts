@@ -2,14 +2,13 @@
  *  Çalıştırma: apps/backend içinde `npx tsx scripts/test-lesson-gen.ts` */
 import { desc } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
-import { llmCalls, programLessons, programs, userProfiles } from "../src/db/schema.js";
+import { llmCalls, userProfiles } from "../src/db/schema.js";
 import { getOrGenerateLesson } from "../src/modules/lesson/service.js";
 
 const testUserId = "00000000-0000-4000-8000-000000000002";
 const nativeLanguage = process.env.NATIVE ?? "tr";
 
 // Yarım kalmış bir koşudan artık kalmış olabilir — diğer script'lerdeki desen
-await sql`delete from programs where user_id = ${testUserId}`;
 await sql`delete from user_profiles where user_id = ${testUserId}`;
 
 await db.insert(userProfiles).values({
@@ -22,23 +21,11 @@ await db.insert(userProfiles).values({
   occupation: "front-end developer / takım lideri",
   interests: ["technology", "gaming"],
 });
-const [program] = await db
-  .insert(programs)
-  .values({ userId: testUserId, track: "business", level: "A2", status: "ready" })
-  .returning();
-const [row] = await db
-  .insert(programLessons)
-  .values({
-    programId: program!.id,
-    position: 1,
-    title: "Yeni Duruma Alışmak",
-    focus: "get used to (+ noun / -ing)",
-    theme: "Yeni bir işe ve takıma alışmak",
-  })
-  .returning();
+import { seedTestCatalogLesson } from "./_fixture.js";
+const row = await seedTestCatalogLesson({});
 
 const t0 = Date.now();
-const { content, report } = await getOrGenerateLesson(testUserId, row!.id);
+const { content, report } = await getOrGenerateLesson(testUserId, row.id);
 console.log(`üretim: ${((Date.now() - t0) / 1000).toFixed(1)} sn | konu: ${content.topic} | ~${content.estMinutes} dk\n`);
 
 console.log("hedefler:");
@@ -91,12 +78,11 @@ console.log("\nözet:", content.summary);
 if (report.warnings.length) console.log("uyarılar:", report.warnings.join("; "));
 
 const t1 = Date.now();
-await getOrGenerateLesson(testUserId, row!.id);
+await getOrGenerateLesson(testUserId, row.id);
 console.log("cache:", Date.now() - t1, "ms");
 
 const [call] = await db.select().from(llmCalls).orderBy(desc(llmCalls.id)).limit(1);
 console.log("maliyet: $" + call!.costUsd);
 
-await sql`delete from programs where user_id = ${testUserId}`;
 await sql`delete from user_profiles where user_id = ${testUserId}`;
 await sql.end();

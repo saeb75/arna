@@ -9,8 +9,8 @@ info:
     (`Authorization: Bearer <access_token>`). Token, istemcide `@supabase/supabase-js`
     ile login sonrası `session.access_token`'dan alınır.
 
-    **Faz durumu:** Tüm uçlar aktif — Onboarding, Program (Faz 2), Ders (Faz 3),
-    Oturum (Faz 4). Tipik akış: onboarding → programs/current → lessons/:id →
+    **Faz durumu:** Tüm uçlar aktif — Onboarding, Müfredat (Faz 2), Ders (Faz 3),
+    Oturum (Faz 4). Tipik akış: onboarding → curriculum/current → lessons/:id →
     lessons/:id/sessions → chat/tts/stt döngüsü → sessions/:id/end.
   contact:
     name: Arna
@@ -22,7 +22,7 @@ tags:
     description: Sağlık ve operasyon uçları (auth istemez)
   - name: Onboarding
     description: Kayıt sonrası profil + kişisel program üretimi
-  - name: Program
+  - name: Curriculum
     description: Kullanıcının aktif ders planı
   - name: Ders
     description: Tembel ders içeriği üretimi ("plan peşin, içerik tembel")
@@ -52,14 +52,14 @@ paths:
   /v1/onboarding:
     post:
       tags: [Onboarding]
-      summary: Profili kaydet ve kişisel ders planını üret
+      summary: Profili kaydet ve müfredat görünümünü döndür
       description: |
-        Kullanıcı profili yazılır (upsert), varsa eski aktif program **arşivlenir**
-        (silinmez — ilerleme ve profil korunur) ve seçilen seviyenin tamamı için
-        45–55 derslik plan iskeleti tek LLM çağrısıyla üretilir.
+        Kullanıcı profili yazılır (upsert) ve seçilen seviyenin **sabit** müfredatı
+        ilerlemesiyle birlikte döner.
 
-        Yanıt ~20–60 sn sürer (gerçek LLM üretimi). İstemci bu süreçte
-        "Programın hazırlanıyor" ekranı göstermelidir.
+        **LLM çağrısı YOKTUR** — müfredat repo'daki katalogdan gelir, kullanıcıya
+        özel plan üretilmez. Yanıt milisaniyeler sürer; istemcinin bekleme ekranı
+        göstermesine gerek yoktur.
 
         **Rate limit:** kullanıcı başına saatte 5 istek.
       requestBody:
@@ -69,50 +69,54 @@ paths:
             schema: { $ref: "#/components/schemas/OnboardingInput" }
       responses:
         "201":
-          description: Program üretildi
+          description: Profil kaydedildi
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/Program" }
+              schema: { $ref: "#/components/schemas/Curriculum" }
         "400": { $ref: "#/components/responses/InvalidInput" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "429": { $ref: "#/components/responses/RateLimited" }
         "500": { $ref: "#/components/responses/ServerError" }
 
-  /v1/programs/current:
+  /v1/curriculum/current:
     get:
-      tags: [Program]
-      summary: Aktif programı ve ders listesini getir
+      tags: [Curriculum]
+      summary: Kullanıcının seviyesindeki sabit müfredatı ve ilerlemesini getir
       description: |
-        En güncel aktif (`ready`/`generating`) programı, tüm ders satırları ve
-        durumlarıyla döner. Dersler **sıra zorunluluğu olmadan** açıktır;
-        istemci istediği derse girebilir.
+        Müfredat **sabittir ve tüm kullanıcılarda aynıdır** (repo'daki katalogdan
+        seed edilir); bu uç onu kullanıcının ilerlemesiyle birleştirip ünitelere
+        gruplu döndürür. Dersler **sıra zorunluluğu olmadan** açıktır.
+
+        İlerleme tablosu seyrektir: satırı olmayan ders `not_started` sayılır, bu
+        yüzden yeni kullanıcı 404 değil, tamamı `not_started` olan dolu bir liste alır.
+        404 yalnızca **profil yok** (onboarding tamamlanmamış) demektir.
       responses:
         "200":
-          description: Aktif program
+          description: Müfredat + ilerleme
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/Program" }
+              schema: { $ref: "#/components/schemas/Curriculum" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404":
-          description: Kullanıcının aktif programı yok (onboarding tamamlanmamış)
+          description: Profil yok (önce onboarding gerekir)
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
-              example: { error: no_program }
+              example: { error: no_profile }
 
-  /v1/programs/regenerate:
-    post:
-      tags: [Program]
-      summary: Seviye/track değişikliğiyle planı yeniden üret
+  /v1/me/profile:
+    patch:
+      tags: [Curriculum]
+      summary: Seviye/track değiştir
       description: |
-        Kullanıcı ayarlardan seviye veya track değiştirdiğinde çağrılır.
-        Profil güncellenir, eski program **arşivlenir** (ilerleme kayıtları ve
-        profil korunur), aynı profil bağlamıyla yeni plan üretilir.
-        Gövdedeki iki alan da opsiyoneldir; verilmeyen alan profildeki değeriyle kalır.
+        Kullanıcı ayarlardan seviye veya track değiştirdiğinde çağrılır ve
+        **yalnızca profili günceller**. İlerleme katalog kimliğine bağlı olduğu
+        için hiç etkilenmez — eski `POST /v1/programs/regenerate` planı yeniden
+        üretip ilerlemeyi arşive gömüyordu, o uç kaldırıldı.
 
-        **Rate limit:** kullanıcı başına saatte 5 istek.
+        Gövdedeki iki alan da opsiyoneldir ama en az biri verilmelidir.
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:
@@ -122,11 +126,11 @@ paths:
                 track: { $ref: "#/components/schemas/Track" }
             example: { cefrLevel: B1 }
       responses:
-        "201":
-          description: Yeni program üretildi
+        "200":
+          description: Güncellenmiş müfredat görünümü
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/Program" }
+              schema: { $ref: "#/components/schemas/Curriculum" }
         "400": { $ref: "#/components/responses/InvalidInput" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404":
@@ -135,9 +139,8 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
               example: { error: no_profile }
-        "429": { $ref: "#/components/responses/RateLimited" }
 
-  /v1/lessons/{programLessonId}:
+  /v1/lessons/{catalogLessonId}:
     get:
       tags: [Ders]
       summary: Ders içeriğini getir (yoksa üret)
@@ -145,14 +148,20 @@ paths:
         İçerik daha önce üretildiyse anında döner (~200 ms); üretilmediyse güçlü
         modelle üretilir (10–30 sn — istemci "Ders hazırlanıyor" göstermeli),
         şema + deterministik lint doğrulamasından geçer ve kaydedilir.
-        İlk açılışta ders satırı `in_progress` işaretlenir.
+        İçerik PAYLAŞIMLIDIR: aynı katalog dersi + ana dil + track anahtarına düşen
+        tüm kullanıcılar aynı satırı alır, ikinci kullanıcı üretim ödemez.
+        Durum yalnızca oturum GERÇEKTEN açılınca `in_progress` olur.
 
         **Rate limit:** kullanıcı başına saatte 30 istek.
       parameters:
-        - name: programLessonId
+        - name: catalogLessonId
           in: path
           required: true
-          schema: { type: string, format: uuid }
+          description: Katalog satırının kalıcı slug'ı (UUID değil)
+          schema:
+            type: string
+            pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+            example: a1-she-works-at-night
       responses:
         "200":
           description: Ders içeriği
@@ -188,7 +197,7 @@ paths:
               schema: { $ref: "#/components/schemas/Error" }
               example: { error: generation_failed }
 
-  /v1/lessons/{programLessonId}/sessions:
+  /v1/lessons/{catalogLessonId}/sessions:
     post:
       tags: [Oturum]
       summary: Ders oturumu başlat
@@ -202,10 +211,14 @@ paths:
 
         **Rate limit:** kullanıcı başına saatte 20.
       parameters:
-        - name: programLessonId
+        - name: catalogLessonId
           in: path
           required: true
-          schema: { type: string, format: uuid }
+          description: Katalog satırının kalıcı slug'ı (UUID değil)
+          schema:
+            type: string
+            pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+            example: a1-she-works-at-night
       responses:
         "201":
           description: |
@@ -471,7 +484,7 @@ components:
 
     CefrLevel:
       type: string
-      enum: [A1, A2, B1, B2, C1]
+      enum: [A1, A2, B1, B2, C1, C2]
       description: CEFR seviyesi (onboarding'de select box ile kullanıcı seçer)
 
     Track:
@@ -503,54 +516,75 @@ components:
         occupation:
           type: string
           maxLength: 120
-          description: Serbest metin; ders temalarının kişiselleştirilmesinde kullanılır
+          description: |
+            Serbest metin. Paylaşımlı ders içeriğine GİRMEZ (sızıntı olurdu);
+            yalnızca canlı sohbette hocanın bağlamına eklenir.
           example: front-end developer / takım lideri
         cefrLevel: { $ref: "#/components/schemas/CefrLevel" }
 
-    ProgramLesson:
+    CurriculumLesson:
       type: object
       description: |
-        Plan satırı — dersin İÇERİĞİ değil, tanımı. Program ÜNİTELERDEN oluşur
-        (unitIndex/unitTitle); her ünitede 3 tipli ders: `phrases` (kalıp/tüyo
-        öğretimi) → `grammar` (üniteye hizmet eden gramer) → `practice`
-        (ikisini birleştiren konuşma).
+        Katalog satırı — dersin İÇERİĞİ değil, tanımı. Müfredat ÜNİTELERDEN oluşur;
+        her derste bir tip: `phrases` (işlevsel kalıp seti) · `grammar` (tek bir yapı)
+        · `practice` (yalnızca konuşturur). Katalog lint'i 4'ten fazla ardışık
+        `grammar` dersine izin vermez.
       properties:
-        id: { type: string, format: uuid }
-        position: { type: integer, example: 1 }
-        unitIndex: { type: integer, example: 1 }
-        unitTitle: { type: string, example: Sosyal Medyada Kendini Tanıtma }
+        id:
+          type: string
+          description: Kalıcı slug — UUID DEĞİL. İlerleme ve içerik önbelleği buna bağlıdır.
+          example: a1-she-works-at-night
+        position: { type: integer, example: 22 }
+        unitIndex: { type: integer, example: 4 }
         kind:
           type: string
           enum: [phrases, grammar, practice]
         title:
           type: string
           description: |
-            Ders başlığı — öğrencinin ANA DİLİNDE üretilir (profildeki `nativeLanguage`).
-            Hedef dil daima İngilizce; backend hiçbir ana dile sabitlenmez.
-          example: Küçük Sohbet Tüyoları
+            KANONİK İNGİLİZCE. Katalog tek bir ana dile çivilenmemeli; ayrıca
+            başlığın kendisi de öğrenme malzemesidir. Öğrenciye görünen ana-dil
+            metni üretilen `LessonContent`ten gelir.
+          example: She Works at Night
         focus:
           type: string
-          description: "phrases: kalıp odağı · grammar: gramer konusu · practice: konuşma hedefi"
-          example: "kendini tanıtma kalıpları (I'm..., I work as...)"
-        theme:
-          type: string
-          description: Kullanıcının meslek/ilgisine göre kişiselleştirilmiş bağlam
+          description: Öğretilen tek şey, İngilizce
+          example: "present simple: third person -s"
         status:
           type: string
           enum: [not_started, in_progress, completed]
+          description: İlerleme satırı yoksa `not_started`
 
-    Program:
+    CurriculumUnit:
       type: object
       properties:
-        id: { type: string, format: uuid }
-        level: { $ref: "#/components/schemas/CefrLevel" }
-        track: { $ref: "#/components/schemas/Track" }
-        status:
+        index: { type: integer, example: 4 }
+        title: { type: string, example: Everyday Life }
+        goal:
           type: string
-          enum: [generating, ready, failed]
+          description: Ünite sonunda öğrencinin yapabilecek olduğu şey (can-do)
+          example: Describe your daily routine and say when you do things
         lessons:
           type: array
-          items: { $ref: "#/components/schemas/ProgramLesson" }
+          items: { $ref: "#/components/schemas/CurriculumLesson" }
+
+    Curriculum:
+      type: object
+      properties:
+        level: { $ref: "#/components/schemas/CefrLevel" }
+        label:
+          type: string
+          description: Basamağın görünen adı
+          example: Beginner
+        track: { $ref: "#/components/schemas/Track" }
+        units:
+          type: array
+          items: { $ref: "#/components/schemas/CurriculumUnit" }
+        totals:
+          type: object
+          properties:
+            lessons: { type: integer, example: 46 }
+            completed: { type: integer, example: 3 }
 
     LessonContent:
       type: object

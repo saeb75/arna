@@ -1,4 +1,4 @@
-import type { CurriculumLevel } from "./types.js";
+import type { LevelSpec } from "./types.js";
 
 /**
  * A1 — Beginner. 8 ünite, 46 ders.
@@ -11,7 +11,7 @@ import type { CurriculumLevel } from "./types.js";
  * serisi öğrenciyi konuşturmadan yoruyor; `scripts/lint-curriculum.ts` bunu
  * denetliyor. Saf kelime dersi YOKTUR — kelime işlevin içine gömülüdür.
  */
-export const A1: CurriculumLevel = {
+export const A1: LevelSpec = {
   level: "A1",
   label: "Beginner",
   units: [

@@ -3,9 +3,9 @@
  *  Çalıştırma: apps/backend içinde `npx tsx scripts/test-phase-isolation.ts` */
 import { asc, eq } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
-import { lessons, programLessons, programs, transcriptTurns, userProfiles } from "../src/db/schema.js";
+import { transcriptTurns, userProfiles } from "../src/db/schema.js";
 import { chatTurn, openSession } from "../src/modules/session/service.js";
-import { makeLessonContent } from "./_fixture.js";
+import { makeLessonContent, seedTestCatalogLesson, seedTestContent } from "./_fixture.js";
 
 const testUserId = "00000000-0000-4000-8000-000000000007";
 
@@ -50,14 +50,10 @@ await db.insert(userProfiles).values({
   cefrLevel: "A2", track: "business", dailyGoalMinutes: 10,
   occupation: "developer", interests: ["technology"],
 });
-const [program] = await db.insert(programs)
-  .values({ userId: testUserId, track: "business", level: "A2", status: "ready" }).returning();
-const [row] = await db.insert(programLessons)
-  .values({ programId: program!.id, position: 1, title: lesson.title, focus: lesson.focus, theme: lesson.theme }).returning();
-await db.insert(lessons)
-  .values({ programLessonId: row!.id, userId: testUserId, status: "ready", content: lesson });
+const catalogLesson = await seedTestCatalogLesson({});
+await seedTestContent({ userId: testUserId, catalogLessonId: catalogLesson.id, content: lesson });
 
-const { sessionId } = await openSession(testUserId, row!.id);
+const { sessionId } = await openSession(testUserId, catalogLesson.id);
 
 // 1) LECTURE: alıştırmaya yanlış cevap → geçmişe "correct choice / B)" dili girer
 const w1 = await chatTurn(testUserId, sessionId, "Give me the details", { phase: "lecture", beatId: "b5", attempt: 0 });
@@ -83,6 +79,5 @@ const counts = turns.reduce<Record<string, number>>((a, t) => {
 }, {});
 console.log("transcript faz etiketleri:", counts);
 
-await sql`delete from programs where user_id = ${testUserId}`;
 await sql`delete from user_profiles where user_id = ${testUserId}`;
 await sql.end();

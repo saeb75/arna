@@ -5,10 +5,10 @@
  *  Ortam değişkeni ile ana dili değiştir:  NATIVE=es npx tsx scripts/test-lecture-flow.ts
  */
 import { db, sql } from "../src/db/client.js";
-import { lessons, programLessons, programs, userProfiles } from "../src/db/schema.js";
+import { userProfiles } from "../src/db/schema.js";
 import { chatTurn, openSession, translate } from "../src/modules/session/service.js";
 import { lintLesson } from "../src/modules/lesson/lint.js";
-import { makeLessonContent } from "./_fixture.js";
+import { makeLessonContent, seedTestCatalogLesson, seedTestContent } from "./_fixture.js";
 
 const testUserId = "00000000-0000-4000-8000-000000000006";
 const nativeLanguage = process.env.NATIVE ?? "tr";
@@ -56,21 +56,17 @@ await db.insert(userProfiles).values({
   cefrLevel: "A2", track: "business", dailyGoalMinutes: 10,
   occupation: "developer", interests: ["technology"],
 });
-const [program] = await db.insert(programs)
-  .values({ userId: testUserId, track: "business", level: "A2", status: "ready" }).returning();
-const [row] = await db.insert(programLessons)
-  .values({ programId: program!.id, position: 1, title: lesson.title, focus: lesson.focus, theme: lesson.theme }).returning();
-await db.insert(lessons)
-  .values({ programLessonId: row!.id, userId: testUserId, status: "ready", content: lesson });
+const catalogLesson = await seedTestCatalogLesson({});
+await seedTestContent({ userId: testUserId, catalogLessonId: catalogLesson.id, content: lesson });
 
 console.log(`ana dil: ${nativeLanguage}\n`);
 
 // 0) Lint — dil-bağımsız ASCII kuralı
-const report = lintLesson(lesson, { displayName: "Saeb" });
+const report = lintLesson(lesson, { forbidden: ["Saeb"] });
 console.log("LINT hata:", report.errors.length ? report.errors : "yok ✅");
 console.log("LINT uyarı:", report.warnings.length ? report.warnings : "yok");
 
-const { sessionId } = await openSession(testUserId, row!.id);
+const { sessionId } = await openSession(testUserId, catalogLesson.id);
 
 // 1) ask beat'ine GERÇEK soru → kısa cevap, yeni soru sormamalı
 const q = await chatTurn(testUserId, sessionId, "What does 'finished' mean?", {
@@ -100,6 +96,5 @@ console.log("[tur 4 · hedef karşılandı] segmentDone:", p4.segmentDone, p4.se
 const tr = await translate(testUserId, sessionId, "Yesterday I finished the report.");
 console.log(`\n[çeviri → ${nativeLanguage}]:`, tr.text);
 
-await sql`delete from programs where user_id = ${testUserId}`;
 await sql`delete from user_profiles where user_id = ${testUserId}`;
 await sql.end();

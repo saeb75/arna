@@ -4,9 +4,28 @@ import { z } from "zod";
 // Ortak sabitler
 // ---------------------------------------------------------------------------
 
-export const CEFR_LEVELS = ["A1", "A2", "B1", "B2", "C1"] as const;
+export const CEFR_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
 export const cefrLevelSchema = z.enum(CEFR_LEVELS);
 export type CefrLevel = z.infer<typeof cefrLevelSchema>;
+
+/**
+ * Ders tipi. Sabit müfredat kataloğunun ritmi buna dayanır: `grammar` yapı
+ * öğretir, `phrases` işlevsel kalıp seti verir, `practice` yalnızca konuşturur.
+ * Katalog lint'i 4'ten fazla ardışık `grammar` dersine izin vermez.
+ */
+export const LESSON_KINDS = ["phrases", "grammar", "practice"] as const;
+export const lessonKindSchema = z.enum(LESSON_KINDS);
+export type LessonKind = z.infer<typeof lessonKindSchema>;
+
+/**
+ * Katalog satırı kimliği — UUID DEĞİL, kalıcı metin slug ("a1-she-works-at-night").
+ * Seed dosyası git'te okunabilir kalsın, URL anlamlı olsun diye böyle. İlerleme ve
+ * içerik önbelleği bu kimliğe bağlıdır.
+ */
+export const catalogLessonIdSchema = z
+  .string()
+  .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/)
+  .max(80);
 
 export const TRACKS = ["business", "conversation", "exam"] as const;
 export const trackSchema = z.enum(TRACKS);
@@ -53,29 +72,10 @@ export const onboardingInputSchema = z.object({
 });
 export type OnboardingInput = z.infer<typeof onboardingInputSchema>;
 
-// ---------------------------------------------------------------------------
-// Program planı — DÜZ KONU YOLU
-// Onboarding'de tek LLM çağrısıyla üretilen iskelet: sıralı konu düğümleri
-// ("Geçmiş Zaman I", "Kişi Tanımlama"...). İçerik DEĞİL, her dersin ne
-// öğreteceğinin tanımı. Her ders aynı kurguda işler: Lecture → Practice.
-// ---------------------------------------------------------------------------
-
-export const planLessonSchema = z.object({
-  /** Ders başlığı — öğrencinin ANA DİLİNDE; çok parçalı konularda I/II/III */
-  title: z.string().min(1).max(120),
-  /** Öğretilecek tek net konu (İngilizce terim), ör. "Past Simple (regular verbs)" */
-  focus: z.string().min(1).max(160),
-  /** Kullanıcının ilgi/mesleğine göre kişiselleştirilmiş bağlam — ana dilde */
-  theme: z.string().min(1).max(200),
-});
-export type PlanLesson = z.infer<typeof planLessonSchema>;
-
-export const programPlanSchema = z.object({
-  level: cefrLevelSchema,
-  track: trackSchema,
-  lessons: z.array(planLessonSchema).min(24).max(44),
-});
-export type ProgramPlan = z.infer<typeof programPlanSchema>;
+// Not: `planLessonSchema` / `programPlanSchema` KALDIRILDI. Müfredat artık
+// onboarding'de LLM'e ürettirilmiyor; repo'da versiyonlanan sabit katalogdan
+// geliyor (apps/backend/src/curriculum/). Katalogun API şekli için aşağıdaki
+// "Müfredat görünümü" bölümüne bak.
 
 // ---------------------------------------------------------------------------
 // Ders içeriği — iki faz: LECTURE (anlatım + alıştırma) → PRACTICE (roleplay)
@@ -313,24 +313,54 @@ export const sessionScriptSchema = z.object({
 export type SessionScript = z.infer<typeof sessionScriptSchema>;
 
 // ---------------------------------------------------------------------------
-// API yanıt tipleri (web/mobil istemcilerin beklediği şekiller)
+// Müfredat görünümü — SABİT katalog + kullanıcının ilerlemesi
+//
+// Katalog kullanıcıdan bağımsızdır ve tüm kullanıcılarda aynıdır; bu yanıt onu
+// kullanıcının ilerlemesiyle birleştirip ünitelere gruplu döndürür. `title` ve
+// `focus` KANONİK İNGİLİZCE'dir (bkz. catalogLessonIdSchema): katalog tek bir
+// ana dile çivilenmemeli, ayrıca başlığın kendisi de öğrenme malzemesidir.
+// Öğrenciye görünen ana-dil metni üretilen LessonContent'ten gelir.
 // ---------------------------------------------------------------------------
 
-export const programLessonRowSchema = planLessonSchema.extend({
-  id: z.string().uuid(),
-  position: z.number().int().min(1),
-  status: z.enum(["not_started", "in_progress", "completed"]),
-});
-export type ProgramLessonRow = z.infer<typeof programLessonRowSchema>;
+export const lessonStatusSchema = z.enum(["not_started", "in_progress", "completed"]);
+export type LessonStatus = z.infer<typeof lessonStatusSchema>;
 
-export const programResponseSchema = z.object({
-  id: z.string().uuid(),
-  level: cefrLevelSchema,
-  track: trackSchema,
-  status: z.enum(["generating", "ready", "failed"]),
-  lessons: z.array(programLessonRowSchema),
+export const curriculumLessonSchema = z.object({
+  id: catalogLessonIdSchema,
+  /** Seviye içindeki 1'den başlayan kesintisiz sıra */
+  position: z.number().int().min(1),
+  unitIndex: z.number().int().min(1),
+  kind: lessonKindSchema,
+  /** Kanonik İngilizce başlık */
+  title: z.string().min(1),
+  /** Öğretilen tek şey, İngilizce */
+  focus: z.string().min(1),
+  /** Satır YOKSA "not_started" — ilerleme tablosu seyrektir */
+  status: lessonStatusSchema,
 });
-export type ProgramResponse = z.infer<typeof programResponseSchema>;
+export type CurriculumLesson = z.infer<typeof curriculumLessonSchema>;
+
+export const curriculumUnitSchema = z.object({
+  index: z.number().int().min(1),
+  title: z.string().min(1),
+  /** Ünite sonunda öğrencinin yapabilecek olduğu şey (can-do) */
+  goal: z.string().min(1),
+  lessons: z.array(curriculumLessonSchema).min(1),
+});
+export type CurriculumUnit = z.infer<typeof curriculumUnitSchema>;
+
+export const curriculumResponseSchema = z.object({
+  level: cefrLevelSchema,
+  /** Basamağın görünen adı: Beginner, Pre-Intermediate, … */
+  label: z.string().min(1),
+  track: trackSchema,
+  units: z.array(curriculumUnitSchema),
+  totals: z.object({
+    lessons: z.number().int().min(0),
+    completed: z.number().int().min(0),
+  }),
+});
+export type CurriculumResponse = z.infer<typeof curriculumResponseSchema>;
 
 // ---------------------------------------------------------------------------
 // Ders akış makinesi — istemcilerin (web + mobil) paylaştığı deterministik kararlar

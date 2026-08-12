@@ -1,33 +1,68 @@
-import { CONTENT_FORMAT } from "@arna/contracts";
+import { CONTENT_FORMAT, type LessonKind } from "@arna/contracts";
 import { languageName } from "../../../lib/language.js";
 
-export const LESSON_GEN_VERSION = "lesson-gen.v7";
+export const LESSON_GEN_VERSION = "lesson-gen.v8";
 
 export interface LessonGenContext {
-  /** BCP-47 ana dil kodu — hedef dil daima İngilizce */
+  /** BCP-47 ana dil kodu (normalize edilmiş) — hedef dil daima İngilizce */
   nativeLanguage: string;
   cefrLevel: string;
+  /** Sahne varyantı: müfredat track'ten bağımsız, senaryolar track'e göre değişir */
   track: string;
-  occupation: string | null;
-  interests: unknown;
-  lesson: { title: string; focus: string; theme: string };
+  lesson: {
+    kind: LessonKind;
+    title: string;
+    focus: string;
+    themeHint: string;
+    /** Katalogdan gelen, denetlenmiş kalıplar — model bunları ÜRETMEZ, kullanır */
+    targetPhrases: string[];
+  };
 }
 
 /**
- * v7: ders içeriği PEDAGOJİK SÖZLEŞME'dir, konuşma script'i değil.
+ * v8: içerik artık SABİT KATALOG satırından üretiliyor ve KULLANICILAR ARASINDA
+ * PAYLAŞILIYOR. v7'den üç fark:
  *
- * v6'dan farklar:
- * - `mustUse` artık ÖLÇÜLEBİLİR olmak zorunda: öğrencinin birebir söyleyeceği kısa
- *   kalıplar. v6'da model buraya gramer tarifi ("Present Simple for habits") ya da
- *   kırıntı ("do") yazıyordu; ilki hiç eşleşmiyor, ikincisi her turda eşleşip sahneyi
- *   konuşmanın ortasında kesiyordu.
- * - Roleplay uzadı: `maxTurns` 6 → 8.
+ * 1. `mustUse` ARTIK MODELİN İŞİ DEĞİL. Katalogdaki `targetPhrases` veriliyor ve
+ *    üretimden sonra kod tarafından zaten üzerine yazılıyor (bkz. service.ts).
+ *    v7'de bu alanı model uyduruyordu ve iki kez canlı hataya yol açtı: gramer
+ *    terimi yazınca metin eşleşmesi hiç tetiklenmiyor, tek işlev kelimesi yazınca
+ *    ("do") her turda eşleşip sahneyi ikinci turda kapatıyordu. v7'nin 8 satırlık
+ *    kural bloğu buradan kalktı — kural artık katalog lint'inde, üretim anında değil.
  *
- * v5'ten devralınanlar: hocanın birebir cümleleri içerikte YOK (beat'ler niyet taşır),
- * öğrencinin adı prompt'a hiç verilmez, objectives/communicationGoal/tutorNotes yapısı.
+ * 2. `occupation` ve `interests` PROMPT'A GİRMİYOR. İçerik paylaşımlı olduğu için
+ *    serbest metin bir meslek alanı başka öğrencilere sızabilirdi. Sahne bağlamı
+ *    artık katalogdaki nötr `themeHint` ve `track`ten geliyor.
+ *
+ * 3. Ders tipi (`kind`) prompt'a giriyor: `practice` dersinde anlatım gramer değil
+ *    konuşma stratejisi taşır, roleplay uzar.
+ *
+ * v5-v7'den devralınanlar: hocanın birebir cümleleri içerikte YOK (beat'ler niyet
+ * taşır), öğrencinin adı prompt'a hiç verilmez, objectives/communicationGoal/
+ * tutorNotes yapısı.
  */
 export function buildLessonGenPrompt(ctx: LessonGenContext): { system: string; user: string } {
   const l1 = languageName(ctx.nativeLanguage);
+  const { kind } = ctx.lesson;
+
+  const kindGuidance =
+    kind === "practice"
+      ? [
+          `THIS IS A SPEAKING LESSON (kind: practice).`,
+          `There is no new grammar here — the learner already met it. The teaching bullets carry`,
+          `USEFUL PHRASES and conversation strategy for the situation, not rules. The exercises are`,
+          `short warm-up prompts, and the role play is the heart of the lesson: set maxTurns to 10.`,
+        ]
+      : kind === "phrases"
+        ? [
+            `THIS IS A FUNCTIONAL LESSON (kind: phrases).`,
+            `Teach a set of ready-made expressions for a real situation, not a rule. The teaching`,
+            `bullets are the expressions themselves with a note on when to use each. maxTurns 8.`,
+          ]
+        : [
+            `THIS IS A GRAMMAR LESSON (kind: grammar).`,
+            `Teach one structure: show the form, then how it is used. maxTurns 8.`,
+          ];
 
   const system = [
     `You are an expert English lesson author. The learner is a ${l1} native speaker using a chat-based avatar tutor app.`,
@@ -41,6 +76,8 @@ export function buildLessonGenPrompt(ctx: LessonGenContext): { system: string; u
     `  BAD intent:  "Hi! Today we will learn the past simple. Are you ready to start?"`,
     `Never write a learner's name, never use quotation marks inside an intent, never address the learner in it.`,
     ``,
+    ...kindGuidance,
+    ``,
     `Output STRICT JSON only, exactly this shape:`,
     `{`,
     `  "formatVersion": ${CONTENT_FORMAT},`,
@@ -51,7 +88,7 @@ export function buildLessonGenPrompt(ctx: LessonGenContext): { system: string; u
     `  "objectives": ["<2-3 measurable can-do statements in English, e.g. 'Ask about past experiences using Have you ever'>"],`,
     `  "communicationGoal": "<English: what the learner can DO in the real world after this lesson>",`,
     `  "estMinutes": <int 4-8>,`,
-    `  "tutorNotes": { "target": "<the exact structure to elicit>", "commonErrors": ["<1-3 mistakes ${l1} speakers make with THIS structure>"], "correction": "<how to correct them>" },`,
+    `  "tutorNotes": { "target": "<the exact structure to elicit>", "commonErrors": ["<1-3 mistakes ${l1} speakers make with THIS point>"], "correction": "<how to correct them>" },`,
     `  "lecture": { "beats": [ ...6 to 8 beats, EXACT order below... ] },`,
     `  "practice": { ... },`,
     `  "summary": "<2 sentences in ${l1}: what you learned today>",`,
@@ -65,12 +102,15 @@ export function buildLessonGenPrompt(ctx: LessonGenContext): { system: string; u
     `4. {"id","kind":"say","intent":"<describe: acknowledge and announce that a few questions follow>"}`,
     `5-7. {"id","kind":"exercise","prompt":"<question>","options":["..."]?,"answers":["<accepted answer>","<variant>"],"hint":"<Example of what you can say: ...>"}  ← 2 or 3 of these`,
     `LAST (optional, at most ONE, after the exercises): an open production step, where there is no single correct string:`,
-    `   {"id","kind":"open_response","prompt":"<a question about the student's own life that forces the target structure>","rubric":{"mustUse":["<the target>"],"criteria":"<what makes an answer acceptable>"},"hint":"<Example of what you can say: ...>","maxAttempts":2}`,
-    `   Use it when the target is worth producing freely (e.g. 'Have you ever...?'). Skip it for purely mechanical targets.`,
+    `   {"id","kind":"open_response","prompt":"<a question about the student's own life that forces the target>","rubric":{"mustUse":["<the target>"],"criteria":"<what makes an answer acceptable>"},"hint":"<Example of what you can say: ...>","maxAttempts":2}`,
+    `   Use it when the target is worth producing freely. Skip it for purely mechanical targets.`,
     ``,
     `EXERCISE RULES (these ARE authored text — the learner reads/hears them verbatim):`,
     `- Mix formats: one fill-in-the-blank (write the blank as exactly ___ inside the prompt, start the prompt with 'Fill in the blank:'), one multiple choice, optionally one 'say the whole sentence' question.`,
-    `- MULTIPLE CHOICE: the \`prompt\` holds ONLY the question. Put the choices ONLY in \`options\` — never write them into the prompt text as well. The app renders and reads them out as A) B) C); listing them twice shows them twice on screen.`,
+    `- MULTIPLE CHOICE: put the choices ONLY in \`options\`. The app renders them as A) B) C) and reads them aloud,`,
+    `  so the \`prompt\` must be the question ALONE — never list, quote or hint the choices inside it, or the`,
+    `  learner sees and hears every option twice. WRONG: "Does she work or works at night? a) work b) works".`,
+    `  RIGHT: prompt "Which one is correct?", options ["She work at night.", "She works at night."].`,
     `- \`answers\` holds ONLY the missing part / correct option text (plus natural variants), NOT the whole sentence — the learner's spoken answer is matched loosely against these.`,
     `- Every exercise must practise the lesson focus.`,
     `- EXERCISE PROMPTS ARE ENGLISH ONLY. For a 'say the whole sentence' item give English cue words (e.g. "Say the whole sentence: I / get used to / the new office"), never a sentence written in the learner's native language.`,
@@ -78,51 +118,52 @@ export function buildLessonGenPrompt(ctx: LessonGenContext): { system: string; u
     `PRACTICE (role play, the second phase):`,
     `{"introIntent":"<describe: praise the lecture work and announce a short role play, naming the situation>",`,
     `  "persona":{"name":"<English name — NEVER 'Emma', that is the teacher's own name and would confuse the student>","role":"<their role, written in ${l1}>","mood":"<friendly|curious|busy>","goal":"<English: what this character is trying to get out of the conversation>"},`,
-    `  "scenario":"<one sentence in ${l1}: the scene>",`,
+    `  "scenario":"<one sentence in ${l1}: the scene, built on the SITUATION given below>",`,
     `  "userGoal":"<in ${l1}: what the learner must accomplish in this role play>",`,
     `  "avatarOpening":"<English: the character's first line, natural, ends with a question>",`,
-    `  "mustUse":["<2-5 word phrases the learner will literally SAY — see MUSTUSE RULES below>"],`,
+    `  "mustUse":<COPY THE GIVEN PHRASES EXACTLY — see below>,`,
     `  "minTargetUses": <int 1-3: how many times the learner must produce the target for the scene to count as successful>,`,
     `  "successCriteria":"<English: what a successful performance looks like>",`,
-    `  "maxTurns": 8}`,
+    `  "maxTurns": <as stated in the lesson-type note above>}`,
     ``,
-    `MUSTUSE RULES (this field is MEASURED by exact text matching against what the learner says):`,
-    `- Write the WORDS THE LEARNER WILL SAY, exactly as spoken: "I think", "have you ever", "I'm getting used to", "would you mind", "I've never".`,
-    `- 2 to 5 words each, at most 5 entries. Lower-case is fine.`,
-    `- NEVER write grammar terminology: "Present Simple", "past participle", "the passive voice", "irregular verbs" are all WRONG — they never appear in a learner's sentence, so the lesson can never register success.`,
-    `- NEVER write a description of the task: "a formal greeting", "outlining two topics" are WRONG for the same reason.`,
-    `- NEVER write a bare function word on its own: "do", "was", "did", "to" are WRONG — they match almost any sentence and would end the role play after two turns. Every entry needs at least TWO words.`,
-    `- Do not start an entry with "a"/"an"/"the" or with an -ing word ("outlining two topics") — that is a description of the task, not something the learner says.`,
-    `- No parentheses, no slashes, no "e.g.", no lists inside one entry.`,
-    `- The DESCRIPTION of what the lesson teaches belongs in "tutorNotes.target" and "successCriteria" — not here.`,
+    `MUSTUSE IS GIVEN, NOT INVENTED:`,
+    `Copy the phrase list from "PHRASES THE LEARNER WILL SAY" below into "mustUse", character for character.`,
+    `Do not add, drop, reword or reorder them. They are measured by exact text matching against what the`,
+    `learner says, and they have already been checked. Build the scenario so that saying them is natural.`,
     ``,
     `QUIZ (after the lesson, optional for the learner):`,
     `3-4 items: {"id","type":"mcq","stem","options"(3-4 unique),"correctIndex","feedbackPerOption":["<short, in ${l1}>"...]} and/or {"id","type":"fill_blank","text":"<... ___ ...>","answers":[["answer","variant"]]}`,
+    `- fill_blank: \`answers\` holds ONE list per ___ in the text, in order. Every string in it must be a real`,
+    `  accepted answer — NEVER pad a list with "" to reach a length. One good answer alone is fine.`,
     ``,
     `GLOBAL RULES:`,
     `- FIDELITY (most important): this lesson teaches EXACTLY "${ctx.lesson.focus}" and nothing else. Every bullet, example, exercise, role-play line and quiz item practises it.`,
-    `- NO PERSONAL DATA: the content must contain no learner name and nothing that identifies one individual. It has to work for any learner at this level with this theme.`,
+    `- NO PERSONAL DATA: this content is SHARED between many learners. It must contain no name, no job, no detail that identifies one individual. It has to work for any learner at this level.`,
     `- Everything the teacher SPEAKS aloud is simple English at the learner's level. The English fields (intents, teaching bullets, exercise prompts, avatarOpening) NEVER contain ${l1}.`,
     `- The learner's native language (${l1}) is used ONLY for: title, theme, persona.role, scenario, userGoal, summary and quiz feedback.`,
-    `- Those native-language fields MUST be written in ${l1}, even if the title/theme you were given happen to be written in another language. Translate them into ${l1} rather than copying their language.`,
+    `- Those native-language fields MUST be written in ${l1}, even if the title/situation you were given are in another language. Translate rather than copy.`,
     `- TEACHING BULLETS ARE ENGLISH ONLY — never put ${l1} words or glosses inside them. The learner can tap a button to translate.`,
+    `- PLAIN ASCII in every English field. Even English loanwords must lose their accents: write "cafe", not`,
+    `  "café"; "resume", not "résumé". A validator flags any non-ASCII letter in those fields as a leak of the`,
+    `  learner's language, and it cannot tell an accented loanword apart from one.`,
     `- Teaching bullets are short (max ~16 words), concrete, and show the form ('After **get used to**, use a noun or an -ing verb').`,
-    `- Ground the lesson in the given theme; use the occupation/interests below to pick situations, never to name-drop.`,
     `- No markdown fences, no commentary — JSON only.`,
   ].join("\n");
 
   const user = [
-    `Learner profile (use for context and examples — NOT to be written into the lesson):`,
+    `Learner context (for level and language only — NOT to be written into the lesson):`,
     `- Native language: ${l1}`,
     `- CEFR level: ${ctx.cefrLevel}`,
-    `- Track: ${ctx.track}`,
-    `- Occupation: ${ctx.occupation ?? "(not given)"}`,
-    `- Interests: ${Array.isArray(ctx.interests) ? (ctx.interests as string[]).join(", ") : ""}`,
+    `- Track (use it to pick the flavour of the role-play setting): ${ctx.track}`,
     ``,
     `Lesson to author:`,
     `- Title: ${ctx.lesson.title}`,
+    `- Type: ${kind}`,
     `- FOCUS (teach exactly this): ${ctx.lesson.focus}`,
-    `- Theme: ${ctx.lesson.theme}`,
+    `- SITUATION to build the role play around: ${ctx.lesson.themeHint}`,
+    ``,
+    `PHRASES THE LEARNER WILL SAY (copy verbatim into practice.mustUse):`,
+    ...ctx.lesson.targetPhrases.map((p) => `- ${p}`),
     ``,
     `Author the lesson JSON now.`,
   ].join("\n");

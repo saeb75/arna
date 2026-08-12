@@ -3,20 +3,12 @@
  *  Çalıştırma: apps/backend içinde `npx tsx scripts/test-session-script.ts` */
 import { eq } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
-import {
-  lessons,
-  memories,
-  programLessons,
-  programs,
-  sessionSummaries,
-  sessions,
-  userProfiles,
-} from "../src/db/schema.js";
+import { memories, sessionSummaries, sessions, userProfiles } from "../src/db/schema.js";
 import { embed } from "../src/modules/llm/index.js";
 import { isEnglishText } from "../src/modules/lesson/lint.js";
 import { fallbackScript } from "../src/modules/session/script.js";
 import { openSession } from "../src/modules/session/service.js";
-import { makeLessonContent } from "./_fixture.js";
+import { makeLessonContent, seedTestCatalogLesson , seedTestContent} from "./_fixture.js";
 
 const testUserId = "00000000-0000-4000-8000-000000000010";
 const displayName = "Saeb";
@@ -46,7 +38,6 @@ const content = makeLessonContent({
 
 await sql`delete from memories where user_id = ${testUserId}`;
 await sql`delete from sessions where user_id = ${testUserId}`;
-await sql`delete from programs where user_id = ${testUserId}`;
 await sql`delete from user_profiles where user_id = ${testUserId}`;
 
 await db.insert(userProfiles).values({
@@ -54,12 +45,8 @@ await db.insert(userProfiles).values({
   cefrLevel: "A2", track: "business", dailyGoalMinutes: 10,
   occupation: "backend developer", interests: ["technology"],
 });
-const [program] = await db.insert(programs)
-  .values({ userId: testUserId, track: "business", level: "A2", status: "ready" }).returning();
-const [pl] = await db.insert(programLessons)
-  .values({ programId: program!.id, position: 2, title: content.title, focus: content.focus, theme: content.theme }).returning();
-await db.insert(lessons)
-  .values({ programLessonId: pl!.id, userId: testUserId, status: "ready", content });
+const catalogLesson = await seedTestCatalogLesson({});
+await seedTestContent({ userId: testUserId, catalogLessonId: catalogLesson.id, content });
 
 // Geçmiş bir ders + hafıza: selamlamanın bunlara değinebilmesi gerekiyor
 const [pastSession] = await db.insert(sessions)
@@ -87,7 +74,7 @@ await db.insert(memories).values(
 // --- oturum aç: script burada üretilir --------------------------------------
 
 const t0 = Date.now();
-const { sessionId, script } = await openSession(testUserId, pl!.id);
+const { sessionId, script } = await openSession(testUserId, catalogLesson.id);
 const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
 
 console.log(`\n=== HOCANIN BU OTURUMDAKİ CÜMLELERİ (${elapsed} sn) ===`);
@@ -167,7 +154,6 @@ check("yedek selamlama da adı kullanıyor", (fb.beats["b1"] ?? "").includes(dis
 
 await sql`delete from memories where user_id = ${testUserId}`;
 await sql`delete from sessions where user_id = ${testUserId}`;
-await sql`delete from programs where user_id = ${testUserId}`;
 await sql`delete from user_profiles where user_id = ${testUserId}`;
 await sql`delete from llm_calls where user_id = ${testUserId}`;
 await sql.end();

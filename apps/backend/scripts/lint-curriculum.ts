@@ -15,11 +15,11 @@ import type { CefrLevel } from "@arna/contracts";
 import {
   AUTHORED_LEVELS,
   CURRICULUM,
-  curriculumLevelSchema,
+  levelSpecSchema,
   lessonId,
   specHash,
   unitId,
-  type CurriculumLevel,
+  type LevelSpec,
 } from "../src/curriculum/index.js";
 import { isEnglishText, lintMustUse } from "../src/modules/lesson/lint.js";
 
@@ -36,8 +36,8 @@ function warn(where: string, message: string): void {
   warnings.push(`${where}: ${message}`);
 }
 
-function lintLevel(level: CefrLevel, data: CurriculumLevel): void {
-  const parsed = curriculumLevelSchema.safeParse(data);
+function lintLevel(level: CefrLevel, data: LevelSpec): void {
+  const parsed = levelSpecSchema.safeParse(data);
   if (!parsed.success) {
     for (const issue of parsed.error.issues) {
       err(`${level} şema`, `${issue.path.join(".")} — ${issue.message}`);

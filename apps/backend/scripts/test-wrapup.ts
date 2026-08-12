@@ -6,10 +6,10 @@
  *
  *  Çalıştırma: apps/backend içinde `npx tsx scripts/test-wrapup.ts` */
 import { db, sql } from "../src/db/client.js";
-import { lessons, programLessons, programs, userProfiles } from "../src/db/schema.js";
+import { userProfiles } from "../src/db/schema.js";
 import { fallbackScript } from "../src/modules/session/script.js";
 import { chatTurn, openSession } from "../src/modules/session/service.js";
-import { makeLessonContent } from "./_fixture.js";
+import { makeLessonContent, seedTestCatalogLesson , seedTestContent} from "./_fixture.js";
 
 const testUserId = "00000000-0000-4000-8000-000000000013";
 
@@ -44,7 +44,6 @@ const content = makeLessonContent({
   },
 });
 
-await sql`delete from programs where user_id = ${testUserId}`;
 await sql`delete from user_profiles where user_id = ${testUserId}`;
 
 await db.insert(userProfiles).values({
@@ -52,14 +51,10 @@ await db.insert(userProfiles).values({
   cefrLevel: "B1", track: "business", dailyGoalMinutes: 10,
   occupation: "backend developer", interests: ["technology"],
 });
-const [program] = await db.insert(programs)
-  .values({ userId: testUserId, track: "business", level: "B1", status: "ready" }).returning();
-const [pl] = await db.insert(programLessons)
-  .values({ programId: program!.id, position: 1, title: content.title, focus: content.focus, theme: content.theme }).returning();
-await db.insert(lessons)
-  .values({ programLessonId: pl!.id, userId: testUserId, status: "ready", content });
+const catalogLesson = await seedTestCatalogLesson({});
+await seedTestContent({ userId: testUserId, catalogLessonId: catalogLesson.id, content });
 
-const { sessionId, script } = await openSession(testUserId, pl!.id);
+const { sessionId, script } = await openSession(testUserId, catalogLesson.id);
 
 // --- 1) Kapanış cümleleri üretildi mi? --------------------------------------
 
@@ -145,7 +140,6 @@ const fb = fallbackScript(content, "Saeb");
 check("yedek script'te kapanış var", !!fb.wrapup && fb.wrapup.includes("Saeb"));
 check("yedek script'te veda var", !!fb.farewell && !fb.farewell.includes("?"));
 
-await sql`delete from programs where user_id = ${testUserId}`;
 await sql`delete from user_profiles where user_id = ${testUserId}`;
 await sql`delete from llm_calls where user_id = ${testUserId}`;
 await sql.end();

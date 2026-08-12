@@ -5,24 +5,14 @@
 import type { LessonContent } from "@arna/contracts";
 import { and, cosineDistance, desc, eq, isNotNull, sql as dsql } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
-import {
-  lessons,
-  llmCalls,
-  memories,
-  programLessons,
-  programs,
-  sessionSummaries,
-  sessions,
-  transcriptTurns,
-  userProfiles,
-} from "../src/db/schema.js";
+import { lessonProgress, llmCalls, memories, sessionSummaries, sessions, transcriptTurns, userProfiles } from "../src/db/schema.js";
 import { embed } from "../src/modules/llm/index.js";
 import { DEDUP_SIMILARITY } from "../src/modules/memory/extract.js";
 import { buildTutorPrompt } from "../src/modules/lesson/tutorPrompt.js";
 import { extractSessionMemory } from "../src/modules/memory/extract.js";
 import { buildMemoryBlock } from "../src/modules/memory/retrieve.js";
 import { chatTurn, openSession } from "../src/modules/session/service.js";
-import { makeLessonContent } from "./_fixture.js";
+import { makeLessonContent, seedTestCatalogLesson, seedTestContent } from "./_fixture.js";
 
 const testUserId = "00000000-0000-4000-8000-000000000009";
 
@@ -36,7 +26,6 @@ const lessonContent = (title: string, topic: string, focus: string, theme: strin
 
 await sql`delete from memories where user_id = ${testUserId}`;
 await sql`delete from sessions where user_id = ${testUserId}`;
-await sql`delete from programs where user_id = ${testUserId}`;
 await sql`delete from user_profiles where user_id = ${testUserId}`;
 
 await db.insert(userProfiles).values({
@@ -50,40 +39,25 @@ await db.insert(userProfiles).values({
   interests: ["technology", "sports"],
 });
 
-const [program] = await db
-  .insert(programs)
-  .values({ userId: testUserId, track: "business", level: "A2", status: "ready" })
-  .returning();
 
-const [pl1] = await db
-  .insert(programLessons)
-  .values({ programId: program!.id, position: 1, title: "Geçmiş Zaman I", focus: "Past Simple (regular verbs)", theme: "İş" })
-  .returning();
-const [pl2] = await db
-  .insert(programLessons)
-  .values({ programId: program!.id, position: 2, title: "Hafta Sonu Planları", focus: "Present Continuous for future", theme: "Sosyal" })
-  .returning();
+const pl1 = await seedTestCatalogLesson({});
+const pl2 = await seedTestCatalogLesson({ slot: 2 });
 
-const [l1] = await db
-  .insert(lessons)
-  .values({
-    programLessonId: pl1!.id,
-    userId: testUserId,
-    status: "ready",
-    content: lessonContent("Geçmiş Zaman I", "past simple", "Past Simple (regular verbs)", "İş"),
-  })
-  .returning();
-await db.insert(lessons).values({
-  programLessonId: pl2!.id,
+const l1 = await seedTestContent({
   userId: testUserId,
-  status: "ready",
-  content: lessonContent("Hafta Sonu Planları", "weekend plans", "Present Continuous for future", "Sosyal"),
+  catalogLessonId: pl1.id,
+  content: lessonContent("Geçmiş Zaman I", "past simple", "Past Simple (regular verbs)", "İş"),
 });
-await db.update(programLessons).set({ status: "completed" }).where(eq(programLessons.id, pl1!.id));
+await db
+  .insert(lessonProgress)
+  .values({ userId: testUserId, catalogLessonId: pl1.id, status: "completed" })
+  .onConflictDoNothing();
 
+// Oturum PAYLAŞIMLI içerik satırını ve müfredat yuvasını birlikte taşır: hafıza
+// çıkarımı içeriğe, ilerleme ise yuvaya bakıyor.
 const [session] = await db
   .insert(sessions)
-  .values({ userId: testUserId, lessonId: l1!.id, endedAt: new Date() })
+  .values({ userId: testUserId, contentId: l1.id, catalogLessonId: pl1.id, endedAt: new Date() })
   .returning();
 
 // Gerçekçi transkript: kişisel bilgi + dilbilgisi hatası + roleplay kurgusu
@@ -225,7 +199,13 @@ check("prompt'ta ilgi alanları var", system.includes("technology"));
 // kurup prompt'a koyup koymadığı (Faz 7 öncesi memoryBlock hiç doldurulmuyordu).
 
 console.log("\n— canlı ders turu (2. ders) —");
-const { sessionId: liveSessionId } = await openSession(testUserId, pl2!.id);
+// 2. dersin paylaşımlı içeriği: openSession üretim tetiklemez, hazır satır ister
+await seedTestContent({
+  userId: testUserId,
+  catalogLessonId: pl2.id,
+  content: lessonContent("Hafta Sonu Planları", "weekend plans", "Present Continuous for future", "Sosyal"),
+});
+const { sessionId: liveSessionId } = await openSession(testUserId, pl2.id);
 const reply = await chatTurn(testUserId, liveSessionId, "Hi Emma, I am ready.", {
   phase: "lecture",
   beatId: "b3",
@@ -269,7 +249,6 @@ check("embedding loglandı", byPurpose.has("embedding"));
 
 await sql`delete from memories where user_id = ${testUserId}`;
 await sql`delete from sessions where user_id = ${testUserId}`;
-await sql`delete from programs where user_id = ${testUserId}`;
 await sql`delete from user_profiles where user_id = ${testUserId}`;
 await sql`delete from llm_calls where user_id = ${testUserId}`;
 await sql.end();

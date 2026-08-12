@@ -2,10 +2,10 @@
  *  `answers[]` ile ölçülemeyen ("kendi cümleni kur") adımlar için.
  *  Çalıştırma: apps/backend içinde `npx tsx scripts/test-open-response.ts` */
 import { db, sql } from "../src/db/client.js";
-import { lessons, programLessons, programs, userProfiles } from "../src/db/schema.js";
+import { userProfiles } from "../src/db/schema.js";
 import { lintLesson } from "../src/modules/lesson/lint.js";
 import { chatTurn, openSession } from "../src/modules/session/service.js";
-import { makeLessonContent } from "./_fixture.js";
+import { makeLessonContent, seedTestCatalogLesson , seedTestContent} from "./_fixture.js";
 
 const testUserId = "00000000-0000-4000-8000-000000000011";
 
@@ -50,7 +50,6 @@ const content = makeLessonContent({
   },
 });
 
-await sql`delete from programs where user_id = ${testUserId}`;
 await sql`delete from user_profiles where user_id = ${testUserId}`;
 
 await db.insert(userProfiles).values({
@@ -58,17 +57,13 @@ await db.insert(userProfiles).values({
   cefrLevel: "B1", track: "business", dailyGoalMinutes: 10,
   occupation: "backend developer", interests: ["technology"],
 });
-const [program] = await db.insert(programs)
-  .values({ userId: testUserId, track: "business", level: "B1", status: "ready" }).returning();
-const [pl] = await db.insert(programLessons)
-  .values({ programId: program!.id, position: 1, title: content.title, focus: content.focus, theme: content.theme }).returning();
-await db.insert(lessons)
-  .values({ programLessonId: pl!.id, userId: testUserId, status: "ready", content });
+const catalogLesson = await seedTestCatalogLesson({});
+await seedTestContent({ userId: testUserId, catalogLessonId: catalogLesson.id, content });
 
-const report = lintLesson(content, { displayName: "Saeb" });
+const report = lintLesson(content, { forbidden: ["Saeb"] });
 check("lint temiz", report.errors.length === 0, report.errors.join("; "));
 
-const { sessionId } = await openSession(testUserId, pl!.id);
+const { sessionId } = await openSession(testUserId, catalogLesson.id);
 
 // 1) Beklenenden FARKLI ama doğru bir cevap — kabul edilmeli
 //    (v5'te `answers[]` eşleşmesi bunu yanlış sayardı)
@@ -80,7 +75,7 @@ console.log("[Emma]", a1.text);
 check("beklenmedik ama doğru cevap KABUL edildi", a1.beatDone === true, `beatDone=${a1.beatDone}`);
 
 // 2) Hedef yapıyı kullanmayan cevap — reddedilip tekrar sorulmalı
-const { sessionId: s2 } = await openSession(testUserId, pl!.id);
+const { sessionId: s2 } = await openSession(testUserId, catalogLesson.id);
 const b1 = await chatTurn(testUserId, s2, "Yes, last year I worked with a team in Berlin.", {
   phase: "lecture", beatId: "b7", attempt: 0,
 });
@@ -97,7 +92,6 @@ console.log("[Emma]", b2.text);
 check("son denemeden sonra adım kapanıyor (akış tıkanmıyor)", b2.beatDone === true, `beatDone=${b2.beatDone}`);
 check("son denemede hoca doğrusunu söylüyor, tekrar sormuyor", !/\?\s*$/.test(b2.text.trim()), b2.text);
 
-await sql`delete from programs where user_id = ${testUserId}`;
 await sql`delete from user_profiles where user_id = ${testUserId}`;
 await sql`delete from llm_calls where user_id = ${testUserId}`;
 await sql.end();

@@ -5,6 +5,7 @@ import {
   jsonb,
   numeric,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -85,12 +86,157 @@ export const lessons = pgTable(
   (t) => [uniqueIndex("lessons_pl_ver_idx").on(t.programLessonId, t.version)],
 );
 
+// ---------------------------------------------------------------------------
+// SABİT MÜFREDAT KATALOĞU
+//
+// Doğruluk kaynağı repo'daki src/curriculum/*.ts dosyalarıdır; bu iki tablo
+// onun türetilmiş projeksiyonudur (scripts/seed-curriculum.ts yazar).
+// Katalog kullanıcıdan, ana dilden ve track'ten BAĞIMSIZDIR — metinleri kanonik
+// İngilizce'dir. Kimlikler UUID değil kalıcı slug: seed dosyası git'te
+// okunabilir kalsın ve URL anlamlı olsun diye.
+// ---------------------------------------------------------------------------
+
+export const catalogUnits = pgTable(
+  "catalog_units",
+  {
+    id: text("id").primaryKey(), // "a1-u03"
+    level: text("level").notNull(), // A1..C2
+    unitIndex: integer("unit_index").notNull(),
+    title: text("title").notNull(),
+    /** Ünite sonunda öğrencinin yapabilecek olduğu şey (can-do, İngilizce) */
+    goal: text("goal").notNull(),
+    /** active | retired — katalogdan çıkan satır SİLİNMEZ, emekliye ayrılır */
+    status: text("status").notNull().default("active"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("catalog_units_level_idx").on(t.level, t.unitIndex)],
+);
+
+export const catalogLessons = pgTable(
+  "catalog_lessons",
+  {
+    id: text("id").primaryKey(), // "a1-she-works-at-night"
+    unitId: text("unit_id")
+      .notNull()
+      .references(() => catalogUnits.id),
+    /** Ünite üzerinden de bulunabilir; seviye listesi en sık sorgu olduğu için denormalize */
+    level: text("level").notNull(),
+    /** Seviye içinde 1'den başlayan kesintisiz sıra */
+    position: integer("position").notNull(),
+    unitIndex: integer("unit_index").notNull(),
+    kind: text("kind").notNull(), // phrases | grammar | practice
+    title: text("title").notNull(),
+    focus: text("focus").notNull(),
+    themeHint: text("theme_hint").notNull(),
+    /**
+     * Öğrencinin BİREBİR söyleyeceği kalıplar; practice.mustUse'a verilen değer
+     * olarak geçer. Modelin uydurmasına bırakıldığında iki kez canlı hataya yol
+     * açtı (gramer terimi → ölçüm hiç tetiklenmiyor, tek kelime → sahne erken
+     * kapanıyor); artık katalogda ve lint denetiminde.
+     */
+    targetPhrases: jsonb("target_phrases").$type<string[]>().notNull().default([]),
+    /**
+     * Üretimi etkileyen alanların parmak izi (kind + focus + themeHint +
+     * targetPhrases). İçerik önbellek anahtarının parçası: katalogda bir focus
+     * düzeltilince hash değişir ve o ders kendiliğinden yeniden üretilir.
+     */
+    specHash: text("spec_hash").notNull(),
+    status: text("status").notNull().default("active"), // active | retired
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("catalog_lessons_level_pos_idx").on(t.level, t.position),
+    index("catalog_lessons_unit_idx").on(t.unitId),
+  ],
+);
+
+/**
+ * PAYLAŞIMLI ders içeriği. Aynı satır, aynı anahtarı taşıyan TÜM kullanıcılara
+ * servis edilir — işin bütün gerekçesi bu. İçerik kullanıcıdan bağımsızdır
+ * (lint isim sızıntısını yasaklar); kişiselleştirme oturum script'inde yapılır.
+ *
+ * DİKKAT: anahtarın altı kolonu da NOT NULL olmak ZORUNDA. Postgres unique
+ * index'te NULL'ları birbirinden farklı sayar; anahtarın bir parçası claim
+ * anında yazılmayıp sonra doldurulursa "tek üretim uçuşta" koruması sessizce
+ * çöker ve aynı ders için N tane paralel LLM çağrısı gider.
+ */
+export const lessonContents = pgTable(
+  "lesson_contents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    catalogLessonId: text("catalog_lesson_id")
+      .notNull()
+      .references(() => catalogLessons.id, { onDelete: "cascade" }),
+    /** BCP-47 birincil alt etiket, küçük harf — normalizeNativeLanguage() ile */
+    nativeLanguage: text("native_language").notNull(),
+    /** Sahne varyantı: müfredat track'ten bağımsız, ama senaryolar track'e göre değişir */
+    track: text("track").notNull(),
+    specHash: text("spec_hash").notNull(),
+    formatVersion: integer("format_version").notNull(),
+    promptVersion: text("prompt_version").notNull(),
+    status: text("status").notNull().default("generating"), // generating | ready | failed | retired
+    content: jsonb("content"), // LessonContent (@arna/contracts ile doğrulanır)
+    validationReport: jsonb("validation_report"),
+    model: text("model"),
+    /** Yalnızca denetim: üretimin faturasını kim ödedi. SAHİPLİK DEĞİL. */
+    generatedForUserId: uuid("generated_for_user_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("lesson_contents_cache_key_idx").on(
+      t.catalogLessonId,
+      t.nativeLanguage,
+      t.track,
+      t.formatVersion,
+      t.promptVersion,
+      t.specHash,
+    ),
+    index("lesson_contents_lookup_idx").on(t.catalogLessonId, t.nativeLanguage, t.status),
+  ],
+);
+
+/**
+ * Kullanıcının ilerlemesi — SEYREK: satır yalnızca BAŞLANAN ders için açılır,
+ * satırın yokluğu "not_started" demektir. Katalog 349 derse çıktığında her
+ * kullanıcı için 349 satır kopyalamak yalnızca durum tutmak için olurdu.
+ *
+ * İlerleme katalog kimliğine bağlı olduğu için seviye değişimi ilerlemeyi
+ * ETKİLEMEZ; "tamamladığın dersler kaybolmaz" sözü artık yapısal olarak doğru.
+ */
+export const lessonProgress = pgTable(
+  "lesson_progress",
+  {
+    userId: uuid("user_id").notNull(),
+    catalogLessonId: text("catalog_lesson_id")
+      .notNull()
+      .references(() => catalogLessons.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("in_progress"), // in_progress | completed
+    sessionCount: integer("session_count").notNull().default(0),
+    firstStartedAt: timestamp("first_started_at", { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.catalogLessonId] }),
+    index("lesson_progress_user_idx").on(t.userId, t.updatedAt),
+  ],
+);
+
 export const sessions = pgTable(
   "sessions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     userId: uuid("user_id").notNull(),
     lessonId: uuid("lesson_id").references(() => lessons.id, { onDelete: "set null" }),
+    /** Müfredat yuvası — ilerleme bunun üzerinden işaretlenir, içerik sürümünden bağımsız */
+    catalogLessonId: text("catalog_lesson_id").references(() => catalogLessons.id, {
+      onDelete: "set null",
+    }),
+    /** Hangi paylaşımlı içerik satırı oynatıldı — "bozuk önbelleği kim gördü" sorusunu çözer */
+    contentId: uuid("content_id").references(() => lessonContents.id, { onDelete: "set null" }),
     startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
     endedAt: timestamp("ended_at", { withTimezone: true }),
     state: jsonb("state"),

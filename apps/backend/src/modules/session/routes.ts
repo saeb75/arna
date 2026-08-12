@@ -1,9 +1,10 @@
+import { catalogLessonIdSchema } from "@arna/contracts";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { chatTurn, endSession, openSession, SessionError, stt, translate, tts } from "./service.js";
 
 const sessionParams = z.object({ sessionId: z.string().uuid() });
-const lessonParams = z.object({ programLessonId: z.string().uuid() });
+const lessonParams = z.object({ catalogLessonId: catalogLessonIdSchema });
 const chatBody = z.object({
   text: z.string().trim().min(1).max(1000),
   phase: z.enum(["lecture", "practice", "wrapup"]).optional(),
@@ -37,7 +38,7 @@ function sendError(reply: { code: (n: number) => { send: (b: unknown) => unknown
 
 export default async function sessionRoutes(app: FastifyInstance) {
   app.post(
-    "/lessons/:programLessonId/sessions",
+    "/lessons/:catalogLessonId/sessions",
     {
       preHandler: app.requireAuth,
       config: { rateLimit: { max: 20, timeWindow: "1 hour", keyGenerator: byUser } },
@@ -46,7 +47,7 @@ export default async function sessionRoutes(app: FastifyInstance) {
       const params = lessonParams.safeParse(request.params);
       if (!params.success) return reply.code(400).send({ error: "invalid_input" });
       try {
-        return reply.code(201).send(await openSession(request.userId, params.data.programLessonId));
+        return reply.code(201).send(await openSession(request.userId, params.data.catalogLessonId));
       } catch (err) {
         return sendError(reply, err);
       }

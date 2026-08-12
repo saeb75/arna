@@ -1,22 +1,11 @@
-import { CONTENT_FORMAT, lessonContentSchema, type LessonContent } from "@arna/contracts";
-import { and, asc, eq, gt, isNull } from "drizzle-orm";
+import { CONTENT_FORMAT, lessonContentSchema, type LessonContent, type LessonKind } from "@arna/contracts";
+import { and, asc, eq, gt } from "drizzle-orm";
 import { db } from "../../db/client.js";
-import { lessons, programLessons, programs, userProfiles } from "../../db/schema.js";
+import { catalogLessons, lessonContents, userProfiles } from "../../db/schema.js";
 import { nativeLanguageOf } from "../../lib/language.js";
 import { completeJson, modelForPurpose } from "../llm/index.js";
-import { buildLessonGenPrompt, LESSON_GEN_VERSION } from "../llm/prompts/lesson-gen.v7.js";
+import { buildLessonGenPrompt, LESSON_GEN_VERSION } from "../llm/prompts/lesson-gen.v8.js";
 import { lintLesson, type LintReport } from "./lint.js";
-
-/**
- * Bayat içerik otomatik yeniden üretilir (kullanıcı bir şey yapmaz).
- * formatVersion'a bakılır: eskiden yalnızca "lecture var mı" kontrol ediliyordu,
- * bu yüzden prompt/şema değişse bile hiçbir satır bayatlamıyordu.
- */
-function isCurrentFormat(content: unknown, promptVersion: string | null): content is LessonContent {
-  if (!content || typeof content !== "object") return false;
-  if ((content as { formatVersion?: number }).formatVersion !== CONTENT_FORMAT) return false;
-  return promptVersion === LESSON_GEN_VERSION;
-}
 
 export class LessonError extends Error {
   constructor(
@@ -28,70 +17,106 @@ export class LessonError extends Error {
 }
 
 interface LessonResult {
+  /** PAYLAŞIMLI içerik satırının kimliği — kullanıcıya ait değildir */
   lessonId: string;
   content: LessonContent;
   report: LintReport;
 }
 
-/** Plan satırını sahiplik kontrolüyle getirir. */
-async function getOwnedPlanRow(userId: string, programLessonId: string) {
+/**
+ * İçerik önbellek anahtarı. ALTI ALAN DA ZORUNLU ve claim eden INSERT tarafından
+ * yazılır: Postgres unique index'te NULL'ları farklı saydığı için anahtarın bir
+ * parçası sonradan doldurulursa "tek üretim uçuşta" koruması sessizce çöker.
+ */
+interface CacheKey {
+  catalogLessonId: string;
+  nativeLanguage: string;
+  track: string;
+  formatVersion: number;
+  promptVersion: string;
+  specHash: string;
+}
+
+function keyWhere(k: CacheKey) {
+  return and(
+    eq(lessonContents.catalogLessonId, k.catalogLessonId),
+    eq(lessonContents.nativeLanguage, k.nativeLanguage),
+    eq(lessonContents.track, k.track),
+    eq(lessonContents.formatVersion, k.formatVersion),
+    eq(lessonContents.promptVersion, k.promptVersion),
+    eq(lessonContents.specHash, k.specHash),
+  );
+}
+
+/** Katalog satırı — kullanıcıya ait değil, herkes için aynı. */
+async function getCatalogLesson(catalogLessonId: string) {
   const [row] = await db
-    .select({
-      pl: programLessons,
-      programUserId: programs.userId,
-      level: programs.level,
-      track: programs.track,
-    })
-    .from(programLessons)
-    .innerJoin(programs, eq(programLessons.programId, programs.id))
-    .where(and(eq(programLessons.id, programLessonId), eq(programs.userId, userId)))
+    .select()
+    .from(catalogLessons)
+    .where(and(eq(catalogLessons.id, catalogLessonId), eq(catalogLessons.status, "active")))
     .limit(1);
   return row ?? null;
 }
 
-/** İçerik varsa döner; yoksa üretir, lint'ler, kaydeder. Tembel üretimin kalbi. */
+/**
+ * İçerik varsa döner; yoksa üretir, lint'ler, kaydeder.
+ *
+ * SAHİPLİK KONTROLÜ YOK — ve olmamalı. Katalog herkese açıktır (CLAUDE.md:
+ * "Tüm dersler açık — kullanıcı istediğine atlar"), içerik ise kullanıcıdan
+ * bağımsızdır (lint isim/kişisel veri sızıntısını yasaklar). Kötüye kullanım
+ * route'taki oran sınırıyla tutuluyor, sahiplik join'iyle değil.
+ */
 export async function getOrGenerateLesson(
   userId: string,
-  programLessonId: string,
+  catalogLessonId: string,
 ): Promise<LessonResult> {
-  const owned = await getOwnedPlanRow(userId, programLessonId);
-  if (!owned) throw new LessonError("not_found", "Ders bulunamadı veya kullanıcıya ait değil");
+  const lesson = await getCatalogLesson(catalogLessonId);
+  if (!lesson) throw new LessonError("not_found", "Ders katalogda bulunamadı");
 
-  const [existing] = await db
+  const [profile] = await db
     .select()
-    .from(lessons)
-    .where(and(eq(lessons.programLessonId, programLessonId), eq(lessons.status, "ready")))
+    .from(userProfiles)
+    .where(eq(userProfiles.userId, userId))
     .limit(1);
 
-  if (existing && isCurrentFormat(existing.content, existing.promptVersion)) {
+  const key: CacheKey = {
+    catalogLessonId,
+    nativeLanguage: nativeLanguageOf(profile),
+    track: profile?.track ?? "conversation",
+    formatVersion: CONTENT_FORMAT,
+    promptVersion: LESSON_GEN_VERSION,
+    specHash: lesson.specHash,
+  };
+
+  // Bayat satır aranmaz: promptVersion ve specHash zaten anahtarın içinde, yani
+  // katalog düzeltmesi ya da prompt sürümü değişince ARANAN ANAHTAR değişiyor.
+  // Eski satır yerinde kalır — geri alma bedava.
+  const [ready] = await db
+    .select()
+    .from(lessonContents)
+    .where(and(keyWhere(key), eq(lessonContents.status, "ready")))
+    .limit(1);
+
+  if (ready?.content) {
     return {
-      lessonId: existing.id,
-      content: existing.content,
-      report: (existing.validationReport as LintReport) ?? { errors: [], warnings: [] },
+      lessonId: ready.id,
+      content: ready.content as LessonContent,
+      report: (ready.validationReport as LintReport) ?? { errors: [], warnings: [] },
     };
   }
 
-  // Eski formatta içerik varsa satırı devral ve yeniden üret (kullanıcı bir şey yapmaz)
-  if (existing) {
-    await db.update(lessons).set({ status: "generating" }).where(eq(lessons.id, existing.id));
-    return await generateInto(existing.id, userId, programLessonId, owned);
-  }
-
-  // Eşzamanlı çift üretim koruması: generating satırını unique index'e yaslanarak al
+  // Eşzamanlı çift üretim koruması: unique index'e yaslanarak satırı al
   const claimed = await db
-    .insert(lessons)
-    .values({ programLessonId, userId, version: 1, status: "generating" })
+    .insert(lessonContents)
+    .values({ ...key, status: "generating", generatedForUserId: userId })
     .onConflictDoNothing()
     .returning();
 
   if (claimed.length === 0) {
+    // Başkası üretiyor ya da önceki deneme başarısız kalmış
     for (let i = 0; i < 15; i++) {
       await new Promise((r) => setTimeout(r, 2000));
-      const [row] = await db
-        .select()
-        .from(lessons)
-        .where(eq(lessons.programLessonId, programLessonId))
-        .limit(1);
+      const [row] = await db.select().from(lessonContents).where(keyWhere(key)).limit(1);
       if (row?.status === "ready" && row.content) {
         return {
           lessonId: row.id,
@@ -100,49 +125,80 @@ export async function getOrGenerateLesson(
         };
       }
       if (row?.status === "failed") {
-        await db.update(lessons).set({ status: "generating" }).where(eq(lessons.id, row.id));
-        return await generateInto(row.id, userId, programLessonId, owned);
+        await db
+          .update(lessonContents)
+          .set({ status: "generating", updatedAt: new Date() })
+          .where(eq(lessonContents.id, row.id));
+        return await generateInto(row.id, userId, lesson);
       }
     }
     throw new LessonError("in_progress_elsewhere", "Ders üretimi başka bir istekte sürüyor");
   }
 
-  return await generateInto(claimed[0]!.id, userId, programLessonId, owned);
+  return await generateInto(claimed[0]!.id, userId, lesson);
+}
+
+/** Bu kullanıcının anahtarına düşen HAZIR içerik satırı; yoksa null. Üretim tetiklemez. */
+export async function findReadyContent(userId: string, catalogLessonId: string) {
+  const lesson = await getCatalogLesson(catalogLessonId);
+  if (!lesson) return null;
+
+  const [profile] = await db
+    .select()
+    .from(userProfiles)
+    .where(eq(userProfiles.userId, userId))
+    .limit(1);
+
+  const [row] = await db
+    .select()
+    .from(lessonContents)
+    .where(
+      and(
+        keyWhere({
+          catalogLessonId,
+          nativeLanguage: nativeLanguageOf(profile),
+          track: profile?.track ?? "conversation",
+          formatVersion: CONTENT_FORMAT,
+          promptVersion: LESSON_GEN_VERSION,
+          specHash: lesson.specHash,
+        }),
+        eq(lessonContents.status, "ready"),
+      ),
+    )
+    .limit(1);
+
+  return row?.content ? { lesson, row, content: row.content as LessonContent } : null;
 }
 
 /**
- * Algılanan hız: aynı programda sıradaki üretilmemiş dersi arka planda üret.
- * Route'tan fire-and-forget çağrılır — asla beklenmez, hatası yutulur.
+ * Algılanan hız: katalog sırasında sonraki dersi arka planda üret. Paylaşımlı
+ * önbellek sayesinde bu, yalnızca bu kullanıcıyı değil aynı dil+track'teki
+ * HERKESİ ısıtır. Route'tan fire-and-forget çağrılır — beklenmez, hatası yutulur.
  */
-export async function pregenerateNext(userId: string, programLessonId: string): Promise<void> {
-  const owned = await getOwnedPlanRow(userId, programLessonId);
-  if (!owned) return;
+export async function pregenerateNext(userId: string, catalogLessonId: string): Promise<void> {
+  const current = await getCatalogLesson(catalogLessonId);
+  if (!current) return;
 
   const [next] = await db
-    .select({ id: programLessons.id })
-    .from(programLessons)
-    .leftJoin(lessons, eq(lessons.programLessonId, programLessons.id))
+    .select({ id: catalogLessons.id })
+    .from(catalogLessons)
     .where(
       and(
-        eq(programLessons.programId, owned.pl.programId),
-        gt(programLessons.position, owned.pl.position),
-        eq(programLessons.status, "not_started"),
-        isNull(lessons.id), // hiç içerik satırı olmayanlar — üretilmiş/üretilmekte olan atlanır
+        eq(catalogLessons.level, current.level),
+        eq(catalogLessons.status, "active"),
+        gt(catalogLessons.position, current.position),
       ),
     )
-    .orderBy(asc(programLessons.position))
+    .orderBy(asc(catalogLessons.position))
     .limit(1);
 
-  if (next) {
-    await getOrGenerateLesson(userId, next.id).catch(() => undefined);
-  }
+  if (next) await getOrGenerateLesson(userId, next.id).catch(() => undefined);
 }
 
 async function generateInto(
-  lessonRowId: string,
+  contentRowId: string,
   userId: string,
-  programLessonId: string,
-  owned: NonNullable<Awaited<ReturnType<typeof getOwnedPlanRow>>>,
+  lesson: typeof catalogLessons.$inferSelect,
 ): Promise<LessonResult> {
   const [profile] = await db
     .select()
@@ -150,22 +206,25 @@ async function generateInto(
     .where(eq(userProfiles.userId, userId))
     .limit(1);
 
-  // Ad üretime GİRMEZ (içerik kullanıcıdan bağımsız olmalı) — yalnızca lint,
-  // adın içeriğe sızıp sızmadığını denetlemek için biliyor.
-  const displayName = profile?.displayName ?? "Student";
-
+  // occupation ve interests ÜRETİME GİRMEZ: içerik paylaşımlı, serbest metin bir
+  // meslek alanı başka öğrencilere sızardı. Sahne bağlamı katalogdaki themeHint'ten.
   const ctx = {
     nativeLanguage: nativeLanguageOf(profile),
-    cefrLevel: owned.level,
-    track: owned.track,
-    occupation: profile?.occupation ?? null,
-    interests: profile?.interests ?? [],
+    cefrLevel: lesson.level,
+    track: profile?.track ?? "conversation",
     lesson: {
-      title: owned.pl.title,
-      focus: owned.pl.focus,
-      theme: owned.pl.theme,
+      kind: lesson.kind as LessonKind,
+      title: lesson.title,
+      focus: lesson.focus,
+      themeHint: lesson.themeHint,
+      targetPhrases: lesson.targetPhrases,
     },
   };
+
+  // Sızıntı denetimi: bu değerlerden hiçbiri paylaşımlı içerikte görünmemeli
+  const forbidden = [profile?.displayName, profile?.occupation].filter(
+    (v): v is string => typeof v === "string" && v.trim().length >= 3,
+  );
 
   try {
     let report: LintReport = { errors: [], warnings: [] };
@@ -185,11 +244,16 @@ async function generateInto(
         schema: lessonContentSchema,
         promptVersion: LESSON_GEN_VERSION,
         userId,
-        maxTokens: 2500, // kısa ders — üretim süresi de kısalır
+        maxTokens: 2500,
         temperature: 0.4, // düşük: focus'a sadakat yaratıcılıktan önemli
       });
 
-      report = lintLesson(content, { displayName });
+      // mustUse KODDA dayatılır. Prompt zaten birebir kopyalamasını istiyor ama
+      // modelin düzyazısına güvenmek bu alanda iki kez canlı hataya yol açtı —
+      // ölçümü besleyen değer katalogdan gelir, üretimden değil.
+      content.practice.mustUse = [...lesson.targetPhrases];
+
+      report = lintLesson(content, { forbidden });
       if (report.errors.length === 0) break;
     }
 
@@ -198,23 +262,26 @@ async function generateInto(
     }
 
     await db
-      .update(lessons)
+      .update(lessonContents)
       .set({
         status: "ready",
         content,
         validationReport: report,
         model: modelForPurpose("lesson_gen"),
-        promptVersion: LESSON_GEN_VERSION,
+        updatedAt: new Date(),
       })
-      .where(eq(lessons.id, lessonRowId));
+      .where(eq(lessonContents.id, contentRowId));
 
-    return { lessonId: lessonRowId, content, report };
+    return { lessonId: contentRowId, content, report };
   } catch (err) {
     await db
-      .update(lessons)
-      .set({ status: "failed", validationReport: { errors: [String(err).slice(0, 500)] } })
-      .where(eq(lessons.id, lessonRowId));
+      .update(lessonContents)
+      .set({
+        status: "failed",
+        validationReport: { errors: [String(err).slice(0, 500)] },
+        updatedAt: new Date(),
+      })
+      .where(eq(lessonContents.id, contentRowId));
     throw new LessonError("generation_failed", "Ders içeriği üretilemedi");
   }
 }
-

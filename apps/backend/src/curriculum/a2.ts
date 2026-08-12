@@ -1,4 +1,4 @@
-import type { CurriculumLevel } from "./types.js";
+import type { LevelSpec } from "./types.js";
 
 /**
  * A2 — Pre-Intermediate. 9 ünite, 57 ders.
@@ -13,7 +13,7 @@ import type { CurriculumLevel } from "./types.js";
  * Ünite 8 kasten tamamen `phrases`: bu seviyede öğrenciyi kilitleyen şey gramer
  * değil, işlem yapamamak.
  */
-export const A2: CurriculumLevel = {
+export const A2: LevelSpec = {
   level: "A2",
   label: "Pre-Intermediate",
   units: [

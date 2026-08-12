@@ -28,7 +28,21 @@ export function languageName(code: string | null | undefined): string {
   }
 }
 
-/** Profilde ana dil yoksa güvenli varsayılan. */
+/**
+ * BCP-47 etiketini önbellek anahtarı olarak kullanılabilir tek biçime indirger:
+ * birincil alt etiket, küçük harf. "tr-TR" / "TR" / "tr" → "tr".
+ *
+ * Paylaşımlı ders içeriği ana dile göre anahtarlanıyor; normalize edilmezse aynı
+ * dilin farklı yazımları ayrı ayrı üretim tetikler ve hem önbelleği hem faturayı
+ * katlar. Hem OKUMADA hem YAZMADA uygulanmalı.
+ */
+export function normalizeNativeLanguage(code: string | null | undefined): string {
+  const tag = (code ?? "").trim().toLowerCase();
+  const primary = tag.split(/[-_]/)[0];
+  return primary && /^[a-z]{2,3}$/.test(primary) ? primary : DEFAULT_LANGUAGE;
+}
+
+/** Profilde ana dil yoksa güvenli varsayılan; sonuç daima normalize edilmiştir. */
 export function nativeLanguageOf(profile: { nativeLanguage?: string | null } | null | undefined): string {
-  return profile?.nativeLanguage?.trim() || DEFAULT_LANGUAGE;
+  return normalizeNativeLanguage(profile?.nativeLanguage);
 }

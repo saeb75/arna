@@ -11,7 +11,7 @@ import authPlugin from "./plugins/auth.js";
 import healthRoutes from "./modules/health/routes.js";
 import lessonRoutes from "./modules/lesson/routes.js";
 import onboardingRoutes from "./modules/onboarding/routes.js";
-import programRoutes from "./modules/program/routes.js";
+import curriculumRoutes from "./modules/curriculum/routes.js";
 import sessionRoutes from "./modules/session/routes.js";
 
 export async function buildApp() {
@@ -49,7 +49,7 @@ export async function buildApp() {
   await app.register(healthRoutes);
 
   await app.register(onboardingRoutes, { prefix: "/v1" });
-  await app.register(programRoutes, { prefix: "/v1" });
+  await app.register(curriculumRoutes, { prefix: "/v1" });
   await app.register(lessonRoutes, { prefix: "/v1" });
   await app.register(sessionRoutes, { prefix: "/v1" });
 
