@@ -99,7 +99,14 @@ export const CONTENT_FORMAT = 6;
 /** Niyet: hocanın ne SÖYLEYECEĞİ değil, ne YAPACAĞI. Tırnak içi cümle yasak. */
 const intentSchema = z.string().trim().min(5).max(180);
 
-const beatBase = { id: z.string().min(1) };
+/**
+ * Beat kimliği. `coerce` KASITLI: model kimlikleri bazen "b1" gibi, bazen 1 gibi
+ * SAYI olarak yazıyor ve sayı yazdığında iki şema denemesi de düşüp ders
+ * "üretilemedi" oluyordu. Kimliğin metin olması bir sözleşme gereği; hangi metin
+ * olduğu önemsiz (istemci onu yalnızca script'teki karşılığını bulmak için
+ * kullanır). Modelin disiplinine bırakılacak bir kural değil.
+ */
+const beatBase = { id: z.coerce.string().min(1) };
 
 /** Hoca konuşur; sesi bitince akış kendiliğinden ilerler. */
 export const sayBeatSchema = z.object({

@@ -68,7 +68,8 @@ Uygulama ileride **100'lerce ana dile** İngilizce öğretecek. **Backend hiçbi
 ## MVP ürün kararları (kullanıcıyla kilitlendi)
 
 - Onboarding tamamen form: günlük hedef + track (Business/Conversation/Sınav) + ilgi alanları + meslek (ops.) + **seviye select box** (A1–C1, yanına tek satır tarif). Yerleştirme testi YOK (Faz 2+).
-- **Müfredat sabit, içerik tembel:** ders planı üretilmez, katalogdan gelir (A1: 46 ders/8 ünite, A2: 57/9; B1–C2 aynı kalıpla eklenecek). Ders İÇERİĞİ derse ilk tıklamada üretilip **paylaşımlı** kaydedilir. Tüm dersler açık — kullanıcı istediğine atlar, sıra zorunlu değil.
+- **Müfredat sabit, içerik tembel:** ders planı üretilmez, katalogdan gelir. **Altı seviye de yazıldı: 371 ders** (A1 46/8ü · A2 57/9 · B1 68/11 · B2 74/11 · C1 64/10 · C2 62/9). Ders İÇERİĞİ derse ilk tıklamada üretilip **paylaşımlı** kaydedilir. Tüm dersler açık — kullanıcı istediğine atlar, sıra zorunlu değil.
+- **Ders tipi dağılımı seviyeyle kayar** ve bu kasıtlıdır: A1 %59 gramer → C2 %6 gramer / %65 serbest konuşma. Altta işlev, ortada gramer omurgası, üstte akıcılık. C2'de `focus` bir gramer yapısı değil, bir iletişim becerisidir ("baskı altında pozisyon savunmak") — `lesson-gen` `kind: practice` için ayrı yönerge taşır.
 - **Otomatik seviye geçişi YOK:** kullanıcı ayarlardan seviye değiştirir (`PATCH /v1/me/profile`) → yalnızca profil güncellenir. İlerleme katalog kimliğine bağlı olduğu için **hiç etkilenmez**; eski `POST /programs/regenerate` planı yeniden üretip ilerlemeyi arşive gömüyordu, o uç kaldırıldı.
 - Ustalık modeli (Elo), checkpoint kapıları, adaptif zorluk, FSRS, ligler → MVP DIŞI (dokümanda Faz 2/3).
 - Memory v1 mini-MVP'nin hemen ardından: oturum sonu tek arka plan işi (transkript → çıkarım → pgvector `memories`) + sonraki ders açılışında continuity hook.

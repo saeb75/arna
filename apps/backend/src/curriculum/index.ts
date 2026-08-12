@@ -2,6 +2,10 @@ import { createHash } from "node:crypto";
 import type { CefrLevel } from "@arna/contracts";
 import { A1 } from "./a1.js";
 import { A2 } from "./a2.js";
+import { B1 } from "./b1.js";
+import { B2 } from "./b2.js";
+import { C1 } from "./c1.js";
+import { C2 } from "./c2.js";
 import type { LessonSpec, LevelSpec } from "./types.js";
 
 export * from "./types.js";
@@ -9,11 +13,15 @@ export * from "./types.js";
 /**
  * SABİT MÜFREDAT — tek doğruluk kaynağı burasıdır, DB türetilmiş projeksiyondur.
  * Henüz yazılmamış seviyeler burada yoktur; lint ve seed eksik seviyeyi hata
- * saymaz, yalnızca raporlar (B1–C2 sonraki turda aynı kalıpla eklenecek).
+ * saymaz, yalnızca raporlar. Altı seviyenin tamamı yazıldı.
  */
 export const CURRICULUM: Partial<Record<CefrLevel, LevelSpec>> = {
   A1,
   A2,
+  B1,
+  B2,
+  C1,
+  C2,
 };
 
 export const AUTHORED_LEVELS = Object.keys(CURRICULUM) as CefrLevel[];
