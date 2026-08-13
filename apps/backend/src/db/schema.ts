@@ -20,8 +20,10 @@ export const userProfiles = pgTable("user_profiles", {
   userId: uuid("user_id").primaryKey(),
   displayName: text("display_name").notNull(),
   nativeLanguage: text("native_language").notNull().default("tr"),
-  cefrLevel: text("cefr_level").notNull(), // A1..C1
-  track: text("track").notNull(), // business | conversation | exam
+  cefrLevel: text("cefr_level").notNull(), // A1..C2
+  track: text("track").notNull(), // everyday | work | travel | academic | exam (konuşma bağlamı)
+  /** native → Emma açıklamaları öğrencinin dilinde yapar; english → tam daldırma */
+  tutorLanguage: text("tutor_language").notNull().default("native"),
   dailyGoalMinutes: integer("daily_goal_minutes").notNull().default(10),
   occupation: text("occupation"),
   interests: jsonb("interests").notNull().default([]),
@@ -225,6 +227,122 @@ export const lessonProgress = pgTable(
   ],
 );
 
+// ---------------------------------------------------------------------------
+// KATMANLI İÇERİK (v7) — İngilizce çekirdek + sahne seti + dil paketi
+//
+// Monolitik `lesson_contents` (v6) yerini üç katmana bırakıyor. Pedagojik
+// doğruluk YALNIZCA çekirdekte denetlenir (371 satır, insan onayı); sahne ve
+// dil katmanları cevapları/akışı değiştiremez. Servis üçünü chrome ile
+// birleştirir; istemci tek nesne görür.
+//
+// ORTAK KURAL: her tablonun unique anahtar kolonlarının TAMAMI NOT NULL ve
+// claim eden INSERT tarafından yazılır — Postgres unique index'te NULL'ları
+// farklı sayar, geç yazılan kolon "tek üretim uçuşta" korumasını sessizce çökertir.
+// ---------------------------------------------------------------------------
+
+/**
+ * Pedagojik çekirdek — ders başına BİR satır, dilden ve track'ten bağımsız.
+ * status akışı: generating → ready → (insan incelemesi) → published → retired.
+ * YALNIZCA `published` servis edilir ve istek anında ASLA üretilmez —
+ * ilk kullanıcı hiçbir zaman yayın öncesi denek olmaz.
+ */
+export const lessonCores = pgTable(
+  "lesson_cores",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    catalogLessonId: text("catalog_lesson_id")
+      .notNull()
+      .references(() => catalogLessons.id, { onDelete: "cascade" }),
+    coreFormat: integer("core_format").notNull(),
+    promptVersion: text("prompt_version").notNull(),
+    /** Katalog satırının üretimi etkileyen alanlarının parmak izi */
+    specHash: text("spec_hash").notNull(),
+    status: text("status").notNull().default("generating"), // generating | ready | failed | published | retired
+    core: jsonb("core"), // LessonCore (@arna/contracts)
+    validationReport: jsonb("validation_report"),
+    model: text("model"),
+    generatedForUserId: uuid("generated_for_user_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("lesson_cores_key_idx").on(t.catalogLessonId, t.coreFormat, t.promptVersion, t.specHash),
+    index("lesson_cores_lookup_idx").on(t.catalogLessonId, t.status),
+  ],
+);
+
+/**
+ * Sahne seti — 5 track sahnesinin ATOMİK sürümü (tek LLM çağrısında üretilir).
+ * Dil paketleri sete bağlanır: sahneler yeniden üretilince yeni set doğar ve
+ * eski paketlere giden yol yapısal olarak kopar — geçersizleme unutulamaz.
+ */
+export const lessonSceneSets = pgTable(
+  "lesson_scene_sets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    coreId: uuid("core_id")
+      .notNull()
+      .references(() => lessonCores.id, { onDelete: "cascade" }),
+    sceneFormat: integer("scene_format").notNull(),
+    promptVersion: text("prompt_version").notNull(),
+    status: text("status").notNull().default("generating"), // generating | ready | failed | published | retired
+    /** track → SceneVariant (5'inin varlığını lint zorlar) */
+    scenes: jsonb("scenes"),
+    validationReport: jsonb("validation_report"),
+    model: text("model"),
+    generatedForUserId: uuid("generated_for_user_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("lesson_scene_sets_key_idx").on(t.coreId, t.sceneFormat, t.promptVersion),
+    index("lesson_scene_sets_lookup_idx").on(t.coreId, t.status),
+  ],
+);
+
+/**
+ * Dil paketi — (çekirdek × sahne seti × dil) başına ana dilde anlatım.
+ * Pedagojik İDDİA üretemez (çekirdeğin claimsEn'ini anlatır); İngilizce
+ * malzemeye şema gereği DOKUNAMAZ. Tek lazy üretilebilen katman — pedagojik
+ * riski olmadığı için lint sonrası doğrudan servis edilebilir.
+ */
+export const lessonLocales = pgTable(
+  "lesson_locales",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    coreId: uuid("core_id")
+      .notNull()
+      .references(() => lessonCores.id, { onDelete: "cascade" }),
+    sceneSetId: uuid("scene_set_id")
+      .notNull()
+      .references(() => lessonSceneSets.id, { onDelete: "cascade" }),
+    /** BCP-47, normalize (zh-hans/pt-br gibi kritik alt etiketler korunur) */
+    language: text("language").notNull(),
+    l10nFormat: integer("l10n_format").notNull(),
+    promptVersion: text("prompt_version").notNull(),
+    /** Katalog başlığı + core rev + sceneSet rev parmak izi — başlık değişince yalnız paket yenilenir */
+    sourceHash: text("source_hash").notNull(),
+    status: text("status").notNull().default("generating"), // generating | ready | failed | retired
+    pack: jsonb("pack"), // LessonLocalePack (@arna/contracts)
+    validationReport: jsonb("validation_report"),
+    model: text("model"),
+    generatedForUserId: uuid("generated_for_user_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("lesson_locales_key_idx").on(
+      t.coreId,
+      t.sceneSetId,
+      t.language,
+      t.l10nFormat,
+      t.promptVersion,
+      t.sourceHash,
+    ),
+    index("lesson_locales_lookup_idx").on(t.coreId, t.language, t.status),
+  ],
+);
+
 export const sessions = pgTable(
   "sessions",
   {
@@ -235,8 +353,12 @@ export const sessions = pgTable(
     catalogLessonId: text("catalog_lesson_id").references(() => catalogLessons.id, {
       onDelete: "set null",
     }),
-    /** Hangi paylaşımlı içerik satırı oynatıldı — "bozuk önbelleği kim gördü" sorusunu çözer */
+    /** v6 kalıntısı — eski oturumların okunabilirliği için duruyor, 0006'da düşer */
     contentId: uuid("content_id").references(() => lessonContents.id, { onDelete: "set null" }),
+    /** v7: oturumun oynattığı katman sürümleri — "bozuk içeriği kim gördü" her katmanda cevaplanır */
+    coreId: uuid("core_id").references(() => lessonCores.id, { onDelete: "set null" }),
+    sceneSetId: uuid("scene_set_id").references(() => lessonSceneSets.id, { onDelete: "set null" }),
+    localeId: uuid("locale_id").references(() => lessonLocales.id, { onDelete: "set null" }),
     startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
     endedAt: timestamp("ended_at", { withTimezone: true }),
     state: jsonb("state"),

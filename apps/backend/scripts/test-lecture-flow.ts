@@ -53,7 +53,7 @@ const lesson = makeLessonContent({
 
 await db.insert(userProfiles).values({
   userId: testUserId, displayName: "Saeb", nativeLanguage,
-  cefrLevel: "A2", track: "business", dailyGoalMinutes: 10,
+  cefrLevel: "A2", track: "work", dailyGoalMinutes: 10,
   occupation: "developer", interests: ["technology"],
 });
 const catalogLesson = await seedTestCatalogLesson({});

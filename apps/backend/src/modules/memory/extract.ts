@@ -1,9 +1,10 @@
-import type { LessonContent } from "@arna/contracts";
+import type { LessonCore } from "@arna/contracts";
 import { and, asc, cosineDistance, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../db/client.js";
 import {
-  lessonContents,
+  catalogLessons,
+  lessonCores,
   memories,
   sessionSummaries,
   sessions,
@@ -57,16 +58,25 @@ export interface ExtractionResult {
  * ANLAMINDA değil — çağıran yakalar (endSession yanıtı bundan etkilenmemeli).
  */
 export async function extractSessionMemory(sessionId: string): Promise<ExtractionResult> {
+  // v7: oturum çekirdeğe + katalog satırına bağlı. Hafıza sistemi İNGİLİZCE
+  // çalıştığı için başlık da kanonik İngilizce başlıktır — v6 burada L1 başlığı
+  // yazıyordu, tamamı İngilizce bir hafıza sistemindeki gizli tutarsızlıktı.
   const [row] = await db
-    .select({ session: sessions, lesson: lessonContents })
+    .select({
+      session: sessions,
+      coreRow: lessonCores,
+      catalogTitle: catalogLessons.title,
+    })
     .from(sessions)
-    .leftJoin(lessonContents, eq(sessions.contentId, lessonContents.id))
+    .leftJoin(lessonCores, eq(sessions.coreId, lessonCores.id))
+    .leftJoin(catalogLessons, eq(sessions.catalogLessonId, catalogLessons.id))
     .where(eq(sessions.id, sessionId))
     .limit(1);
 
   if (!row) throw new Error(`Oturum bulunamadı: ${sessionId}`);
-  const content = row.lesson?.content as LessonContent | null;
-  if (!content) return { status: "no_lesson", factsAdded: 0, factsSkippedAsDuplicate: 0, continuityHook: "" };
+  const core = row.coreRow?.core as LessonCore | null;
+  if (!core) return { status: "no_lesson", factsAdded: 0, factsSkippedAsDuplicate: 0, continuityHook: "" };
+  const lessonTitle = row.catalogTitle ?? core.topic;
 
   const userId = row.session.userId;
 
@@ -98,8 +108,8 @@ export async function extractSessionMemory(sessionId: string): Promise<Extractio
 
   const { system, user } = buildMemoryExtractPrompt({
     nativeLanguage: nativeLanguageOf(profile),
-    lessonTitle: content.title,
-    lessonFocus: content.focus,
+    lessonTitle,
+    lessonFocus: core.focus,
     existingFacts: existing.map((e) => e.text),
     transcript: turns.slice(-MAX_TRANSCRIPT_TURNS).map((t) => ({
       role: t.role,
@@ -125,7 +135,7 @@ export async function extractSessionMemory(sessionId: string): Promise<Extractio
     .values({
       sessionId,
       userId,
-      lessonTitle: content.title,
+      lessonTitle,
       summary: extraction.summary,
       continuityHook: extraction.continuityHook || null,
       errorsObserved: extraction.errors,

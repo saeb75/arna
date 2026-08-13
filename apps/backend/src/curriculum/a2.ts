@@ -119,10 +119,19 @@ export const A2: LevelSpec = {
       themeHint: "two colleagues sharing holiday stories after the summer",
       targetPhrases: ["we stayed in", "it was amazing", "I'll never forget"],
     },
+    {
+      position: 7,
+      unitIndex: 1,
+      kind: "practice",
+      title: "Two Photos, One Story",
+      focus: "comparing two photos and telling the story behind them",
+      themeHint: "comparing two holiday photos and the stories behind them",
+      targetPhrases: ["in the first photo", "while we were", "after that"],
+    },
 
     // --- Ünite 2 · Plans and Predictions ----------------------------------------
     {
-      position: 7,
+      position: 8,
       unitIndex: 2,
       kind: "grammar",
       title: "I'm Going to Move",
@@ -131,7 +140,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["I'm going to", "we're going to", "she's going to"],
     },
     {
-      position: 8,
+      position: 9,
       unitIndex: 2,
       kind: "grammar",
       title: "Are You Going to Come?",
@@ -140,7 +149,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["are you going to", "I'm not going to", "what are you going to"],
     },
     {
-      position: 9,
+      position: 10,
       unitIndex: 2,
       kind: "grammar",
       title: "I Think It Will Rain",
@@ -149,7 +158,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["I think it will", "it will probably", "it won't"],
     },
     {
-      position: 10,
+      position: 11,
       unitIndex: 2,
       kind: "phrases",
       title: "Tomorrow, Next Week",
@@ -158,7 +167,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["next week", "in two weeks", "later this year"],
     },
     {
-      position: 11,
+      position: 12,
       unitIndex: 2,
       kind: "grammar",
       title: "I'll Get It!",
@@ -167,7 +176,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["I'll do it", "shall I help", "don't worry"],
     },
     {
-      position: 12,
+      position: 13,
       unitIndex: 2,
       kind: "grammar",
       title: "I'm Meeting Sam at Six",
@@ -176,7 +185,16 @@ export const A2: LevelSpec = {
       targetPhrases: ["I'm meeting", "we're leaving at", "what are you doing"],
     },
     {
-      position: 13,
+      position: 14,
+      unitIndex: 2,
+      kind: "phrases",
+      title: "How About This?",
+      focus: "making suggestions with how about, why don't we and shall we",
+      themeHint: "two friends throwing out ideas for the weekend",
+      targetPhrases: ["why don't we", "shall we", "good idea"],
+    },
+    {
+      position: 15,
       unitIndex: 2,
       kind: "practice",
       title: "Let's Make a Plan",
@@ -187,7 +205,7 @@ export const A2: LevelSpec = {
 
     // --- Ünite 3 · Comparing ----------------------------------------------------
     {
-      position: 14,
+      position: 16,
       unitIndex: 3,
       kind: "grammar",
       title: "Bigger and Better",
@@ -196,7 +214,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["bigger than", "cheaper than", "much better"],
     },
     {
-      position: 15,
+      position: 17,
       unitIndex: 3,
       kind: "grammar",
       title: "More Interesting Than",
@@ -205,7 +223,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["more expensive than", "less crowded", "worse than"],
     },
     {
-      position: 16,
+      position: 18,
       unitIndex: 3,
       kind: "grammar",
       title: "The Best One",
@@ -214,7 +232,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["it's the best", "that's the cheapest", "my favourite one"],
     },
     {
-      position: 17,
+      position: 19,
       unitIndex: 3,
       kind: "phrases",
       title: "I Prefer This One",
@@ -223,7 +241,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["I prefer", "I like this one", "I'd rather have"],
     },
     {
-      position: 18,
+      position: 20,
       unitIndex: 3,
       kind: "grammar",
       title: "As Cheap As",
@@ -232,7 +250,16 @@ export const A2: LevelSpec = {
       targetPhrases: ["as good as", "not as expensive", "just as nice"],
     },
     {
-      position: 19,
+      position: 21,
+      unitIndex: 3,
+      kind: "phrases",
+      title: "Absolutely Freezing!",
+      focus: "extreme describing words like freezing, huge and tiny",
+      themeHint: "swapping exaggerated stories about weather and places",
+      targetPhrases: ["absolutely freezing", "it was huge", "really tiny"],
+    },
+    {
+      position: 22,
       unitIndex: 3,
       kind: "grammar",
       title: "He Drives Carefully",
@@ -241,7 +268,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["very carefully", "he speaks slowly", "quite well"],
     },
     {
-      position: 20,
+      position: 23,
       unitIndex: 3,
       kind: "practice",
       title: "Which One Would You Pick?",
@@ -249,10 +276,19 @@ export const A2: LevelSpec = {
       themeHint: "helping a friend choose between two offers",
       targetPhrases: ["I'd rather", "it depends on", "in my opinion"],
     },
+    {
+      position: 24,
+      unitIndex: 3,
+      kind: "practice",
+      title: "Shopping II",
+      focus: "changing something in a shop for a different size or colour",
+      themeHint: "going back to a shop to change a purchase",
+      targetPhrases: ["in a smaller size", "can I change", "it doesn't fit"],
+    },
 
     // --- Ünite 4 · Rules and Advice ---------------------------------------------
     {
-      position: 21,
+      position: 25,
       unitIndex: 4,
       kind: "grammar",
       title: "I Have to Work",
@@ -261,7 +297,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["I have to", "she has to", "do you have to"],
     },
     {
-      position: 22,
+      position: 26,
       unitIndex: 4,
       kind: "grammar",
       title: "You Don't Have to Come",
@@ -270,7 +306,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["you don't have to", "you mustn't", "we have to"],
     },
     {
-      position: 23,
+      position: 27,
       unitIndex: 4,
       kind: "grammar",
       title: "You Should Rest",
@@ -279,7 +315,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["you should", "you shouldn't", "maybe you should"],
     },
     {
-      position: 24,
+      position: 28,
       unitIndex: 4,
       kind: "grammar",
       title: "Can I Ask Something?",
@@ -288,7 +324,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["could you", "may I", "would it be okay"],
     },
     {
-      position: 25,
+      position: 29,
       unitIndex: 4,
       kind: "phrases",
       title: "What's the Matter?",
@@ -297,7 +333,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["I don't feel well", "my head hurts", "you should see"],
     },
     {
-      position: 26,
+      position: 30,
       unitIndex: 4,
       kind: "practice",
       title: "A Friend Needs Help",
@@ -308,7 +344,7 @@ export const A2: LevelSpec = {
 
     // --- Ünite 5 · Experiences --------------------------------------------------
     {
-      position: 27,
+      position: 31,
       unitIndex: 5,
       kind: "grammar",
       title: "Have You Ever Been?",
@@ -317,7 +353,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["have you ever", "yes I have", "I have been to"],
     },
     {
-      position: 28,
+      position: 32,
       unitIndex: 5,
       kind: "grammar",
       title: "I've Never Tried That",
@@ -326,7 +362,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["I've never", "she's never", "never in my life"],
     },
     {
-      position: 29,
+      position: 33,
       unitIndex: 5,
       kind: "grammar",
       title: "Been or Gone?",
@@ -335,7 +371,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["he's gone to", "I've been to", "she's been there"],
     },
     {
-      position: 30,
+      position: 34,
       unitIndex: 5,
       kind: "phrases",
       title: "Tell Me More",
@@ -344,7 +380,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["what was it like", "how long", "tell me more"],
     },
     {
-      position: 31,
+      position: 35,
       unitIndex: 5,
       kind: "grammar",
       title: "I've Already Finished",
@@ -353,7 +389,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["I've already", "I've just", "she's just left"],
     },
     {
-      position: 32,
+      position: 36,
       unitIndex: 5,
       kind: "grammar",
       title: "Have You Done It Yet?",
@@ -362,7 +398,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["have you finished", "not yet", "I haven't yet"],
     },
     {
-      position: 33,
+      position: 37,
       unitIndex: 5,
       kind: "practice",
       title: "Two Truths and a Lie",
@@ -373,7 +409,7 @@ export const A2: LevelSpec = {
 
     // --- Ünite 6 · Quantity and Detail ------------------------------------------
     {
-      position: 34,
+      position: 38,
       unitIndex: 6,
       kind: "grammar",
       title: "How Much Sugar?",
@@ -382,7 +418,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["how much", "how many", "not much"],
     },
     {
-      position: 35,
+      position: 39,
       unitIndex: 6,
       kind: "grammar",
       title: "A Few or a Little?",
@@ -391,7 +427,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["just a few", "only a little", "quite a lot"],
     },
     {
-      position: 36,
+      position: 40,
       unitIndex: 6,
       kind: "grammar",
       title: "Too Small, Not Big Enough",
@@ -400,7 +436,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["it's too small", "not big enough", "too expensive"],
     },
     {
-      position: 37,
+      position: 41,
       unitIndex: 6,
       kind: "phrases",
       title: "How Long, How Far",
@@ -409,7 +445,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["how long does it", "how far is", "about ten kilometres"],
     },
     {
-      position: 38,
+      position: 42,
       unitIndex: 6,
       kind: "grammar",
       title: "Something, Anything, Nothing",
@@ -418,7 +454,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["something to eat", "anything else", "nothing special"],
     },
     {
-      position: 39,
+      position: 43,
       unitIndex: 6,
       kind: "grammar",
       title: "Mine, Yours, Theirs",
@@ -427,7 +463,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["it's mine", "that's yours", "whose is this"],
     },
     {
-      position: 40,
+      position: 44,
       unitIndex: 6,
       kind: "practice",
       title: "Packing for a Trip",
@@ -438,7 +474,7 @@ export const A2: LevelSpec = {
 
     // --- Ünite 7 · Reasons and Conditions ---------------------------------------
     {
-      position: 41,
+      position: 45,
       unitIndex: 7,
       kind: "grammar",
       title: "Because and So",
@@ -447,7 +483,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["because I was", "so I decided", "that's why"],
     },
     {
-      position: 42,
+      position: 46,
       unitIndex: 7,
       kind: "grammar",
       title: "If It Rains, We'll Stay",
@@ -456,7 +492,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["if it rains", "I'll call you", "if you want"],
     },
     {
-      position: 43,
+      position: 47,
       unitIndex: 7,
       kind: "grammar",
       title: "When Water Boils",
@@ -465,7 +501,16 @@ export const A2: LevelSpec = {
       targetPhrases: ["if you heat", "when it gets", "it always happens"],
     },
     {
-      position: 44,
+      position: 48,
+      unitIndex: 7,
+      kind: "grammar",
+      title: "As Soon As I Arrive",
+      focus: "as soon as, when and until for talking about future time",
+      themeHint: "coordinating plans that depend on when things happen",
+      targetPhrases: ["as soon as", "when I get home", "before I leave"],
+    },
+    {
+      position: 49,
       unitIndex: 7,
       kind: "phrases",
       title: "Maybe, Probably, Definitely",
@@ -474,7 +519,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["I'm not sure", "probably not", "almost certainly"],
     },
     {
-      position: 45,
+      position: 50,
       unitIndex: 7,
       kind: "grammar",
       title: "I Came Here to Learn",
@@ -483,7 +528,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["to learn English", "to get better", "I came here to"],
     },
     {
-      position: 46,
+      position: 51,
       unitIndex: 7,
       kind: "grammar",
       title: "I Want to Go, I Enjoy Going",
@@ -492,7 +537,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["I want to", "I enjoy", "I'd like to"],
     },
     {
-      position: 47,
+      position: 52,
       unitIndex: 7,
       kind: "practice",
       title: "Making a Decision",
@@ -503,7 +548,7 @@ export const A2: LevelSpec = {
 
     // --- Ünite 8 · Getting Things Done ------------------------------------------
     {
-      position: 48,
+      position: 53,
       unitIndex: 8,
       kind: "phrases",
       title: "Would You Mind?",
@@ -512,7 +557,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["would you mind", "not at all", "of course not"],
     },
     {
-      position: 49,
+      position: 54,
       unitIndex: 8,
       kind: "phrases",
       title: "I'm Sorry, I Can't",
@@ -521,7 +566,16 @@ export const A2: LevelSpec = {
       targetPhrases: ["I'm afraid I can't", "sorry about that", "maybe next time"],
     },
     {
-      position: 50,
+      position: 55,
+      unitIndex: 8,
+      kind: "practice",
+      title: "Requests II",
+      focus: "asking neighbours and colleagues for favours politely",
+      themeHint: "asking a neighbour and a colleague for small favours",
+      targetPhrases: ["would you mind", "could you please", "no problem"],
+    },
+    {
+      position: 56,
       unitIndex: 8,
       kind: "phrases",
       title: "Booking a Room",
@@ -530,7 +584,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["I'd like to book", "for two nights", "is breakfast included"],
     },
     {
-      position: 51,
+      position: 57,
       unitIndex: 8,
       kind: "phrases",
       title: "Something Went Wrong",
@@ -539,7 +593,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["there's a problem", "it doesn't work", "could I get a refund"],
     },
     {
-      position: 52,
+      position: 58,
       unitIndex: 8,
       kind: "phrases",
       title: "Can You Say That Again?",
@@ -548,7 +602,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["could you repeat that", "what does that mean", "sorry I didn't catch"],
     },
     {
-      position: 53,
+      position: 59,
       unitIndex: 8,
       kind: "practice",
       title: "Sorting Out a Problem",
@@ -559,7 +613,7 @@ export const A2: LevelSpec = {
 
     // --- Ünite 9 · People and Things --------------------------------------------
     {
-      position: 54,
+      position: 60,
       unitIndex: 9,
       kind: "grammar",
       title: "The Man Who Helped Me",
@@ -568,7 +622,25 @@ export const A2: LevelSpec = {
       targetPhrases: ["someone who", "something that", "people who live"],
     },
     {
-      position: 55,
+      position: 61,
+      unitIndex: 9,
+      kind: "grammar",
+      title: "Don't Burn Yourself",
+      focus: "myself, yourself and each other",
+      themeHint: "talking about doing things alone and looking after yourself",
+      targetPhrases: ["by myself", "enjoy yourself", "each other"],
+    },
+    {
+      position: 62,
+      unitIndex: 9,
+      kind: "grammar",
+      title: "The Other One",
+      focus: "other, another and the others",
+      themeHint: "choosing between things when the first one is not right",
+      targetPhrases: ["I prefer the other", "another one", "what about the others"],
+    },
+    {
+      position: 63,
       unitIndex: 9,
       kind: "grammar",
       title: "I Used to Play Football",
@@ -577,7 +649,7 @@ export const A2: LevelSpec = {
       targetPhrases: ["I used to", "we used to", "didn't use to"],
     },
     {
-      position: 56,
+      position: 64,
       unitIndex: 9,
       kind: "phrases",
       title: "What Do You Think?",
@@ -586,7 +658,16 @@ export const A2: LevelSpec = {
       targetPhrases: ["I think so", "I don't agree", "you're right"],
     },
     {
-      position: 57,
+      position: 65,
+      unitIndex: 9,
+      kind: "grammar",
+      title: "Boring or Bored?",
+      focus: "the difference between boring and bored, and pairs like them",
+      themeHint: "comparing reactions after seeing the same film",
+      targetPhrases: ["it was boring", "I was bored", "really interesting"],
+    },
+    {
+      position: 66,
       unitIndex: 9,
       kind: "practice",
       title: "A Film Worth Watching",

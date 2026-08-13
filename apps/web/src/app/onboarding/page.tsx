@@ -10,6 +10,7 @@ import {
   type CefrLevel,
   type Interest,
   type Track,
+  type TutorLanguage,
 } from "@arna/contracts";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,10 +29,11 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [displayName, setDisplayName] = useState("");
   const [goal, setGoal] = useState<(typeof GOALS)[number]>(10);
-  const [track, setTrack] = useState<Track>("conversation");
+  const [track, setTrack] = useState<Track>("everyday");
   const [interests, setInterests] = useState<Interest[]>([]);
   const [occupation, setOccupation] = useState("");
   const [level, setLevel] = useState<CefrLevel | "">("");
+  const [tutorLanguage, setTutorLanguage] = useState<TutorLanguage>("native");
   const [generating, setGenerating] = useState(false);
 
   async function submit() {
@@ -53,6 +55,7 @@ export default function OnboardingPage() {
           interests,
           occupation: occupation.trim() || undefined,
           cefrLevel: level,
+          tutorLanguage,
         }),
       });
       router.replace("/lessons");
@@ -113,8 +116,8 @@ export default function OnboardingPage() {
         </section>
 
         <section className="grid gap-3">
-          <Label>Hedefin</Label>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <Label>İngilizceyi en çok nerede kullanacaksın?</Label>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {TRACKS.map((t) => (
               <button
                 key={t} type="button" onClick={() => setTrack(t)}
@@ -153,6 +156,34 @@ export default function OnboardingPage() {
             placeholder="ör. yazılım geliştirici — öğretmenin sohbette bunu bilir"
             maxLength={120}
           />
+        </section>
+
+        <section className="grid gap-3">
+          <Label>Öğretmenin nasıl anlatsın?</Label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              type="button" onClick={() => setTutorLanguage("native")}
+              className={`rounded-xl border p-4 text-left transition ${
+                tutorLanguage === "native" ? "border-primary bg-primary/10" : "border-border hover:border-muted-foreground"
+              }`}
+            >
+              <div className="font-semibold">Kendi dilimde</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                Açıklamalar senin dilinde, İngilizce örnekler İngilizce — yeni başlayanlar için ideal
+              </div>
+            </button>
+            <button
+              type="button" onClick={() => setTutorLanguage("english")}
+              className={`rounded-xl border p-4 text-left transition ${
+                tutorLanguage === "english" ? "border-primary bg-primary/10" : "border-border hover:border-muted-foreground"
+              }`}
+            >
+              <div className="font-semibold">Tamamen İngilizce</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                Tam daldırma — her şey İngilizce (sonradan değiştirebilirsin)
+              </div>
+            </button>
+          </div>
         </section>
 
         <section className="grid gap-2">

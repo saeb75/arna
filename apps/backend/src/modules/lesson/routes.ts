@@ -1,7 +1,7 @@
 import { catalogLessonIdSchema } from "@arna/contracts";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { getOrGenerateLesson, LessonError, pregenerateNext } from "./service.js";
+import { LayerError, resolveLesson, warmNextLocale } from "./layers.js";
 
 const paramsSchema = z.object({ catalogLessonId: catalogLessonIdSchema });
 
@@ -25,18 +25,16 @@ export default async function lessonRoutes(app: FastifyInstance) {
       }
 
       try {
-        const result = await getOrGenerateLesson(request.userId, parsed.data.catalogLessonId);
-        // Algılanan hız: sıradaki dersi arka planda üret (beklenmez, hata yutulur)
-        void pregenerateNext(request.userId, parsed.data.catalogLessonId);
-        return {
-          lessonId: result.lessonId,
-          lesson: result.content,
-          warnings: result.report.warnings,
-        };
+        const resolved = await resolveLesson(request.userId, parsed.data.catalogLessonId);
+        // Algılanan hız: sıradaki dersin DİL PAKETİNİ arka planda ısıt.
+        // Çekirdek/sahne asla burada üretilmez — onlar yayın hattının işi.
+        void warmNextLocale(request.userId, parsed.data.catalogLessonId);
+        return { lessonId: resolved.localeId ?? resolved.coreId, lesson: resolved.content };
       } catch (err) {
-        if (err instanceof LessonError) {
+        if (err instanceof LayerError) {
+          // core/scene yayınlanmamışsa bu bir DAĞITIM eksiğidir, kullanıcı hatası değil
           const status =
-            err.code === "not_found" ? 404 : err.code === "in_progress_elsewhere" ? 409 : 500;
+            err.code === "not_found" ? 404 : err.code === "locale_in_progress" ? 409 : 503;
           return reply.code(status).send({ error: err.code });
         }
         throw err;

@@ -5,8 +5,7 @@ import { eq } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
 import { memories, sessionSummaries, sessions, userProfiles } from "../src/db/schema.js";
 import { embed } from "../src/modules/llm/index.js";
-import { isEnglishText } from "../src/modules/lesson/lint.js";
-import { fallbackScript } from "../src/modules/session/script.js";
+import { runsText } from "./_fixture.js";
 import { openSession } from "../src/modules/session/service.js";
 import { makeLessonContent, seedTestCatalogLesson , seedTestContent} from "./_fixture.js";
 
@@ -42,7 +41,7 @@ await sql`delete from user_profiles where user_id = ${testUserId}`;
 
 await db.insert(userProfiles).values({
   userId: testUserId, displayName, nativeLanguage: "tr",
-  cefrLevel: "A2", track: "business", dailyGoalMinutes: 10,
+  cefrLevel: "A2", track: "work", dailyGoalMinutes: 10,
   occupation: "backend developer", interests: ["technology"],
 });
 const catalogLesson = await seedTestCatalogLesson({});
@@ -94,14 +93,15 @@ const spokenIds = content.lecture.beats
   .map((b) => b.id);
 check(
   "niyet taşıyan HER beat için cümle var",
-  spokenIds.every((id) => !!script.beats[id]?.trim()),
-  spokenIds.filter((id) => !script.beats[id]?.trim()).join(", ") || "eksik yok",
+  spokenIds.every((id) => !!runsText(script.beats[id]).trim()),
+  spokenIds.filter((id) => !runsText(script.beats[id]).trim()).join(", ") || "eksik yok",
 );
 
-const allLines = [...Object.values(script.beats), script.practiceIntro, ...script.praise];
-check("tüm cümleler İngilizce (ASCII)", allLines.every(isEnglishText));
+const allLines = [...Object.values(script.beats), script.practiceIntro, ...script.praise].map(runsText);
+// v2: native modda satırlar ana dilde olabilir — ASCII yerine "boş değil" denetlenir
+check("tüm satırlar dolu", allLines.every((l) => l.trim().length > 0));
 
-const greeting = script.beats["b1"] ?? "";
+const greeting = runsText(script.beats["b1"]);
 check("selamlama öğrenciyi adıyla çağırıyor", greeting.includes(displayName), greeting);
 check(
   "selamlama hafızaya/geçen derse değiniyor",
@@ -113,20 +113,20 @@ check(
   "ask beat'leri soruyla bitiyor (öğrenciye söz veriliyor)",
   content.lecture.beats
     .filter((b) => b.kind === "ask")
-    .every((b) => /\?\s*$/.test(script.beats[b.id]?.trim() ?? "")),
+    .every((b) => /\?\s*$/.test(runsText(script.beats[b.id]).trim() ?? "")),
 );
 check(
   "say beat'inde soru YOK (akış hemen devam ediyor)",
   content.lecture.beats
     .filter((b) => b.kind === "say")
-    .every((b) => !(script.beats[b.id] ?? "").includes("?")),
-  script.beats["b4"] ?? "",
+    .every((b) => !(runsText(script.beats[b.id])).includes("?")),
+  runsText(script.beats["b4"]),
 );
 check("övgüler birbirinden farklı", new Set(script.praise).size === script.praise.length);
 check(
   "soru daveti üretildi ve soruyla bitiyor",
-  !!script.inviteQuestion && /\?\s*$/.test(script.inviteQuestion.trim()),
-  script.inviteQuestion,
+  runsText(script.inviteQuestion).length > 0 && /\?\s*$/.test(runsText(script.inviteQuestion).trim()),
+  runsText(script.inviteQuestion),
 );
 
 // state'e yazıldı mı — chatTurn ve yeniden yükleme buradan okuyor
@@ -144,11 +144,8 @@ check(
 
 // --- fallback: LLM düşerse ders yine açılır ---------------------------------
 
-console.log("\n=== YEDEK SCRIPT (LLM'siz) ===");
-const fb = fallbackScript(content, displayName);
-for (const id of spokenIds) console.log(`  [${id}] ${fb.beats[id]}`);
-check("yedek script her beat'i kapsıyor", spokenIds.every((id) => !!fb.beats[id]));
-check("yedek selamlama da adı kullanıyor", (fb.beats["b1"] ?? "").includes(displayName));
+// v2: LLM'siz yedek chrome şablonlarından geliyor ve script her beat'i baştan
+// şablonla doldurup selamlamayı LLM'le ÜZERİNE yazıyor — ayrı fallback testi kalmadı.
 
 // --- temizlik ---------------------------------------------------------------
 

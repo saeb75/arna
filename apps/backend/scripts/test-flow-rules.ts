@@ -5,6 +5,7 @@
  *
  *  Çalıştırma: apps/backend içinde `npx tsx scripts/test-flow-rules.ts` */
 import {
+  classifyAck,
   decideAfterTutorReply,
   decideInWrapup,
   decideOnStudentInput,
@@ -177,6 +178,27 @@ expect("yanlış cevap → hocaya sor", decideOnStudentInput(exercise, input({ a
 expect("1. yanlıştan sonra → BEKLE (hoca yeniden sordu)", decideAfterTutorReply(exercise, reply({ attempt: 0 })), { kind: "wait", awaiting: "exercise" });
 expect("2. yanlıştan sonra → ilerle (hoca cevabı verdi)", decideAfterTutorReply(exercise, reply({ attempt: 1 })), { kind: "advance" });
 
+// LLM EMNİYET AĞI: deterministik eşleyicinin ıskaladığı doğru cevabı (yazım
+// sürçmesi, listede olmayan geçerli varyant) judge yapısal `ok` ile kabul eder →
+// sunucu beatDone=true döner. Hak yakılmadan ilerlenir; övgü zaten yanıtın içinde.
+expect(
+  "judge kabul etti (1. denemede) → ilerle, hak yanmaz",
+  decideAfterTutorReply(exercise, reply({ attempt: 0, beatDone: true })),
+  { kind: "advance" },
+);
+expect(
+  "judge kabul etti (2. denemede) → yine ilerle",
+  decideAfterTutorReply(exercise, reply({ attempt: 1, beatDone: true })),
+  { kind: "advance" },
+);
+// Savunma: sunucu guard'ı ok && isAttempt zaten garanti eder ama makine de
+// tutarlı olmalı — deneme değilse beatDone ne olursa olsun konu-dışı yolu kazanır.
+expect(
+  "deneme DEĞİLSE beatDone=true bile ilerletmez (konu dışı önceliği)",
+  decideAfterTutorReply(exercise, reply({ attempt: 0, exchanges: 1, beatDone: true, isAttempt: false })),
+  { kind: "wait", awaiting: "exercise" },
+);
+
 // ---------------------------------------------------------------------------
 // 4) open_response — yapısal karar (şemayla doğrulanmış boolean)
 // ---------------------------------------------------------------------------
@@ -261,11 +283,44 @@ expect(
 
 // "Bilmiyorum" DENEMEDİR — model bunu konu dışı sayıp hakkı yakmıyordu ve
 // öğrenci doğru cevabı hiç duyamadan döngüde kalıyordu. Deterministik belirlenir.
-for (const s of ["I don't know", "no idea", "bilmiyorum", "not sure", "pass", "fikrim yok"]) {
+// İngilizce çekirdek küme parametresizdir; ANA DİL ifadeleri chrome paketinden
+// `extraTokens` olarak gelir (dil ilkesi: çekirdekte sabit dil referansı yok).
+const TR_SURRENDER = ["bilmiyorum", "bilmem", "fikrim yok"]; // src/i18n/tr.ts örneği
+for (const s of ["I don't know", "no idea", "not sure", "pass"]) {
   expectTrue(`"${s}" pes etmedir → deneme sayılır`, isSurrender(s));
+}
+for (const s of ["bilmiyorum", "fikrim yok"]) {
+  expectTrue(`"${s}" chrome extraTokens ile pes etmedir`, isSurrender(s, TR_SURRENDER));
+  expectTrue(`"${s}" extraTokens OLMADAN pes sayılmaz (çekirdek dil-bağımsız)`, !isSurrender(s));
 }
 for (const s of ["Hey!", "merhaba", "how are you", "İlişkiler çoğulduğu anlarda genellikle"]) {
   expectTrue(`"${s}" pes etme DEĞİL`, !isSurrender(s));
+}
+
+// CANLI HATA: "Yok, bu kadar yeterli." tam-dize eşleşmesine takılıp LLM'e gitti,
+// hoca soru penceresinde boş turlar döndü. classifyAck ≤4 kelimede kelime-sınırlı
+// İÇERME de yapar; birden fazla SINIF eşleşirse belirsizdir (LLM karar verir).
+console.log("— classifyAck (içerme + çelişki koruması) —");
+{
+  const sets = {
+    yes: ["evet", "var", "yes", "i have a question"],
+    no: ["hayır", "yok", "sorum yok", "no"],
+    proceed: ["tamam", "hazırım", "devam", "ok", "ready"],
+  };
+  const cases: Array<[string, ReturnType<typeof classifyAck>]> = [
+    ["Yok, bu kadar yeterli.", "no"],
+    ["Yok, başka sorum yok.", "no"],
+    ["no thanks that's all", "no"],
+    ["Evet, bir sorum var!", "yes"], // "evet" + "var" aynı sınıf — çelişki değil
+    ["yes", "yes"],
+    ["Tamam, hazırım!", "proceed"],
+    ["evet tamam", null], // yes + proceed çelişkisi → LLM karar versin
+    ["Bu konuyu hiç anlamadım açıkçası ve tekrar ister misin", null], // >4 kelime
+  ];
+  for (const [text, want] of cases) {
+    const got = classifyAck(text, sets);
+    expectTrue(`classifyAck("${text}") → ${JSON.stringify(want)}`, got === want);
+  }
 }
 
 // ---------------------------------------------------------------------------

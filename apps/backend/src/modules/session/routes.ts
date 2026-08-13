@@ -17,7 +17,30 @@ const chatBody = z.object({
   /** Soru penceresinin son turu — hoca kapanış yapar, yeni soru davet etmez */
   lastExchange: z.boolean().optional(),
 });
-const ttsBody = z.object({ text: z.string().trim().min(1).max(500) });
+/**
+ * v7: dil etiketli parçalar; toplam uzunluk tavanı parça BAŞINA değil TOPLAMDA.
+ * Eski `{text}` gövdesi tek İngilizce parça sayılır (geçiş uyumu).
+ *
+ * Tavanlar ANLATIM bölümüne göre boyutlandı: teach beat'i tek speak çağrısında
+ * gider ve 4 nokta × (açıklama parçaları + örnekler) 30+ parça / ~3000 karakter
+ * edebilir. Eski 12 parça / 900 karakter tavanı canlıda tam da bu bölümü
+ * sessizce susturdu (400 invalid_input; diğer bölümler kısa olduğundan konuştu).
+ * Kötüye kullanımın asıl bekçileri rate limit + günlük maliyet bütçesi.
+ */
+const ttsBody = z
+  .union([
+    z.object({
+      runs: z
+        .array(z.object({ lang: z.enum(["en", "l1"]), text: z.string().trim().min(1) }))
+        .min(1)
+        .max(48),
+    }),
+    z.object({ text: z.string().trim().min(1) }),
+  ])
+  .refine(
+    (b) => ("runs" in b ? b.runs.reduce((n, r) => n + r.text.length, 0) : b.text.length) <= 4000,
+    { message: "toplam metin 4000 karakteri aşamaz" },
+  );
 
 const byUser = (req: FastifyRequest) => (req as { userId?: string }).userId ?? req.ip;
 
@@ -88,7 +111,8 @@ export default async function sessionRoutes(app: FastifyInstance) {
     },
     async (request, reply) => {
       const params = sessionParams.safeParse(request.params);
-      const body = ttsBody.safeParse(request.body); // aynı şekil: { text }
+      // translate düz metin alır (balon çevirisi) — tts'in runs gövdesinden ayrıldı
+      const body = z.object({ text: z.string().trim().min(1).max(900) }).safeParse(request.body);
       if (!params.success || !body.success) {
         return reply.code(400).send({ error: "invalid_input" });
       }
@@ -113,7 +137,8 @@ export default async function sessionRoutes(app: FastifyInstance) {
         return reply.code(400).send({ error: "invalid_input" });
       }
       try {
-        return await tts(request.userId, params.data.sessionId, body.data.text);
+        const runs = "runs" in body.data ? body.data.runs : [{ lang: "en" as const, text: body.data.text }];
+        return await tts(request.userId, params.data.sessionId, runs);
       } catch (err) {
         return sendError(reply, err);
       }

@@ -7,7 +7,7 @@
  *  Çalıştırma: apps/backend içinde `npx tsx scripts/test-wrapup.ts` */
 import { db, sql } from "../src/db/client.js";
 import { userProfiles } from "../src/db/schema.js";
-import { fallbackScript } from "../src/modules/session/script.js";
+import { runsText } from "./_fixture.js";
 import { chatTurn, openSession } from "../src/modules/session/service.js";
 import { makeLessonContent, seedTestCatalogLesson , seedTestContent} from "./_fixture.js";
 
@@ -48,7 +48,7 @@ await sql`delete from user_profiles where user_id = ${testUserId}`;
 
 await db.insert(userProfiles).values({
   userId: testUserId, displayName: "Saeb", nativeLanguage: "tr",
-  cefrLevel: "B1", track: "business", dailyGoalMinutes: 10,
+  cefrLevel: "B1", track: "work", dailyGoalMinutes: 10,
   occupation: "backend developer", interests: ["technology"],
 });
 const catalogLesson = await seedTestCatalogLesson({});
@@ -65,8 +65,8 @@ console.log(`  [veda]    ${script?.farewell}`);
 check("kapanış cümlesi üretildi", !!script?.wrapup);
 check(
   "kapanış soruyla bitiyor (öğrenci cevap verebilsin)",
-  /\?\s*$/.test((script?.wrapup ?? "").trim()),
-  script?.wrapup,
+  /\?\s*$/.test(runsText(script?.wrapup).trim()),
+  runsText(script?.wrapup),
 );
 // Not: "dersin bittiğini söylüyor mu" ANAHTAR KELİMEYLE denetlenmiyor. Denendi ve
 // kırıldı: Emma "That was a wonderful lesson!" dediğinde liste yakalamadı, oysa
@@ -75,19 +75,19 @@ check(
 // Burada YAPISAL ve kararlı olan sınanır.
 check(
   "kapanış rol karakterine dönmüyor",
-  !(script?.wrapup ?? "").includes(content.practice.persona.name),
-  script?.wrapup,
+  !runsText(script?.wrapup).includes(content.practice.persona.name),
+  runsText(script?.wrapup),
 );
 check(
   "kapanış makul uzunlukta (2-3 cümle)",
-  (script?.wrapup ?? "").length >= 40 && (script?.wrapup ?? "").length <= 260,
-  `${(script?.wrapup ?? "").length} karakter`,
+  runsText(script?.wrapup).length >= 40 && runsText(script?.wrapup).length <= 260,
+  `${runsText(script?.wrapup).length} karakter`,
 );
 check("veda cümlesi üretildi", !!script?.farewell);
 check(
   "vedada soru YOK (ders zaten bitmiyor, buton bekliyor)",
-  !(script?.farewell ?? "").includes("?"),
-  script?.farewell,
+  !runsText(script?.farewell).includes("?"),
+  runsText(script?.farewell),
 );
 
 // --- 2) Sahne bitmeden ders bitmiyor: practice erken kapanmamalı ------------
@@ -136,9 +136,7 @@ check("ikinci turda da ders bitmiyor", !w2.segmentDone, `segmentDone=${w2.segmen
 
 // --- 4) Yedek script de kapanışı kapsıyor -----------------------------------
 
-const fb = fallbackScript(content, "Saeb");
-check("yedek script'te kapanış var", !!fb.wrapup && fb.wrapup.includes("Saeb"));
-check("yedek script'te veda var", !!fb.farewell && !fb.farewell.includes("?"));
+// v2: yedek chrome şablonlarından — ayrı fallback testi kalmadı.
 
 await sql`delete from user_profiles where user_id = ${testUserId}`;
 await sql`delete from llm_calls where user_id = ${testUserId}`;

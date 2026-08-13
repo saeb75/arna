@@ -16,7 +16,7 @@ await db.insert(userProfiles).values({
   displayName: "Saeb",
   nativeLanguage,
   cefrLevel: "A2",
-  track: "business",
+  track: "work",
   dailyGoalMinutes: 10,
   occupation: "front-end developer / takım lideri",
   interests: ["technology", "gaming"],

@@ -124,6 +124,7 @@ paths:
               properties:
                 cefrLevel: { $ref: "#/components/schemas/CefrLevel" }
                 track: { $ref: "#/components/schemas/Track" }
+                tutorLanguage: { type: string, enum: [native, english] }
             example: { cefrLevel: B1 }
       responses:
         "200":
@@ -313,8 +314,11 @@ paths:
                   beatDone:
                     type: boolean
                     description: |
-                      Yalnızca `open_response`: adım tamamlandı — rubrik cevabı kabul etti
-                      ya da deneme hakkı bitti.
+                      Adım tamamlandı (yapısal karar). `open_response`: rubrik cevabı kabul
+                      etti ya da deneme hakkı bitti. `exercise`: deterministik eşleyicinin
+                      ıskaladığı cevabı judge kabul etti (yazım sürçmesi, kabul listesinde
+                      olmayan geçerli varyant, "the first one" gibi paraphrase) — LLM
+                      emniyet ağı; hak yakılmadan ilerlenir.
                     example: false
                   isAttempt:
                     type: boolean
@@ -341,11 +345,15 @@ paths:
   /v1/sessions/{sessionId}/tts:
     post:
       tags: [Oturum]
-      summary: Metni sese çevir (zaman damgalı)
+      summary: Dil etiketli parçaları sese çevir (klip listesi)
       description: |
-        ElevenLabs `with-timestamps` proxy'si; ses (base64 MP3) + karakter
-        hizalaması (`normalized_alignment` tercihli) döner. Avatar lip-sync
-        bu hizalamayı kullanır. Metin ≤500 karakter.
+        v7: gövde dil etiketli parçalar (`runs`) alır; ardışık aynı-dil parçalar
+        tek klipte birleştirilir, her klip KENDİ `language_code`uyla üretilir
+        (native modda ana dil + İngilizce karışık konuşma doğru telaffuzla çıkar).
+        İstemci klipleri sırayla çalar; `onEnd` son klipten sonra TAM BİR KEZ.
+        Ana dil TTS kapsamı dışındaysa (ElevenLabs ~32 dil) o parçalar sessiz
+        kalır (metin ekranda), yalnız İngilizce klipler döner.
+        Eski `{text}` gövdesi tek İngilizce parça sayılır. Toplam ≤900 karakter.
 
         **Rate limit:** kullanıcı başına saatte 120. TTS yapılandırılmamışsa 502.
       parameters:
@@ -359,19 +367,32 @@ paths:
           application/json:
             schema:
               type: object
-              required: [text]
               properties:
-                text: { type: string }
+                runs:
+                  type: array
+                  items:
+                    type: object
+                    required: [lang, text]
+                    properties:
+                      lang: { type: string, enum: [en, l1] }
+                      text: { type: string }
+                text: { type: string, description: "Eski biçim — tek İngilizce parça sayılır" }
       responses:
         "200":
-          description: Ses + hizalama
+          description: Klip listesi (sırayla çalınır)
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  audioBase64: { type: string }
-                  alignment: { type: object }
+                  clips:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        audioBase64: { type: string }
+                        alignment: { type: object }
+                        lang: { type: string }
 
   /v1/sessions/{sessionId}/stt:
     post:
@@ -521,6 +542,13 @@ components:
             yalnızca canlı sohbette hocanın bağlamına eklenir.
           example: front-end developer / takım lideri
         cefrLevel: { $ref: "#/components/schemas/CefrLevel" }
+        tutorLanguage:
+          type: string
+          enum: [native, english]
+          default: native
+          description: |
+            Öğretim dili. `native`: Emma açıklamaları öğrencinin dilinde yapar
+            (öğretilen İngilizce malzeme ve rol yapma İngilizce kalır).
 
     CurriculumLesson:
       type: object
@@ -589,15 +617,16 @@ components:
     LessonContent:
       type: object
       description: |
-        Üretilmiş ders içeriği — **pedagojik sözleşme** (`formatVersion: 6`).
+        Birleşik ders görünümü — **v7** (`formatVersion: 7`). Sunucu üç katmanı
+        (İngilizce çekirdek + track sahnesi + dil paketi) chrome ile birleştirir;
+        istemci tek nesne görür. Metin alanları DİL ETİKETLİ PARÇALARDIR
+        (`runs: [{lang: en|l1, text, emphasis?}]`): ekran `en`i vurgular, TTS her
+        parçayı kendi diliyle okur. `ui` alanı ACK/pes kümelerini ve etiketleri
+        taşır — istemci dil sinyallerini hardcode etmez.
 
-        Ders bir oynatma script'i DEĞİLDİR: hocanın birebir cümleleri burada durmaz.
-        Beat'ler `intent` (ne yapılacağı) taşır; hocanın söyleyeceği cümle oturum
-        açılışında öğrenciye göre üretilir → `SessionScript`.
-
-        İçerikte kullanıcıya özel hiçbir veri YOKTUR (isim yok) — aynı içerik ileride
-        kullanıcılar arasında paylaşılabilsin diye. Akış kontrolü (tur tavanı, faz
-        geçişi, deneme sınırı) içerikte değil, SUNUCU KODUNDADIR.
+        İçerikte kullanıcıya özel hiçbir veri YOKTUR. Akış kontrolü içerikte değil,
+        SUNUCU KODUNDA ve @arna/contracts saf fonksiyonlarındadır. Tam şema:
+        packages/contracts/src/lessonLayers.ts → lessonContentV7Schema.
 
         İki faz: LECTURE (beats) → PRACTICE (roleplay). Tam şema
         `packages/contracts` içindedir (tek doğruluk kaynağı).

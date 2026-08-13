@@ -43,7 +43,7 @@ for (const l of rows) {
   const { system, user } = buildLessonGenPrompt({
     nativeLanguage: "tr",
     cefrLevel: l.level,
-    track: "conversation",
+    track: "everyday",
     lesson: {
       kind: l.kind as "phrases" | "grammar" | "practice",
       title: l.title,

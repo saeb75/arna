@@ -1,4 +1,14 @@
-import type { LectureBeat } from "./index.js";
+/**
+ * Akış makinesinin beat'ten OKUDUĞU alanların tamamı — yapısal tip.
+ * v6 LectureBeat de v7 ViewBeat de bu şekle uyar; makinenin mantığı içerik
+ * formatından bağımsızdır (zaten tasarım ilkesi buydu, tip artık bunu söylüyor).
+ */
+export type FlowBeat =
+  | { kind: "say" }
+  | { kind: "ask"; purpose: "readiness" | "questions" }
+  | { kind: "teach" }
+  | { kind: "exercise" }
+  | { kind: "open_response"; maxAttempts: number };
 
 /**
  * DERS AKIŞ MAKİNESİ — saf, deterministik, test edilebilir.
@@ -24,17 +34,90 @@ export type AckKind = "yes" | "no" | "proceed";
  * "Bilmiyorum" demek de bir CEVAPTIR — pes eden öğrenci, hakları bitince doğru
  * cevabı duymayı hak eder. Model bunu bazen "konu dışı" sayıp deneme hakkını
  * yakmıyordu ve öğrenci cevabı hiç öğrenemeden döngüde kalıyordu. Kapalı ve küçük
- * bir küme olduğu için modele sorulmaz, burada deterministik belirlenir.
+ * bir küme olduğu için modele sorulmaz, deterministik belirlenir.
+ *
+ * KÜME ARTIK PARAMETRE: eskiden Türkçe+İngilizce hardcode'du — 51. dilde sessizce
+ * bozulurdu. Ana dile ait ifadeler chrome bundle'dan gelir (İngilizce çekirdek
+ * ifadeler her dilde geçerli kalır, çağıran birleştirir).
  */
-const SURRENDER = new Set([
+export const SURRENDER_EN = [
   "i don't know", "i dont know", "idk", "no idea", "dunno", "not sure", "i'm not sure",
   "im not sure", "no clue", "pass", "skip", "i give up",
-  "bilmiyorum", "bilmem", "fikrim yok", "emin degilim", "emin değilim", "gec", "geç", "pas",
-]);
+] as const;
 
-export function isSurrender(text: string): boolean {
-  const t = text.toLowerCase().replace(/[^a-zçğıöşü' ]/gi, " ").replace(/\s+/g, " ").trim();
-  return t.length > 0 && t.split(" ").length <= 4 && SURRENDER.has(t);
+/**
+ * İngilizce çekirdek ONAY kümeleri — SURRENDER_EN ile aynı ilke: hedef dil herkes
+ * için İngilizce olduğundan bu ifadeler HER ana dilde geçerlidir ve çekirdekte
+ * yaşar; ana dile özgü ifadeler chrome paketinden eklenir (assembleLesson birleştirir).
+ *
+ * Canlı hata: native modda kümeler yalnız chrome'dan (Türkçe) geliyordu — İngilizce
+ * ders çalışan öğrencinin "yes"i tanınmadı, bedava onay LLM'e gitti ve hoca
+ * İngilizce'ye kaydı.
+ */
+export const ACK_EN = {
+  yes: ["yes", "yeah", "yep", "sure", "of course", "i do", "i have a question", "ok yes"],
+  no: ["no", "nope", "no thanks", "i don't", "i dont", "not really", "no questions", "i'm good", "im good"],
+  proceed: ["ok", "okay", "ready", "i'm ready", "im ready", "let's go", "lets go", "let's start", "lets start", "go on", "continue"],
+} as const;
+
+/** Kısa söz normalizasyonu — dil-bağımsız (\p{L}; eski regex yalnız Latin+Türkçe tanıyordu) */
+function normalizeShort(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[’‘]/g, "'")
+    .replace(/[^\p{L}\p{N}' ]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function isSurrender(text: string, extraTokens: readonly string[] = []): boolean {
+  const t = normalizeShort(text);
+  if (!t || t.split(" ").length > 4) return false;
+  return SURRENDER_EN.includes(t as (typeof SURRENDER_EN)[number]) || extraTokens.includes(t);
+}
+
+export interface AckSets {
+  yes: readonly string[];
+  no: readonly string[];
+  proceed: readonly string[];
+}
+
+/** token dizisi, kelime sınırlarına saygıyla içinde geçiyor mu ("yok" ⊂ "yok bu kadar yeterli") */
+function containsTokenSeq(haystackTokens: string[], phrase: string): boolean {
+  const want = phrase.split(" ");
+  for (let i = 0; i + want.length <= haystackTokens.length; i++) {
+    if (want.every((t, j) => haystackTokens[i + j] === t)) return true;
+  }
+  return false;
+}
+
+/**
+ * Kısa onay sınıflandırması — LLM'siz, deterministik, dil-bağımsız (kümeler
+ * chrome + ACK_EN'den gelir).
+ *
+ * TAM eşleşme yetmiyordu: canlıda "Yok, bu kadar yeterli." tanınmadı (listede
+ * "yok" var ama dize eşit değil), serbest metin sanılıp LLM'e gitti ve hoca soru
+ * penceresinde iki tur boşa döndü. Kural: ≤4 kelimelik sözde bir kümenin ifadesi
+ * KELİME SINIRIYLA geçiyorsa o sınıftır; birden fazla SINIF birden eşleşirse
+ * belirsizdir (null → LLM karar versin). Uzunluk kapısı yanlış pozitifin asıl
+ * sigortası: soru cümleleri 4 kelimeyi aşar.
+ */
+export function classifyAck(text: string, sets: AckSets): AckKind | null {
+  const t = normalizeShort(text);
+  if (!t || t.split(" ").length > 4) return null;
+
+  // Önce tam eşleşme (tek sınıf kazanır, mevcut öncelik sırası korunur)
+  if (sets.no.includes(t)) return "no";
+  if (sets.yes.includes(t)) return "yes";
+  if (sets.proceed.includes(t)) return "proceed";
+
+  const tokens = t.split(" ");
+  const hit = (list: readonly string[]) => list.some((p) => containsTokenSeq(tokens, normalizeShort(p)));
+  const matches: AckKind[] = [];
+  if (hit(sets.no)) matches.push("no");
+  if (hit(sets.yes)) matches.push("yes");
+  if (hit(sets.proceed)) matches.push("proceed");
+  return matches.length === 1 ? matches[0]! : null;
 }
 
 /** Akışın hangi girdiyi beklediği. */
@@ -92,7 +175,7 @@ export interface StudentInputContext {
  * "başka sorun var mı?" demek yerine kapanış yapar. Yoksa Emma soru sorarken akış
  * ilerliyor ve ders kendi kendiyle çelişiyor (canlı görülen hâli buydu).
  */
-export function isLastQuestionExchange(beat: LectureBeat, exchanges: number): boolean {
+export function isLastQuestionExchange(beat: FlowBeat, exchanges: number): boolean {
   if (beat.kind !== "ask" || beat.purpose !== "questions") return false;
   return exchanges + 1 >= MAX_BEAT_EXCHANGES;
 }
@@ -101,7 +184,7 @@ export function isLastQuestionExchange(beat: LectureBeat, exchanges: number): bo
  * Öğrencinin sözü geldi — LLM'e gitmeden ÖNCEKİ karar.
  */
 export function decideOnStudentInput(
-  beat: LectureBeat,
+  beat: FlowBeat,
   ctx: StudentInputContext,
 ): FlowDecision {
   switch (beat.kind) {
@@ -162,7 +245,14 @@ export interface TutorReplyContext {
   exchanges: number;
   /** Bu cevabın hangi denemeye ait olduğu (0-tabanlı). */
   attempt: number;
-  /** Yalnızca open_response: sunucunun yapısal kararı. */
+  /**
+   * Sunucunun yapısal "bu adım tamam" kararı.
+   *
+   * open_response: rubrik kabul etti ya da hak bitti. exercise: deterministik
+   * eşleyicinin ıskaladığı cevabı judge kabul etti (yazım sürçmesi, listede
+   * olmayan geçerli varyant) — LLM emniyet ağı. Karar girdisi yine yapısal
+   * boolean'dır; modelin düzyazısı değil.
+   */
   beatDone: boolean;
   /**
    * Öğrencinin sözü bir CEVAP DENEMESİ miydi? (sunucudan gelen yapısal karar)
@@ -190,7 +280,7 @@ function offTopic(awaiting: AwaitingInput, exchanges: number): FlowDecision {
  * tamamen beat türü + sayaçlardan çıkar.
  */
 export function decideAfterTutorReply(
-  beat: LectureBeat,
+  beat: FlowBeat,
   ctx: TutorReplyContext,
 ): FlowDecision {
   switch (beat.kind) {
@@ -210,6 +300,9 @@ export function decideAfterTutorReply(
       // Cevap denemesi DEĞİLSE (selamlama, konu dışı laf) deneme hakkı yanmaz;
       // hoca soruyu yeniden sorar, beklenir. Sonsuz döngüyü tur tavanı keser.
       if (ctx.isAttempt === false) return offTopic("exercise", ctx.exchanges);
+      // Judge cevabı KABUL etti (deterministik eşleyicinin ıskaladığı doğru:
+      // yazım sürçmesi, listede olmayan geçerli varyant) → övgü zaten yanıtta, ilerle.
+      if (ctx.beatDone) return { kind: "advance" };
       // 1. yanlışta hoca düzeltip YENİDEN sorar → beklenir.
       // 2. yanlışta hoca cevabı verir → ilerlenir. (Sayaç kararı verir, cevabın metni değil.)
       return ctx.attempt >= 1

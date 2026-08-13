@@ -19,10 +19,17 @@ export const INTEREST_LABELS: Record<Interest, string> = {
   nature: "Doğa",
 };
 
+/**
+ * Track = KONUŞMA BAĞLAMI, "öğrenme yolu" değil: yalnızca rol yapma sahnelerinin
+ * dekorunu belirler. Kopya bu yüzden vaat vermez — "IELTS hazırlık programı"
+ * yazmıyoruz, "sınav ortamı sahneleri" diyoruz.
+ */
 export const TRACK_LABELS: Record<Track, { title: string; desc: string }> = {
-  conversation: { title: "Günlük Konuşma", desc: "Sosyal durumlar, seyahat, small talk" },
-  business: { title: "Business English", desc: "Toplantılar, e-postalar, sunumlar" },
-  exam: { title: "Sınav İngilizcesi", desc: "IELTS / TOEFL hazırlık" },
+  everyday: { title: "Günlük Hayat", desc: "Sohbet, alışveriş, sosyal ortam sahneleri" },
+  work: { title: "İş", desc: "Toplantı, e-posta, mülakat sahneleri" },
+  travel: { title: "Seyahat", desc: "Havalimanı, otel, yurtdışında yaşam sahneleri" },
+  academic: { title: "Okul", desc: "Ders, seminer, sunum sahneleri" },
+  exam: { title: "Sınav", desc: "Sınav ortamı konuşma sahneleri" },
 };
 
 /**

@@ -54,7 +54,7 @@ await sql`delete from user_profiles where user_id = ${testUserId}`;
 
 await db.insert(userProfiles).values({
   userId: testUserId, displayName: "Saeb", nativeLanguage: "tr",
-  cefrLevel: "B1", track: "business", dailyGoalMinutes: 10,
+  cefrLevel: "B1", track: "work", dailyGoalMinutes: 10,
   occupation: "backend developer", interests: ["technology"],
 });
 const catalogLesson = await seedTestCatalogLesson({});

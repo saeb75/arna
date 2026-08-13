@@ -3,6 +3,9 @@ import type { z } from "zod";
 export type LLMPurpose =
   | "plan_gen"
   | "lesson_gen"
+  | "lesson_core"
+  | "lesson_scenes"
+  | "lesson_locale"
   | "chat"
   | "memory_extract"
   | "embedding";

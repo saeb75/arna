@@ -1,4 +1,4 @@
-import { cefrLevelSchema, trackSchema } from "@arna/contracts";
+import { cefrLevelSchema, trackSchema, tutorLanguageSchema } from "@arna/contracts";
 import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
@@ -15,6 +15,7 @@ import { CurriculumError, getCurriculumForUser } from "./queries.js";
 const patchSchema = z.object({
   cefrLevel: cefrLevelSchema.optional(),
   track: trackSchema.optional(),
+  tutorLanguage: tutorLanguageSchema.optional(),
 });
 
 export default async function curriculumRoutes(app: FastifyInstance) {
@@ -32,7 +33,11 @@ export default async function curriculumRoutes(app: FastifyInstance) {
     if (!parsed.success) {
       return reply.code(400).send({ error: "invalid_input", issues: parsed.error.issues });
     }
-    if (parsed.data.cefrLevel === undefined && parsed.data.track === undefined) {
+    if (
+      parsed.data.cefrLevel === undefined &&
+      parsed.data.track === undefined &&
+      parsed.data.tutorLanguage === undefined
+    ) {
       return reply.code(400).send({ error: "invalid_input", issues: [] });
     }
 
@@ -41,6 +46,7 @@ export default async function curriculumRoutes(app: FastifyInstance) {
       .set({
         ...(parsed.data.cefrLevel ? { cefrLevel: parsed.data.cefrLevel } : {}),
         ...(parsed.data.track ? { track: parsed.data.track } : {}),
+        ...(parsed.data.tutorLanguage ? { tutorLanguage: parsed.data.tutorLanguage } : {}),
         updatedAt: new Date(),
       })
       .where(eq(userProfiles.userId, request.userId))

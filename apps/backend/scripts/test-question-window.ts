@@ -10,7 +10,7 @@ import { eq } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
 import { llmCalls, userProfiles } from "../src/db/schema.js";
 import { chatTurn, openSession } from "../src/modules/session/service.js";
-import { makeLessonContent, seedTestCatalogLesson , seedTestContent} from "./_fixture.js";
+import { makeLessonContent, seedTestCatalogLesson , seedTestContent, runsText } from "./_fixture.js";
 
 const testUserId = "00000000-0000-4000-8000-000000000012";
 
@@ -114,7 +114,7 @@ await sql`delete from user_profiles where user_id = ${testUserId}`;
 
 await db.insert(userProfiles).values({
   userId: testUserId, displayName: "Saeb", nativeLanguage: "tr",
-  cefrLevel: "A2", track: "business", dailyGoalMinutes: 10,
+  cefrLevel: "A2", track: "work", dailyGoalMinutes: 10,
   occupation: "backend developer", interests: ["technology"],
 });
 const catalogLesson = await seedTestCatalogLesson({});
@@ -128,8 +128,8 @@ console.log(`  [davet]      ${script?.inviteQuestion}`);
 check("inviteQuestion üretildi", !!script?.inviteQuestion);
 check(
   "davet soruyla bitiyor (öğrenciye söz veriliyor)",
-  /\?\s*$/.test((script?.inviteQuestion ?? "").trim()),
-  script?.inviteQuestion,
+  /\?\s*$/.test(runsText(script?.inviteQuestion).trim()),
+  runsText(script?.inviteQuestion),
 );
 check(
   "davet konuyu yeniden anlatmıyor (kısa)",

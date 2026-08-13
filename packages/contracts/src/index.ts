@@ -27,9 +27,22 @@ export const catalogLessonIdSchema = z
   .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/)
   .max(80);
 
-export const TRACKS = ["business", "conversation", "exam"] as const;
+/**
+ * KONUŞMA BAĞLAMI — "öğrenme yolu" DEĞİL. Yalnızca rol yapma sahnesinin dekorunu
+ * belirler; anlatım, alıştırmalar ve cevaplar track'ten bağımsızdır (çekirdekte).
+ * Bu yüzden onboarding kopyası "İngilizceyi en çok nerede kullanacaksın?" der,
+ * "IELTS hazırlık programı" vaadi VERMEZ — gerçek sınav içeriği ileride ayrı
+ * eksen (learningGoal) olarak açılabilir.
+ * Eşleme (eski → yeni): conversation→everyday, business→work.
+ */
+export const TRACKS = ["everyday", "work", "travel", "academic", "exam"] as const;
 export const trackSchema = z.enum(TRACKS);
 export type Track = z.infer<typeof trackSchema>;
+
+/** Öğretim dili: native → Emma açıklamaları öğrencinin dilinde yapar. */
+export const TUTOR_LANGUAGES = ["native", "english"] as const;
+export const tutorLanguageSchema = z.enum(TUTOR_LANGUAGES);
+export type TutorLanguage = z.infer<typeof tutorLanguageSchema>;
 
 export const INTEREST_AREAS = [
   "technology",
@@ -69,6 +82,8 @@ export const onboardingInputSchema = z.object({
    * metin üretimi buna göre parametriklenir. Asla belirli bir dile sabitlenmez.
    */
   nativeLanguage: z.string().trim().min(2).max(10).default("tr"),
+  /** Öğretim dili — onboarding'de sorulur, ayarlardan değiştirilebilir */
+  tutorLanguage: tutorLanguageSchema.default("native"),
 });
 export type OnboardingInput = z.infer<typeof onboardingInputSchema>;
 
@@ -295,27 +310,29 @@ export type LessonPhase = "lecture" | "practice" | "wrapup";
 // sessions.state'te saklanır. İçerikten AYRI: içerik kullanıcıdan bağımsızdır.
 // ---------------------------------------------------------------------------
 
+/**
+ * v2: değerler dil etiketli parçalar (RichText) — native modda Emma ana dilde
+ * konuşur, İngilizce terim/örnek `en` parçası olarak ayrı seslendirilir.
+ *
+ * HİBRİT ÜRETİM: yalnızca selamlama (readiness beat'i) LLM'den gelir (ad +
+ * hafıza kancası kişiye özel). Geçişler, övgüler, davet, kapanış ve veda
+ * chrome şablonlarından enterpolasyonla kurulur — oturum başına ~900 token'lık
+ * tam script üretimi kullanıcı sayısıyla sonsuza büyüyen gereksiz bir üretimdi.
+ */
+const scriptRichTextSchema = z.array(
+  z.object({ lang: z.enum(["en", "l1"]), text: z.string().min(1), emphasis: z.boolean().optional() }),
+).min(1);
+
 export const sessionScriptSchema = z.object({
-  v: z.literal(1),
-  /** beatId → hocanın o beat'te söyleyeceği cümle (say/ask/teach girişi) */
-  beats: z.record(z.string(), z.string().min(1)),
-  /** Practice fazına geçiş cümlesi */
-  practiceIntro: z.string().min(1),
-  /**
-   * "Sorun var mı?" sorusuna öğrenci EVET dediğinde söylenen davet
-   * ("Of course! What would you like to know?"). Sorusunu sorması beklenir.
-   * Eski oturumlarda bulunmayabilir → istemci sabit bir yedeğe düşer.
-   */
-  inviteQuestion: z.string().min(1).optional(),
-  /**
-   * Kapanış: hoca karakterden çıkıp dersi bitirir — bugün ne öğrenildiğine dair tek
-   * cümle + "sormak istediğin bir şey var mı?". Soru işaretiyle biter.
-   */
-  wrapup: z.string().min(1).optional(),
-  /** Öğrenci "hayır" deyince söylenen kısa veda — soru İÇERMEZ (ders yine bitmez). */
-  farewell: z.string().min(1).optional(),
+  v: z.literal(2),
+  /** beatId → hocanın o beat'te söyleyeceği parçalar (say/ask/teach girişi) */
+  beats: z.record(z.string(), scriptRichTextSchema),
+  practiceIntro: scriptRichTextSchema,
+  inviteQuestion: scriptRichTextSchema,
+  wrapup: scriptRichTextSchema,
+  farewell: scriptRichTextSchema,
   /** Doğru cevaplarda sırayla kullanılan kısa övgüler (LLM çağrısı yapılmaz) */
-  praise: z.array(z.string().min(1)).min(2).max(6),
+  praise: z.array(scriptRichTextSchema).min(2).max(6),
 });
 export type SessionScript = z.infer<typeof sessionScriptSchema>;
 
@@ -374,3 +391,4 @@ export type CurriculumResponse = z.infer<typeof curriculumResponseSchema>;
 // ---------------------------------------------------------------------------
 
 export * from "./lessonFlow.js";
+export * from "./lessonLayers.js";

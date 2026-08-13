@@ -82,7 +82,7 @@ export async function getOrGenerateLesson(
   const key: CacheKey = {
     catalogLessonId,
     nativeLanguage: nativeLanguageOf(profile),
-    track: profile?.track ?? "conversation",
+    track: profile?.track ?? "everyday",
     formatVersion: CONTENT_FORMAT,
     promptVersion: LESSON_GEN_VERSION,
     specHash: lesson.specHash,
@@ -157,7 +157,7 @@ export async function findReadyContent(userId: string, catalogLessonId: string) 
         keyWhere({
           catalogLessonId,
           nativeLanguage: nativeLanguageOf(profile),
-          track: profile?.track ?? "conversation",
+          track: profile?.track ?? "everyday",
           formatVersion: CONTENT_FORMAT,
           promptVersion: LESSON_GEN_VERSION,
           specHash: lesson.specHash,
@@ -211,7 +211,7 @@ async function generateInto(
   const ctx = {
     nativeLanguage: nativeLanguageOf(profile),
     cefrLevel: lesson.level,
-    track: profile?.track ?? "conversation",
+    track: profile?.track ?? "everyday",
     lesson: {
       kind: lesson.kind as LessonKind,
       title: lesson.title,

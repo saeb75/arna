@@ -33,7 +33,7 @@ await db.insert(userProfiles).values({
   displayName: "Saeb",
   nativeLanguage: "tr",
   cefrLevel: "A2",
-  track: "business",
+  track: "work",
   dailyGoalMinutes: 10,
   occupation: "backend developer",
   interests: ["technology", "sports"],
@@ -187,7 +187,30 @@ const system = buildTutorPrompt({
   nativeLanguage: "tr",
   occupation: "backend developer",
   interests: ["technology", "sports"],
-  lesson: nextLesson,
+  tutorLanguage: "native",
+  core: {
+    coreFormat: 1, topic: nextLesson.topic, focus: nextLesson.focus,
+    objectives: ["Talk about weekend plans.", "Use present continuous for future."],
+    communicationGoal: "Make weekend plans.", estMinutes: 5,
+    tutorNotes: { target: nextLesson.focus, correctionStyle: "recast naturally" },
+    summary: "You practised future arrangements.",
+    lecture: { beats: [
+      { id: "b1", kind: "ask", purpose: "readiness", intent: "greet and ask if ready" },
+      { id: "b2", kind: "teach", introIntent: "announce", points: [
+        { id: "p1", formEn: "I'm meeting", claimsEn: ["Use present continuous for fixed plans."], examples: [{ id: "p1e1", textEn: "I'm meeting Sam at six." }] },
+      ] },
+      { id: "b3", kind: "ask", purpose: "questions", intent: "invite questions" },
+      { id: "b4", kind: "say", intent: "announce exercises" },
+      { id: "b5", kind: "exercise", format: "fill_blank", item: "I ___ my friend tomorrow.", answerSpec: { kind: "token", accepted: ["am meeting"] }, exampleAnswer: "am meeting" },
+    ] },
+    practice: { mustUse: ["I'm meeting"], minTargetUses: 2, successCriteria: "Uses target naturally.", maxTurns: 8 },
+  },
+  scene: {
+    persona: { name: "Alex", role: "your friend", goal: "make weekend plans" },
+    scene: "Two friends planning the weekend.",
+    objective: "Agree on a plan.",
+    avatarOpening: "What are you doing this weekend?",
+  },
   memoryBlock: block,
 });
 check("prompt'ta <student_memory> bloğu var", system.includes("<student_memory>"));

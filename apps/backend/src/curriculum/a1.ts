@@ -130,7 +130,9 @@ export const A1: LevelSpec = {
       title: "He, She, They",
       focus: "subject pronouns used with 'be' to talk about other people",
       themeHint: "describing colleagues to someone new at the office",
-      targetPhrases: ["she's my friend", "he works here", "they're students"],
+      // "he works here" present simple'dı — o yapı Ünite 4'te öğretiliyor.
+      // Bu ders 'be' + zamir dersi; hedefler yapıyla hizalandı (yazım turu, Ağu 2026).
+      targetPhrases: ["she's my friend", "he's new here", "they're students"],
     },
     {
       position: 9,
@@ -148,7 +150,8 @@ export const A1: LevelSpec = {
       title: "What's Your Job?",
       focus: "talking about jobs, with a / an before professions",
       themeHint: "chatting about work at a friend's party",
-      targetPhrases: ["I'm a teacher", "what do you do", "he's an engineer"],
+      // "I'm a teacher" öğrenciye YANLIŞ bir meslek söyletiyordu; kalıp taşıyıcıya çevrildi
+      targetPhrases: ["what do you do", "I work as a", "he's an engineer"],
     },
     {
       position: 11,
@@ -157,7 +160,8 @@ export const A1: LevelSpec = {
       title: "How Old Are You?",
       focus: "numbers up to one hundred and asking about age",
       themeHint: "filling in a simple form with a receptionist",
-      targetPhrases: ["how old are you", "I'm twenty five", "she's ten"],
+      // Sabit yaşlar öğrenciye yanlış bilgi söyletiyordu — yapı taşıyıcılarına çevrildi
+      targetPhrases: ["how old are you", "how old is", "years old"],
     },
     {
       position: 12,
@@ -166,7 +170,9 @@ export const A1: LevelSpec = {
       title: "People in My Life",
       focus: "talking about your family, friends and the people you work with",
       themeHint: "explaining who everyone is while looking through photos",
-      targetPhrases: ["this is my", "she works as", "we're good friends"],
+      // "she works as" present simple'dı (Ünite 4'te öğretiliyor) — 'be' tabanlı
+      // bir betimleme kalıbıyla değişti.
+      targetPhrases: ["this is my", "we're good friends", "she's really nice"],
     },
 
     // --- Ünite 3 · Things and Places --------------------------------------------
@@ -177,7 +183,8 @@ export const A1: LevelSpec = {
       title: "A Cat or an Apple?",
       focus: "the indefinite articles a and an",
       themeHint: "naming things you can see in a room",
-      targetPhrases: ["it's a book", "it's an apple", "I have a car"],
+      // "I have a car" sahibi olunmayan bir şeyi söyletiyordu
+      targetPhrases: ["it's a book", "it's an apple", "it's an old"],
     },
     {
       position: 14,
@@ -222,7 +229,8 @@ export const A1: LevelSpec = {
       title: "Is There a Bank Here?",
       focus: "there is / there are: questions and short answers",
       themeHint: "asking a hotel receptionist what is in the area",
-      targetPhrases: ["is there a", "are there any", "yes there is"],
+      // "yes there is" KARŞI TARAFIN repliği — bu sahnede soran öğrenci
+      targetPhrases: ["is there a", "are there any", "how far is"],
     },
     {
       position: 19,
@@ -301,6 +309,19 @@ export const A1: LevelSpec = {
     {
       position: 27,
       unitIndex: 4,
+      // SIRALAMA DÜZELTMESİ (boşluk analizi): present continuous hiçbir seviyede
+      // öğretilmiyordu ama A2 onu gelecek planları için KULLANIYORDU.
+      // Practice'ten ÖNCE durur: sonra gelirse ünite 5'in 4 gramer dersiyle
+      // birleşip 5'lik ardışık gramer serisi oluşuyor (ritim kuralı ihlali).
+      kind: "grammar",
+      title: "What Are You Doing?",
+      focus: "present continuous for what is happening right now",
+      themeHint: "a phone call asking what the other person is doing at this moment",
+      targetPhrases: ["what are you doing", "I'm working", "right now"],
+    },
+    {
+      position: 28,
+      unitIndex: 4,
       kind: "practice",
       title: "My Morning",
       focus: "describing your own daily routine from start to finish",
@@ -310,7 +331,7 @@ export const A1: LevelSpec = {
 
     // --- Ünite 5 · Likes and Free Time ------------------------------------------
     {
-      position: 28,
+      position: 29,
       unitIndex: 5,
       kind: "grammar",
       title: "I Love Cooking",
@@ -319,7 +340,7 @@ export const A1: LevelSpec = {
       targetPhrases: ["I love", "I don't like", "she enjoys cooking"],
     },
     {
-      position: 29,
+      position: 30,
       unitIndex: 5,
       kind: "grammar",
       title: "Do You Like It?",
@@ -328,7 +349,7 @@ export const A1: LevelSpec = {
       targetPhrases: ["I like it", "call me", "tell them"],
     },
     {
-      position: 30,
+      position: 31,
       unitIndex: 5,
       kind: "grammar",
       title: "I Can Swim",
@@ -337,7 +358,7 @@ export const A1: LevelSpec = {
       targetPhrases: ["I can", "I can't", "she can drive"],
     },
     {
-      position: 31,
+      position: 32,
       unitIndex: 5,
       kind: "grammar",
       title: "Can You Help Me?",
@@ -346,7 +367,7 @@ export const A1: LevelSpec = {
       targetPhrases: ["can you help", "can I have", "of course"],
     },
     {
-      position: 32,
+      position: 33,
       unitIndex: 5,
       kind: "practice",
       title: "My Weekend",
@@ -354,10 +375,19 @@ export const A1: LevelSpec = {
       themeHint: "two friends catching up on a Monday morning",
       targetPhrases: ["at the weekend", "I usually", "with my friends"],
     },
+    {
+      position: 34,
+      unitIndex: 5,
+      kind: "phrases",
+      title: "Let's Go Out",
+      focus: "inviting someone out, saying yes and saying no",
+      themeHint: "two friends deciding what to do this evening",
+      targetPhrases: ["do you want to", "let's go", "sounds good"],
+    },
 
     // --- Ünite 6 · Describing ---------------------------------------------------
     {
-      position: 33,
+      position: 35,
       unitIndex: 6,
       kind: "grammar",
       title: "A Small Red Car",
@@ -366,7 +396,7 @@ export const A1: LevelSpec = {
       targetPhrases: ["it's very small", "my new phone", "really nice"],
     },
     {
-      position: 34,
+      position: 36,
       unitIndex: 6,
       kind: "phrases",
       title: "What Does She Look Like?",
@@ -375,7 +405,7 @@ export const A1: LevelSpec = {
       targetPhrases: ["she has long hair", "he is tall", "what does she look like"],
     },
     {
-      position: 35,
+      position: 37,
       unitIndex: 6,
       kind: "phrases",
       title: "It's Cold Today",
@@ -384,7 +414,16 @@ export const A1: LevelSpec = {
       targetPhrases: ["it's cold", "it's raining", "what's the weather like"],
     },
     {
-      position: 36,
+      position: 38,
+      unitIndex: 6,
+      kind: "phrases",
+      title: "What Should I Wear?",
+      focus: "clothes words and asking what to wear",
+      themeHint: "choosing clothes for the day while looking at the weather",
+      targetPhrases: ["I'm wearing", "what should I wear", "put on"],
+    },
+    {
+      position: 39,
       unitIndex: 6,
       kind: "practice",
       title: "My Favorite Place",
@@ -392,19 +431,29 @@ export const A1: LevelSpec = {
       themeHint: "showing someone around your favourite place",
       targetPhrases: ["there is", "on the left", "I really like"],
     },
+    {
+      position: 40,
+      unitIndex: 6,
+      kind: "practice",
+      title: "Show Me a Photo",
+      focus: "describing a photo: who is in it and where they are",
+      themeHint: "showing a friend a photo on your phone and talking about it",
+      targetPhrases: ["in this photo", "this is my", "on the left"],
+    },
 
     // --- Ünite 7 · Out and About ------------------------------------------------
     {
-      position: 37,
+      position: 41,
       unitIndex: 7,
       kind: "phrases",
       title: "Two Coffees, Please",
       focus: "ordering food and drink with 'I'd like' and 'Can I have'",
       themeHint: "a small coffee shop at lunchtime",
-      targetPhrases: ["I'd like", "can I have", "anything else"],
+      // "anything else" GARSONUN repliği — öğrencinin söyleyeceği kapanışla değişti
+      targetPhrases: ["I'd like", "can I have", "that's all thanks"],
     },
     {
-      position: 38,
+      position: 42,
       unitIndex: 7,
       kind: "phrases",
       title: "How Much Is It?",
@@ -413,7 +462,7 @@ export const A1: LevelSpec = {
       targetPhrases: ["how much is it", "that's too expensive", "I'll take it"],
     },
     {
-      position: 39,
+      position: 43,
       unitIndex: 7,
       kind: "grammar",
       title: "Some Bread, Any Milk",
@@ -422,7 +471,17 @@ export const A1: LevelSpec = {
       targetPhrases: ["some bread", "any milk", "we need some"],
     },
     {
-      position: 40,
+      position: 44,
+      unitIndex: 7,
+      kind: "phrases",
+      title: "At the Market",
+      focus: "food words and buying by amount at a market",
+      themeHint: "buying fruit and vegetables at a street market",
+      // "anything else" SATICININ repliği; "two kilos" sabit miktar dayatıyordu
+      targetPhrases: ["how much is", "kilos of", "that's everything"],
+    },
+    {
+      position: 45,
       unitIndex: 7,
       kind: "phrases",
       title: "Turn Left at the Corner",
@@ -431,18 +490,19 @@ export const A1: LevelSpec = {
       targetPhrases: ["turn left", "go straight on", "it's on your right"],
     },
     {
-      position: 41,
+      position: 46,
       unitIndex: 7,
       kind: "phrases",
       title: "Getting There",
       focus: "transport words and saying how you travel with 'by'",
       themeHint: "comparing how two people get to work",
-      targetPhrases: ["by bus", "I walk to work", "it takes ten minutes"],
+      // sabit süre yerine her yolculuğa uyan taşıyıcı
+      targetPhrases: ["by bus", "I walk to work", "it takes about"],
     },
 
     // --- Ünite 8 · Talking About the Past ---------------------------------------
     {
-      position: 42,
+      position: 47,
       unitIndex: 8,
       kind: "grammar",
       title: "I Was There",
@@ -451,7 +511,7 @@ export const A1: LevelSpec = {
       targetPhrases: ["I was", "we were", "it wasn't"],
     },
     {
-      position: 43,
+      position: 48,
       unitIndex: 8,
       kind: "grammar",
       title: "We Watched a Film",
@@ -460,7 +520,7 @@ export const A1: LevelSpec = {
       targetPhrases: ["I watched", "we visited", "she worked late"],
     },
     {
-      position: 44,
+      position: 49,
       unitIndex: 8,
       kind: "grammar",
       title: "I Went, I Saw",
@@ -469,7 +529,7 @@ export const A1: LevelSpec = {
       targetPhrases: ["I went", "I saw", "we had dinner"],
     },
     {
-      position: 45,
+      position: 50,
       unitIndex: 8,
       kind: "grammar",
       title: "Did You Like It?",
@@ -478,13 +538,22 @@ export const A1: LevelSpec = {
       targetPhrases: ["did you", "I didn't", "did she go"],
     },
     {
-      position: 46,
+      position: 51,
       unitIndex: 8,
       kind: "practice",
       title: "Last Weekend",
       focus: "telling a short story about something you did recently",
       themeHint: "sharing weekend news with a colleague",
       targetPhrases: ["last weekend", "and then", "it was great"],
+    },
+    {
+      position: 52,
+      unitIndex: 8,
+      kind: "practice",
+      title: "Lost & Found",
+      focus: "describing a lost thing and saying where you lost it",
+      themeHint: "reporting a lost bag at a lost and found desk",
+      targetPhrases: ["I lost my", "this morning", "inside it"],
     },
   ],
 };

@@ -15,7 +15,7 @@ import { lessonContents, llmCalls } from "../src/db/schema.js";
 import { getOrGenerateLesson } from "../src/modules/lesson/service.js";
 import { openSession } from "../src/modules/session/service.js";
 import { getCurriculumForUser } from "../src/modules/curriculum/queries.js";
-import { cleanupTestUser, seedTestProfile } from "./_fixture.js";
+import { cleanupTestUser, seedTestProfile, runsText } from "./_fixture.js";
 
 const userA = "00000000-0000-4000-8000-0000000000a1";
 const userB = "00000000-0000-4000-8000-0000000000a2";
@@ -36,7 +36,7 @@ await db.delete(lessonContents).where(eq(lessonContents.catalogLessonId, LESSON)
 // --- 1) Onboarding LLM'siz mi? ----------------------------------------------
 console.log("\n— onboarding —");
 const t0 = Date.now();
-await seedTestProfile({ userId: userA, displayName: "Ayla", cefrLevel: "A1", track: "conversation" });
+await seedTestProfile({ userId: userA, displayName: "Ayla", cefrLevel: "A1", track: "everyday" });
 const curriculum = await getCurriculumForUser(userA);
 const onboardMs = Date.now() - t0;
 
@@ -63,7 +63,7 @@ check(
 
 // --- 3) Aynı dil + track → PAYLAŞIM ------------------------------------------
 console.log("\n— ikinci kullanıcı, aynı dil+track (C) —");
-await seedTestProfile({ userId: userC, displayName: "Kerem", cefrLevel: "A1", track: "conversation" });
+await seedTestProfile({ userId: userC, displayName: "Kerem", cefrLevel: "A1", track: "everyday" });
 const c = await getOrGenerateLesson(userC, LESSON);
 const afterC = await genCount();
 check("C aynı içerik satırını aldı", c.lessonId === a.lessonId, `${c.lessonId}`);
@@ -71,7 +71,7 @@ check("C HİÇ LLM ödemedi", afterC === afterA, `${afterC - afterA} ek çağrı
 
 // --- 4) Farklı track → ayrı satır --------------------------------------------
 console.log("\n— farklı track (B) —");
-await seedTestProfile({ userId: userB, displayName: "Deniz", cefrLevel: "A1", track: "business" });
+await seedTestProfile({ userId: userB, displayName: "Deniz", cefrLevel: "A1", track: "work" });
 const b = await getOrGenerateLesson(userB, LESSON);
 check("B ayrı bir satır aldı (track anahtarın parçası)", b.lessonId !== a.lessonId);
 
@@ -90,8 +90,8 @@ const sc = await openSession(userC, LESSON);
 // Beat kimliklerini model serbest üretiyor ("1,2,3" ya da "b1,b2,b3") — içerik ve
 // script aynı üretimden geldiği için tutarlılar, ama testte sabit kimlik varsayılamaz.
 const firstBeatId = a.content.lecture.beats[0]!.id;
-const greetA = sa.script?.beats[firstBeatId] ?? "";
-const greetC = sc.script?.beats[firstBeatId] ?? "";
+const greetA = runsText(sa.script?.beats[firstBeatId]);
+const greetC = runsText(sc.script?.beats[firstBeatId]);
 console.log(`  A: ${greetA}`);
 console.log(`  C: ${greetC}`);
 

@@ -27,7 +27,7 @@ const valueOf = (flag: string) => {
 };
 
 const lang = normalizeNativeLanguage(valueOf("--lang") ?? "tr");
-const track = valueOf("--track") ?? "conversation";
+const track = valueOf("--track") ?? "everyday";
 const level = valueOf("--level");
 const limit = Number(valueOf("--limit") ?? 0);
 const dryRun = args.includes("--dry-run");

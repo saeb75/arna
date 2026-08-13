@@ -1,19 +1,20 @@
 /** Test script'lerinin paylaştığı v6 ders içeriği kalıbı.
  *  Tek yerde durur ki format değişince dört script tek tek elden geçmesin.
  *  DİKKAT: içerikte öğrenci adı YOKTUR — ders kullanıcıdan bağımsızdır. */
-import { CONTENT_FORMAT, type LessonContent } from "@arna/contracts";
+import { CONTENT_FORMAT, CORE_FORMAT, SCENE_FORMAT, TRACKS, type LessonContent, type LessonCore } from "@arna/contracts";
 import { eq } from "drizzle-orm";
 import { db } from "../src/db/client.js";
 import {
   catalogLessons,
   catalogUnits,
-  lessonContents,
+  lessonCores,
   lessonProgress,
+  lessonSceneSets,
   sessions,
   userProfiles,
 } from "../src/db/schema.js";
-import { normalizeNativeLanguage } from "../src/lib/language.js";
-import { LESSON_GEN_VERSION } from "../src/modules/llm/prompts/lesson-gen.v8.js";
+import { LESSON_CORE_VERSION } from "../src/modules/llm/prompts/lesson-core.v1.js";
+import { LESSON_SCENES_VERSION } from "../src/modules/llm/prompts/lesson-scenes.v1.js";
 
 export function makeLessonContent(over: Partial<LessonContent> = {}): LessonContent {
   return {
@@ -126,60 +127,139 @@ export async function seedTestCatalogLesson(over: { level?: string; kind?: strin
     })
     .onConflictDoUpdate({
       target: catalogLessons.id,
-      set: { level, unitId: TEST_UNIT_ID, specHash: TEST_SPEC_HASH, updatedAt: new Date() },
+      // status geri "active" yazılır: seed-curriculum katalogda olmayan zz- satırlarını
+      // emekliye ayırıyor; test bir sonraki koşuda dersini yeniden canlandırabilmeli.
+      set: { level, unitId: TEST_UNIT_ID, specHash: TEST_SPEC_HASH, status: "active", updatedAt: new Date() },
     })
     .returning();
 
   return row!;
 }
 
+/** v6 fixture içeriğini v7 çekirdeğe çevirir — eski script'ler değişmeden çalışsın diye. */
+function contentToCore(content: LessonContent): LessonCore {
+  let pointSeq = 0;
+  const beats: LessonCore["lecture"]["beats"] = content.lecture.beats.map((b) => {
+    switch (b.kind) {
+      case "say":
+        return { id: b.id, kind: "say", intent: b.intent };
+      case "ask":
+        return { id: b.id, kind: "ask", purpose: b.purpose, intent: b.intent };
+      case "teach":
+        return {
+          id: b.id,
+          kind: "teach",
+          introIntent: b.introIntent,
+          points: [
+            {
+              id: `p${++pointSeq}`,
+              formEn: content.topic,
+              claimsEn: b.points.map((p) => p.replaceAll("**", "")),
+              examples: [{ id: `p${pointSeq}e1`, textEn: `Example: ${content.topic}.` }],
+            },
+          ],
+        };
+      case "exercise": {
+        const isFill = b.prompt.includes("___");
+        const item = b.prompt.replace(/^Fill in the blank:\s*/i, "");
+        return {
+          id: b.id,
+          kind: "exercise",
+          format: b.options?.length ? "mcq" : isFill ? "fill_blank" : "say_sentence",
+          item,
+          options: b.options,
+          answerSpec: b.options?.length
+            ? { kind: "choice", correctIndex: Math.max(0, b.options.findIndex((o) => b.answers.includes(o))) }
+            : isFill
+              ? { kind: "token", accepted: b.answers }
+              : { kind: "utterance", accepted: b.answers, contractionsAllowed: true },
+          exampleAnswer: b.answers[0]!,
+        };
+      }
+      case "open_response":
+        return {
+          id: b.id,
+          kind: "open_response",
+          question: b.prompt,
+          rubric: b.rubric,
+          exampleAnswer: b.hint.replace(/^Example of what you can say:\s*/i, ""),
+          maxAttempts: b.maxAttempts,
+        };
+    }
+  });
+
+  return {
+    coreFormat: CORE_FORMAT,
+    topic: content.topic,
+    focus: content.focus,
+    objectives: content.objectives,
+    communicationGoal: content.communicationGoal,
+    estMinutes: content.estMinutes,
+    tutorNotes: { target: content.tutorNotes.target, correctionStyle: content.tutorNotes.correction },
+    summary: "You practised the target structure.",
+    lecture: { beats },
+    practice: {
+      mustUse: content.practice.mustUse,
+      minTargetUses: content.practice.minTargetUses,
+      successCriteria: content.practice.successCriteria,
+      maxTurns: content.practice.maxTurns,
+    },
+  };
+}
+
 /**
- * Katalog dersine PAYLAŞIMLI hazır içerik bağlar. Anahtar KULLANICININ
- * PROFİLİNDEN türetilir — servis de aynı şekilde arıyor, elle track/dil yazmak
- * sessiz bir "önbellek ıskası"na yol açardı. Anahtarın altı alanı da yazılır:
- * biri boş kalırsa unique index NULL'ları farklı sayar ve eşzamanlı üretim
- * koruması sessizce çöker.
+ * v7: katalog dersine YAYINLANMIŞ çekirdek + sahne seti bağlar (v6 fixture
+ * içeriğinden türetilir). Eski script'ler imza değişmeden çalışır. Profiller
+ * testlerde İngilizce moddadır (aşağıda) — dil paketi gerekmez, LLM'e gidilmez.
  */
 export async function seedTestContent(opts: {
   userId: string;
   catalogLessonId: string;
   content: LessonContent;
 }) {
-  const [profile] = await db
-    .select()
-    .from(userProfiles)
-    .where(eq(userProfiles.userId, opts.userId))
-    .limit(1);
-  if (!profile) throw new Error("seedTestContent: önce seedTestProfile çağır");
+  const core = contentToCore(opts.content);
 
-  const values = {
+  const coreValues = {
     catalogLessonId: opts.catalogLessonId,
-    nativeLanguage: normalizeNativeLanguage(profile.nativeLanguage),
-    track: profile.track,
-    formatVersion: CONTENT_FORMAT,
-    promptVersion: LESSON_GEN_VERSION,
+    coreFormat: CORE_FORMAT,
+    promptVersion: LESSON_CORE_VERSION,
     specHash: TEST_SPEC_HASH,
-    status: "ready" as const,
-    content: opts.content,
+    status: "published" as const,
+    core,
   };
-
-  const [row] = await db
-    .insert(lessonContents)
-    .values(values)
+  const [coreRow] = await db
+    .insert(lessonCores)
+    .values(coreValues)
     .onConflictDoUpdate({
-      target: [
-        lessonContents.catalogLessonId,
-        lessonContents.nativeLanguage,
-        lessonContents.track,
-        lessonContents.formatVersion,
-        lessonContents.promptVersion,
-        lessonContents.specHash,
-      ],
-      set: { status: "ready", content: opts.content, updatedAt: new Date() },
+      target: [lessonCores.catalogLessonId, lessonCores.coreFormat, lessonCores.promptVersion, lessonCores.specHash],
+      set: { status: "published", core, updatedAt: new Date() },
     })
     .returning();
 
-  return row!;
+  const p6 = opts.content.practice;
+  const variant = {
+    persona: { name: p6.persona.name, role: "a friendly acquaintance", goal: p6.persona.goal },
+    scene: "A short everyday conversation to practise the target.",
+    objective: "Use the target structure naturally in conversation.",
+    avatarOpening: p6.avatarOpening.endsWith("?") ? p6.avatarOpening : `${p6.avatarOpening} How are you today?`,
+  };
+  const scenes = Object.fromEntries(TRACKS.map((t) => [t, variant]));
+  const [sceneRow] = await db
+    .insert(lessonSceneSets)
+    .values({
+      coreId: coreRow!.id,
+      sceneFormat: SCENE_FORMAT,
+      promptVersion: LESSON_SCENES_VERSION,
+      status: "published",
+      scenes,
+    })
+    .onConflictDoUpdate({
+      target: [lessonSceneSets.coreId, lessonSceneSets.sceneFormat, lessonSceneSets.promptVersion],
+      set: { status: "published", scenes, updatedAt: new Date() },
+    })
+    .returning();
+
+  return { id: coreRow!.id, coreId: coreRow!.id, sceneSetId: sceneRow!.id };
 }
 
 /** Test kullanıcısının profilini kurar (katalog sorguları profile bakar). */
@@ -189,13 +269,17 @@ export async function seedTestProfile(opts: {
   nativeLanguage?: string;
   cefrLevel?: string;
   track?: string;
+  tutorLanguage?: "native" | "english";
 }) {
   const values = {
     userId: opts.userId,
     displayName: opts.displayName ?? "Saeb",
     nativeLanguage: opts.nativeLanguage ?? "tr",
     cefrLevel: opts.cefrLevel ?? "A2",
-    track: opts.track ?? "business",
+    track: opts.track ?? "work",
+    // Testler İngilizce modda koşar: dil paketi gerekmez → beklenmedik LLM çağrısı yok.
+    // Native mod davranışını slice-e2e.ts sınıyor.
+    tutorLanguage: opts.tutorLanguage ?? "english",
     dailyGoalMinutes: 10,
     interests: ["technology"],
   };
@@ -203,6 +287,11 @@ export async function seedTestProfile(opts: {
     .insert(userProfiles)
     .values(values)
     .onConflictDoUpdate({ target: userProfiles.userId, set: { ...values, updatedAt: new Date() } });
+}
+
+/** v2 script değerleri RichText — eski string temelli testler için düzleştirici. */
+export function runsText(runs: Array<{ lang: string; text: string }> | "" | undefined | null): string {
+  return Array.isArray(runs) ? runs.map((r) => r.text).join(" ") : "";
 }
 
 /** Oturum/ilerleme artıklarını siler; katalog satırı paylaşımlı olduğu için KALIR. */

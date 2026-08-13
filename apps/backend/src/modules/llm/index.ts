@@ -7,6 +7,11 @@ import type { CompleteJsonOptions, CompleteTextOptions, LLMPurpose } from "./typ
 const MODEL_BY_PURPOSE: Record<LLMPurpose, string> = {
   plan_gen: "gpt-4.1",
   lesson_gen: "gpt-4.1",
+  // v7 katmanları: çekirdek ve sahne pedagoji taşır → güçlü model.
+  // Dil paketi de güçlü modelde: kötü ana-dil düzyazısı ekibin GÖREMEYECEĞİ hatadır.
+  lesson_core: "gpt-4.1",
+  lesson_scenes: "gpt-4.1",
+  lesson_locale: "gpt-4.1",
   chat: "gpt-4o-mini",
   memory_extract: "gpt-4o-mini",
   embedding: "text-embedding-3-small",

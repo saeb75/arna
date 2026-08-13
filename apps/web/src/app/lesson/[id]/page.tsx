@@ -2,19 +2,28 @@
 
 // Sohbet tabanlı ders deneyimi: LECTURE (anlatım + alıştırma) → PRACTICE (roleplay).
 // Akışı hoca yönetir: konuşur, cevap bekler, devam eder. Kullanıcı "ilerlet" butonuna basmaz.
+//
+// v7: metinler DİL ETİKETLİ PARÇALAR (RichText) — native modda Emma ana dilde
+// açıklar, İngilizce malzeme `en` parçası olarak ayrı stillenir ve ayrı seslendirilir.
+// ACK/pes kümeleri artık hardcode DEĞİL, birleşik içerikle sunucudan gelir (lesson.ui).
 
 import dynamic from "next/dynamic";
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
+  classifyAck,
   decideAfterTutorReply,
   decideInWrapup,
   decideOnStudentInput,
   isLastQuestionExchange,
-  type LectureBeat,
-  type LessonContent,
+  matchesAnswerSpec,
+  normalizeUtterance,
+  type AckKind,
+  type LessonContentV7,
+  type RichText,
   type SessionScript,
+  type ViewBeat,
 } from "@arna/contracts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,9 +43,12 @@ type Awaiting = null | "ask" | "exercise" | "open_response" | "practice" | "wrap
 interface Message {
   id: string;
   role: "teacher" | "user";
+  /** Düz metin (kullanıcı balonları + çeviri kaynağı) */
   text: string;
-  /** Madde madde anlatım balonu */
-  points?: string[];
+  /** v7: hocanın balonu dil etiketli parçalarla çizilir */
+  runs?: RichText;
+  /** Madde madde anlatım balonu — her madde kendi parça dizisi */
+  points?: RichText[];
   translation?: string;
 }
 
@@ -45,116 +57,92 @@ const nextId = () => `m${++msgSeq}`;
 
 const OPTION_LETTERS = ["a", "b", "c", "d"];
 
+/** RichText → düz metin (çeviri, transkript, yedekler için). */
+const runsText = (runs: RichText | undefined | null): string =>
+  (runs ?? []).map((r) => r.text).join(" ");
+
+/** Düz İngilizce metni tek parçalık RichText'e sarar. */
+const enRuns = (text: string): RichText => [{ lang: "en", text }];
+
 /**
  * Kısa onaylar LLM'e sorulmaz. AMA kutup önemlidir: "Hazır mısın?" ile
  * "Sorun var mı?" sorularında AYNI kelime TERS anlama gelir.
- *   "Hazır mısın?"  → evet = başla
- *   "Sorun var mı?" → evet = SORUM VAR (beklenmeli), hayır = devam
- * Bu yüzden tek küme değil, üç kutup: onaylayan / reddeden / yön belirtmeyen.
+ *
+ * v7: kümeler HARDCODE DEĞİL — sunucudan (lesson.ui.ack = ACK_EN + chrome) gelir.
+ * Eşleştirme contracts'taki `classifyAck`te: tam eşleşme + kelime-sınırlı içerme
+ * ("Yok, bu kadar yeterli" → no). Canlıda tam-dize eşleşmesi bunu kaçırıp
+ * LLM'e gönderiyordu; hoca soru penceresinde boş turlar dönüyordu.
  */
-const ACK_YES = new Set([
-  "yes", "yeah", "yep", "yup", "i do", "i have", "a question", "one question",
-  "evet", "var", "sorum var", "bir sorum var", "tabii", "aynen",
-]);
-const ACK_NO = new Set([
-  "no", "nope", "nah", "no thanks", "no thank you", "nothing", "none", "not really",
-  "im good", "i'm good", "all good", "all clear",
-  "hayir", "hayır", "yok", "yoktur", "sorum yok", "gerek yok", "anladim", "anladım",
-]);
-/** Yön belirtmez, her iki soruda da "devam edelim" demektir. */
-const ACK_PROCEED = new Set([
-  "ok", "okay", "sure", "ready", "im ready", "i am ready", "lets go", "let's go",
-  "lets start", "let's start", "all right", "alright", "go ahead", "continue",
-  "tamam", "tamamdir", "tamamdır", "hazirim", "hazırım", "olur", "peki",
-  "baslayalim", "başlayalım", "devam", "devam edelim",
-]);
+const ackKind = (text: string, ui: LessonContentV7["ui"]): AckKind | null => classifyAck(text, ui.ack);
 
-type AckKind = "yes" | "no" | "proceed";
-
-/** Kısa bir onay/ret mi? Değilse null (gerçek bir mesaj → LLM'e gider). */
-function ackKind(text: string): AckKind | null {
-  const t = text.toLowerCase().replace(/[^a-zçğıöşü' ]/gi, " ").replace(/\s+/g, " ").trim();
-  if (!t || t.split(" ").length > 4) return null;
-  if (ACK_NO.has(t)) return "no";
-  if (ACK_YES.has(t)) return "yes";
-  if (ACK_PROCEED.has(t)) return "proceed";
-  return null;
-}
-
-/** Sesli/yazılı cevabı kabul edilen cevaplarla gevşek eşleştirir. */
-function matchesAnswer(input: string, beat: Extract<LectureBeat, { kind: "exercise" }>): boolean {
-  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9' ]/g, " ").replace(/\s+/g, " ").trim();
-  const said = norm(input);
+/**
+ * v7 cevap eşleştirme — alıştırma tipine ÖZEL, deterministik.
+ * `includes` tabanlı eski eşleşme "did" cevabını "I didn't" içinde sayıyordu;
+ * eşleştirme artık contracts'taki tip bazlı `matchesAnswerSpec`te (token dizisi
+ * eşitliği + açık kısaltma tablosu). Çoktan seçmelide harf/numara/şık metni kabul.
+ */
+function matchesAnswer(input: string, beat: Extract<ViewBeat, { kind: "exercise" }>): boolean {
+  const said = normalizeUtterance(input);
   if (!said) return false;
 
-  // Çoktan seçmelide "A" / "1" / şık metni kabul edilir
-  if (beat.options?.length) {
-    const idx = beat.options.findIndex((o) => beat.answers.some((a) => norm(a) === norm(o)));
-    if (idx >= 0) {
-      const letter = OPTION_LETTERS[idx];
-      if (said === letter || said === String(idx + 1) || said === `${letter})`) return true;
-    }
+  if (beat.answerSpec.kind === "choice") {
+    const idx = beat.answerSpec.correctIndex;
+    const letter = OPTION_LETTERS[idx];
+    if (said === letter || said === String(idx + 1) || said === `${letter})`) return true;
+    const correct = beat.options?.[idx];
+    return !!correct && normalizeUtterance(correct) === said;
   }
-  return beat.answers.some((a) => {
-    const want = norm(a);
-    if (!want) return false;
-    // Öğrenci cevabı bir cümle içinde söylediyse kabul: "I finished it" ⊃ "finished"
-    if (said.includes(want)) return true;
-    // Kısaltarak söylediyse de kabul ("finish" ⊂ "finished") — AMA çok kısa girdi
-    // yanlışlıkla eşleşmemeli: "a" tek başına "always"i doğru saydırıyordu.
-    return said.length >= 4 && want.includes(said);
-  });
+  return matchesAnswerSpec(input, beat.answerSpec);
 }
 
-/** Ekranda gösterilecek alıştırma metni (şıklar dahil). */
-function exerciseText(beat: Extract<LectureBeat, { kind: "exercise" }>): string {
-  if (!beat.options?.length) return beat.prompt;
-  // Model bazen şıkları prompt'un İÇİNE de yazıyor; alta bir daha eklersek ekranda
-  // iki kez görünüyor. Lint bunu artık reddediyor ama eski içerik de doğru görünsün.
-  if (beat.options.some((o) => beat.prompt.includes(o))) return beat.prompt;
-  const lines = beat.options.map((o, i) => `${OPTION_LETTERS[i]!.toUpperCase()}) ${o}`);
-  return `${beat.prompt}\n${lines.join("\n")}`;
+/** Alıştırmanın ekranda gösterilen VE seslendirilen parçaları (şıklar dahil). */
+function exerciseRuns(beat: Extract<ViewBeat, { kind: "exercise" }>): RichText {
+  if (!beat.options?.length) return beat.runs;
+  // Şıklar da SESLENDİRİLİR: sadece soru okunduğunda öğrenci seçenekleri
+  // duymuyordu — sesli-öncelikli bir üründe soruyu cevaplayamaz hâle geliyordu.
+  const optionRuns: RichText = beat.options.map((o, i) => ({
+    lang: "en" as const,
+    text: `${OPTION_LETTERS[i]!.toUpperCase()}) ${o}`,
+  }));
+  return [...beat.runs, ...optionRuns];
 }
 
-/** Seslendirme için markdown yıldızlarını temizler. */
-const plain = (s: string) => s.replace(/\*\*/g, "");
-
 /**
- * Sunucu script'i düşerse akış durmasın diye istemci-tarafı son çare.
- * (Sunucuda da deterministik bir yedek var; bu, yanıtta script hiç gelmediği hâl.)
+ * Hocanın bu beat'te söyleyeceği parçalar. Ders içeriğinde birebir metin YOKTUR —
+ * script v2 her beat'i chrome şablonuyla önceden doldurur, selamlamayı LLM yazar.
+ * Buradaki yedek yalnızca script'in HİÇ gelmediği hâl içindir.
  */
-const FALLBACK_PRACTICE_INTRO = "Nice work! Now let's practise what you learned with a short role play.";
-const FALLBACK_PRAISE = ["Exactly right!", "Well done!", "That's it!", "Perfect!"];
-const FALLBACK_INVITE_QUESTION = "Of course! What would you like to know?";
-const FALLBACK_WRAPUP = "That's it for today's lesson — great work! Is there anything you would like to ask me?";
-const FALLBACK_FAREWELL = "Wonderful. Well done today. See you in the next lesson!";
-
-/**
- * Hocanın bu beat'te söyleyeceği cümle. Ders içeriğinde birebir metin YOKTUR —
- * beat yalnızca niyeti taşır, cümle oturum script'inden gelir.
- */
-function spokenLine(beat: LectureBeat, script: SessionScript | null): string {
+function spokenLine(beat: ViewBeat, script: SessionScript | null): RichText {
   const line = script?.beats[beat.id];
-  if (line) return line;
+  if (line?.length) return line;
   if (beat.kind === "ask") {
-    return beat.purpose === "readiness"
-      ? "Hi! Are you ready to start?"
-      : "Is there anything you want to ask before we try some exercises?";
+    return enRuns(
+      beat.purpose === "readiness"
+        ? "Hi! Are you ready to start?"
+        : "Is there anything you want to ask before we try some exercises?",
+    );
   }
-  if (beat.kind === "teach") return "Here is how it works.";
-  return "Great! Let's try a few questions.";
+  if (beat.kind === "teach") return enRuns("Here is how it works.");
+  return enRuns("Great! Let's try a few questions.");
 }
+
+/** Sunucu script'i tamamen düşerse akış durmasın diye istemci-tarafı son çare. */
+const FALLBACK_PRACTICE_INTRO = enRuns("Nice work! Now let's practise with a short role play.");
+const FALLBACK_PRAISE = [enRuns("Exactly right!"), enRuns("Well done!"), enRuns("That's it!"), enRuns("Perfect!")];
+const FALLBACK_INVITE_QUESTION = enRuns("Of course! What would you like to know?");
+const FALLBACK_WRAPUP = enRuns("That's it for today's lesson — great work! Is there anything you would like to ask me?");
+const FALLBACK_FAREWELL = enRuns("Wonderful. Well done today. See you in the next lesson!");
 
 export default function LessonPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id: programLessonId } = use(params);
+  const { id: catalogLessonId } = use(params);
   const router = useRouter();
 
-  const [lesson, setLesson] = useState<LessonContent | null>(null);
+  const [lesson, setLesson] = useState<LessonContentV7 | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   /**
-   * Hocanın BU oturumda söyleyeceği cümleler. Ders içeriği kullanıcıdan bağımsız;
-   * selamlama/geçiş/övgü cümleleri oturum açılışında sunucuda üretilir (ad + hafıza).
+   * Hocanın BU oturumda söyleyeceği parçalar. Ders içeriği kullanıcıdan bağımsız;
+   * selamlama oturum açılışında sunucuda üretilir (ad + hafıza), gerisi şablondan.
    */
   const [script, setScript] = useState<SessionScript | null>(null);
   const [started, setStarted] = useState(false);
@@ -165,7 +153,7 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
   const [awaiting, setAwaiting] = useState<Awaiting>(null);
   const [typing, setTyping] = useState(false);
   const [draft, setDraft] = useState("");
-  const [hintShown, setHintShown] = useState<string | null>(null);
+  const [hintShown, setHintShown] = useState<RichText | null>(null);
   const [finishOpen, setFinishOpen] = useState(false);
 
   const voice = useVoiceSession(sessionId);
@@ -193,19 +181,19 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
     fetchedRef.current = true;
     (async () => {
       try {
-        const data = await api<{ lessonId: string; lesson: LessonContent }>(
-          `/v1/lessons/${programLessonId}`,
+        const data = await api<{ lessonId: string; lesson: LessonContentV7 }>(
+          `/v1/lessons/${catalogLessonId}`,
         );
         setLesson(data.lesson);
       } catch (err) {
         setLoadError(err instanceof Error ? err.message : "Ders yüklenemedi");
       }
     })();
-  }, [programLessonId]);
+  }, [catalogLessonId]);
 
   // --- sohbet yardımcıları --------------------------------------------------
-  const pushTeacher = useCallback((text: string, points?: string[]) => {
-    const msg: Message = { id: nextId(), role: "teacher", text, points };
+  const pushTeacher = useCallback((runs: RichText, points?: RichText[]) => {
+    const msg: Message = { id: nextId(), role: "teacher", text: runsText(runs), runs, points };
     setMessages((m) => [...m, msg]);
     return msg.id;
   }, []);
@@ -232,7 +220,7 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
     if (!lesson || wrapupStartedRef.current) return; // idempotent (StrictMode koruması)
     wrapupStartedRef.current = true;
     setPhase("wrapup");
-    const line = script?.wrapup ?? FALLBACK_WRAPUP;
+    const line = script?.wrapup?.length ? script.wrapup : FALLBACK_WRAPUP;
     pushTeacher(line);
     void voice.speak(line, () => setAwaiting("wrapup"));
   }, [lesson, script, pushTeacher, voice]);
@@ -243,11 +231,12 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
     setPhase("practice");
     practiceTurnRef.current = 0;
     const p = lesson.practice;
-    const intro = script?.practiceIntro ?? FALLBACK_PRACTICE_INTRO;
+    const intro = script?.practiceIntro?.length ? script.practiceIntro : FALLBACK_PRACTICE_INTRO;
     pushTeacher(intro);
     void voice.speak(intro, () => {
-      pushTeacher(p.avatarOpening);
-      void voice.speak(p.avatarOpening, () => setAwaiting("practice"));
+      // Rol yapma TAMAMEN İngilizce — sahnenin ilk repliği içerikten, İngilizce
+      pushTeacher(enRuns(p.avatarOpening));
+      void voice.speak(enRuns(p.avatarOpening), () => setAwaiting("practice"));
     });
   }, [lesson, script, pushTeacher, voice]);
 
@@ -301,26 +290,27 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
       }
       case "teach": {
         const line = spokenLine(beat, script);
+        const pointRuns = beat.points.map((p) => p.runs);
         pushTeacher(line);
         void voice.speak(line, () => {
-          pushTeacher("", beat.points);
-          void voice.speak(plain(beat.points.join(" ")), () =>
+          pushTeacher([], pointRuns);
+          // Maddeler sırayla tek konuşmada: parçalar zaten dil etiketli,
+          // TTS her parçayı doğru telaffuzla okur (native modda TR + EN karışık).
+          void voice.speak(pointRuns.flat(), () =>
             window.setTimeout(() => advance(beat.id), 400),
           );
         });
         break;
       }
       case "exercise": {
-        // Şıklar da SESLENDİRİLİR: sadece prompt okunduğunda öğrenci seçenekleri
-        // duymuyordu — sesli-öncelikli bir üründe soruyu cevaplayamaz hâle geliyordu.
-        const asked = exerciseText(beat);
+        const asked = exerciseRuns(beat);
         pushTeacher(asked);
-        void voice.speak(plain(asked), () => setAwaiting("exercise"));
+        void voice.speak(asked, () => setAwaiting("exercise"));
         break;
       }
       case "open_response":
-        pushTeacher(beat.prompt);
-        void voice.speak(plain(beat.prompt), () => setAwaiting("open_response"));
+        pushTeacher(beat.runs);
+        void voice.speak(beat.runs, () => setAwaiting("open_response"));
         break;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -333,6 +323,7 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
       pushUser(text);
       setHintShown(null);
       const beat = lesson.lecture.beats[beatIndex];
+      const ack = (t: string) => ackKind(t, lesson.ui);
 
       if (awaiting === "practice") {
         setAwaiting(null);
@@ -342,8 +333,9 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
           practiceTurnRef.current -= 1; // aktarım hatası tur yemesin
           return setAwaiting("practice");
         }
-        pushTeacher(res.text);
-        void voice.speak(res.text, () => {
+        const replyRuns = res.runs?.length ? res.runs : enRuns(res.text);
+        pushTeacher(replyRuns);
+        void voice.speak(replyRuns, () => {
           // Sahne bitti → ders BİTMEZ, hoca kapanışa geçer.
           if (res.segmentDone) window.setTimeout(startWrapup, 500);
           else setAwaiting("practice");
@@ -353,11 +345,11 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
 
       // KAPANIŞ — hiçbir dal dersi bitirmez; tek çıkış "Dersi Bitir" butonu.
       if (awaiting === "wrapup") {
-        const decision = decideInWrapup(ackKind(text));
+        const decision = decideInWrapup(ack(text));
 
         if (decision.kind === "farewell") {
           setAwaiting(null);
-          const bye = script?.farewell ?? FALLBACK_FAREWELL;
+          const bye = script?.farewell?.length ? script.farewell : FALLBACK_FAREWELL;
           pushTeacher(bye);
           void voice.speak(bye, () => setAwaiting("wrapup"));
           return;
@@ -365,7 +357,7 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
 
         if (decision.kind === "invite") {
           setAwaiting(null);
-          const invite = script?.inviteQuestion ?? FALLBACK_INVITE_QUESTION;
+          const invite = script?.inviteQuestion?.length ? script.inviteQuestion : FALLBACK_INVITE_QUESTION;
           pushTeacher(invite);
           void voice.speak(invite, () => setAwaiting("wrapup"));
           return;
@@ -374,8 +366,9 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
         setAwaiting(null);
         const res = await voice.sendChat(text, { phase: "wrapup" });
         if (!res) return setAwaiting("wrapup");
-        pushTeacher(res.text);
-        void voice.speak(res.text, () => setAwaiting("wrapup"));
+        const replyRuns = res.runs?.length ? res.runs : enRuns(res.text);
+        pushTeacher(replyRuns);
+        void voice.speak(replyRuns, () => setAwaiting("wrapup"));
         return;
       }
 
@@ -385,7 +378,7 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
       // Kararın girdileri: öğrencinin sözü, sayaçlar, beat alanları. Hocanın
       // cevabının METNİ asla girdi değildir (üç canlı hatanın sebebi buydu).
       const before = decideOnStudentInput(beat, {
-        ack: ackKind(text),
+        ack: ack(text),
         exchanges: beatExchangesRef.current,
         invites: invitesRef.current,
         attempt: attemptRef.current,
@@ -402,7 +395,7 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
         // "Sorun var mı?" → "evet": öğrenci sorusunu sorsun diye BEKLERİZ.
         // Davet LLM'e GİTMEZ, o yüzden soru bütçesinden de yemez — ayrı sayaç.
         invitesRef.current += 1;
-        const invite = script?.inviteQuestion ?? FALLBACK_INVITE_QUESTION;
+        const invite = script?.inviteQuestion?.length ? script.inviteQuestion : FALLBACK_INVITE_QUESTION;
         pushTeacher(invite);
         void voice.speak(invite, () => setAwaiting("ask"));
         return;
@@ -447,14 +440,15 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
       // ("Hey!" ve konu dışı bir cümle iki denemeyi de yakıp soruyu atlatmıştı.)
       if (res.isAttempt === false) attemptRef.current -= 1;
 
-      pushTeacher(res.text);
+      const replyRuns = res.runs?.length ? res.runs : enRuns(res.text);
+      pushTeacher(replyRuns);
       const after = decideAfterTutorReply(beat, {
         exchanges: beatExchangesRef.current,
         attempt,
         beatDone: res.beatDone,
         isAttempt: res.isAttempt,
       });
-      void voice.speak(res.text, () => {
+      void voice.speak(replyRuns, () => {
         if (after.kind === "wait") setAwaiting(after.awaiting);
         else window.setTimeout(() => advance(beat.id), 300);
       });
@@ -470,10 +464,9 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
   const start = useCallback(async () => {
     try {
       await voice.unlock();
-      // Sunucu bu çağrıda hocanın cümlelerini üretir (ad + hafıza + geçen ders) —
-      // bu yüzden yanıt birkaç saniye sürebilir; buton zaten bekleme durumunda.
+      // Sunucu bu çağrıda selamlamayı üretir (ad + hafıza) — birkaç saniye sürebilir.
       const data = await api<{ sessionId: string; script: SessionScript | null }>(
-        `/v1/lessons/${programLessonId}/sessions`,
+        `/v1/lessons/${catalogLessonId}/sessions`,
         { method: "POST" },
       );
       setSessionId(data.sessionId);
@@ -482,15 +475,19 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
     } catch {
       toast.error("Oturum başlatılamadı");
     }
-  }, [programLessonId, voice]);
+  }, [catalogLessonId, voice]);
 
   const showHint = useCallback(() => {
     if (!lesson) return;
     const beat = lesson.lecture.beats[beatIndex];
     if (awaiting === "exercise" && beat?.kind === "exercise") setHintShown(beat.hint);
     else if (awaiting === "open_response" && beat?.kind === "open_response") setHintShown(beat.hint);
-    else if (awaiting === "practice") setHintShown(`Şunları kullanmayı dene: ${lesson.practice.mustUse.join(", ")}`);
-    else toast.info("Şu an ipucu yok — dinlemeye devam et");
+    else if (awaiting === "practice") {
+      setHintShown([
+        { lang: "l1", text: lesson.ui.labels.practiceHint },
+        ...lesson.practice.mustUse.map((m) => ({ lang: "en" as const, text: m, emphasis: true })),
+      ]);
+    } else toast.info("Şu an ipucu yok — dinlemeye devam et");
   }, [lesson, beatIndex, awaiting]);
 
   // --- ekranlar -------------------------------------------------------------
@@ -511,7 +508,7 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
           <CardContent>
             <Progress value={null} className="animate-pulse" />
             <p className="mt-3 text-sm text-muted-foreground">
-              Bu ders ilk kez açılıyorsa içerik şimdi üretiliyor (~20 sn)
+              Dilinde ilk kez açılıyorsa çeviri katmanı şimdi hazırlanıyor (~10 sn)
             </p>
           </CardContent>
         </Card>
@@ -525,7 +522,7 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
         <Card className="w-full max-w-md text-center">
           <CardHeader><CardTitle>{lesson.title}</CardTitle></CardHeader>
           <CardContent className="grid gap-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground" dir="auto">
               📖 {lesson.focus} · 🎬 {lesson.theme} · ~{lesson.estMinutes} dk
             </p>
             <Button size="lg" onClick={() => void start()}>▶ Derse başla</Button>
@@ -544,11 +541,13 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
         <Card className="text-center">
           <CardHeader><CardTitle className="text-2xl">🎉 Ders tamamlandı!</CardTitle></CardHeader>
           <CardContent className="grid gap-3">
-            <p className="text-sm text-muted-foreground">📝 {lesson.summary}</p>
-            <p className="text-muted-foreground">{lesson.title}</p>
+            <p className="text-sm text-muted-foreground" dir="auto">📝 {lesson.summary}</p>
+            <p className="text-muted-foreground" dir="auto">{lesson.title}</p>
           </CardContent>
         </Card>
-        {lesson.quiz && lesson.quiz.length > 0 && <QuizSection quiz={lesson.quiz} />}
+        {lesson.quiz && lesson.quiz.length > 0 && (
+          <QuizSection quiz={lesson.quiz} title={lesson.ui.labels.quizTitle} />
+        )}
         <Button size="lg" onClick={() => router.push("/lessons")}>Derslere dön</Button>
       </main>
     );
@@ -590,14 +589,18 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
                    paylaşılıyor, ikinci speak() `onended`'i ezip devam callback'ini
                    yok ediyordu. Konuşma bitene kadar buton kapalı. */
                 replayDisabled={status === "speaking" || status === "thinking"}
-                onReplay={() => void voice.speak(plain(m.points ? m.points.join(" ") : m.text))}
+                onReplay={() =>
+                  void voice.speak(m.points ? m.points.flat() : (m.runs ?? enRuns(m.text)))
+                }
                 onTranslate={async () => {
-                  const tr = await voice.translate(m.points ? m.points.join(" ") : m.text);
+                  const tr = await voice.translate(
+                    m.points ? m.points.map(runsText).join(" ") : m.text,
+                  );
                   if (tr) setMessages((all) => all.map((x) => (x.id === m.id ? { ...x, translation: tr } : x)));
                 }}
               />
             ) : (
-              <div key={m.id} className="max-w-[80%] self-end rounded-2xl bg-primary px-4 py-2.5 text-primary-foreground">
+              <div key={m.id} dir="auto" className="max-w-[80%] self-end rounded-2xl bg-primary px-4 py-2.5 text-primary-foreground">
                 {m.text}
               </div>
             ),
@@ -617,8 +620,8 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
           )}
           {hintShown && (
             <div className="max-w-[85%] self-end rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-sm">
-              <p className="font-semibold text-amber-600 dark:text-amber-400">Söyleyebileceğin bir örnek:</p>
-              <p className="text-foreground/90">{hintShown}</p>
+              <p className="font-semibold text-amber-600 dark:text-amber-400">{lesson.ui.labels.hint}</p>
+              <p className="text-foreground/90" dir="auto"><RunsView runs={hintShown} /></p>
             </div>
           )}
           {error && <p className="self-center text-xs text-destructive">{error}</p>}
@@ -731,6 +734,30 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
 
 // ---------------------------------------------------------------------------
 
+/**
+ * Dil etiketli parçaların tek çizim yolu. `en` parçalar vurgulanır ve <bdi> ile
+ * yalıtılır — RTL dillerde (Arapça/Farsça) İngilizce parça araya girince noktalama
+ * yanlış tarafa kaçıyordu; <bdi> bunu tarayıcı düzeyinde çözer.
+ * (Eski boldify/dangerouslySetInnerHTML yolu tamamen kalktı — HTML enjeksiyon
+ * yüzeyi de onunla birlikte gitti.)
+ */
+function RunsView({ runs }: { runs: RichText }) {
+  return (
+    <>
+      {runs.map((r, i) => (
+        <span key={i} className="contents">
+          {i > 0 ? " " : ""}
+          {r.lang === "en" ? (
+            <bdi className={r.emphasis ? "font-semibold text-primary" : "font-medium"}>{r.text}</bdi>
+          ) : (
+            <span>{r.text}</span>
+          )}
+        </span>
+      ))}
+    </>
+  );
+}
+
 function PhaseRail({ phase }: { phase: Phase }) {
   const items: { key: Phase; label: string }[] = [
     { key: "lecture", label: "Lecture" },
@@ -772,18 +799,20 @@ function TeacherBubble({
   const [busy, setBusy] = useState(false);
   return (
     <div className="flex max-w-[85%] items-start gap-2">
-      <div className="rounded-2xl bg-muted px-4 py-2.5">
+      <div className="rounded-2xl bg-muted px-4 py-2.5" dir="auto">
         {message.points ? (
           <ul className="grid gap-1.5 text-[15px] leading-relaxed">
             {message.points.map((p, i) => (
               <li key={i} className="flex gap-2">
                 <span className="text-muted-foreground">•</span>
-                <span dangerouslySetInnerHTML={{ __html: boldify(p) }} />
+                <span><RunsView runs={p} /></span>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="whitespace-pre-line text-[15px] leading-relaxed">{message.text}</p>
+          <p className="whitespace-pre-line text-[15px] leading-relaxed">
+            {message.runs ? <RunsView runs={message.runs} /> : message.text}
+          </p>
         )}
         {message.translation && (
           <p className="mt-2 border-t pt-2 text-sm text-muted-foreground">{message.translation}</p>
@@ -816,17 +845,11 @@ function TeacherBubble({
   );
 }
 
-/** **kalın** işaretlerini <strong>'a çevirir (içerik LLM'den, HTML kaçışlı). */
-function boldify(s: string): string {
-  const escaped = s.replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
-  );
-  return escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-}
-
 // --- Ders sonrası isteğe bağlı mini test ------------------------------------
 
-function QuizSection({ quiz }: { quiz: NonNullable<LessonContent["quiz"]> }) {
+function QuizSection({
+  quiz, title,
+}: { quiz: NonNullable<LessonContentV7["quiz"]>; title: string }) {
   const [started, setStarted] = useState(false);
   const [index, setIndex] = useState(0);
   const done = index >= quiz.length;
@@ -836,7 +859,7 @@ function QuizSection({ quiz }: { quiz: NonNullable<LessonContent["quiz"]> }) {
       <Card>
         <CardContent className="flex items-center justify-between gap-3 pt-4">
           <div>
-            <p className="font-semibold">Mini Test</p>
+            <p className="font-semibold">{title}</p>
             <p className="text-xs text-muted-foreground">{quiz.length} soru · isteğe bağlı</p>
           </div>
           <Button variant="secondary" onClick={() => setStarted(true)}>Teste başla</Button>
@@ -906,7 +929,7 @@ function QuizMcq({
           ))}
         </div>
         {picked !== null && (
-          <p className={`text-xs ${correct ? "text-emerald-500" : "text-red-500"}`}>
+          <p className={`text-xs ${correct ? "text-emerald-500" : "text-red-500"}`} dir="auto">
             {correct ? "✓ Doğru!" : "✗ Tekrar dene"}
             {q.feedbackPerOption?.[picked] ? ` — ${q.feedbackPerOption[picked]}` : ""}
           </p>

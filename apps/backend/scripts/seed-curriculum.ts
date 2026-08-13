@@ -84,6 +84,19 @@ for (const level of AUTHORED_LEVELS) {
       });
   }
 
+  // --- Pozisyon park alanı ----------------------------------------------------
+  // Araya ders EKLEMEK sonraki pozisyonları kaydırır; satır satır upsert ederken
+  // (level, position) unique index'i geçici çakışma üretir (canlıda: yeni satır 27'yi
+  // isterken eski satır hâlâ 27'deydi). Önce seviyenin tüm satırları +10000 park
+  // alanına itilir; upsert'ler gerçek pozisyonları yazar. Emekli satırlar parkta
+  // kalır ve `< 10000` şartı sayesinde her koşuda yeniden itilip taşmaz.
+  if (!DRY_RUN) {
+    await db
+      .update(catalogLessons)
+      .set({ position: raw`${catalogLessons.position} + 10000` })
+      .where(and(eq(catalogLessons.level, level), raw`${catalogLessons.position} < 10000`));
+  }
+
   // --- Dersler --------------------------------------------------------------
   for (const l of spec.lessons) {
     const id = lessonId(level, l);

@@ -104,31 +104,28 @@ export function useVoiceSession(sessionId: string | null) {
     return Math.sqrt(sum / buf.length);
   }, []);
 
-  /** Hoca konuşur; `onEnd` ses BİTTİĞİNDE çağrılır — otomatik akışın motoru. */
+  /**
+   * Hoca konuşur; `onEnd` TÜM klipler bitince çağrılır — otomatik akışın motoru.
+   *
+   * v7: girdi dil etiketli parçalar (RichText) da olabilir; sunucu her parçayı
+   * kendi diliyle seslendirir ve KLİP LİSTESİ döner. Klipler tek `speak()`
+   * içinde sırayla çalınır; `settle()` yine TAM BİR KEZ ateşlenir — kaybolan
+   * her callback dersi kilitler, bu disiplin klip sayısından bağımsızdır.
+   */
   const speak = useCallback(
-    async (text: string, onEnd?: () => void) => {
+    async (input: string | Array<{ lang: "en" | "l1"; text: string }>, onEnd?: () => void) => {
       const gen = genRef.current;
       const sid = sessionRef.current;
       if (!sid) return;
       try {
-        const data = await api<{ audioBase64: string; alignment: ElevenAlignment | null }>(
-          `/v1/sessions/${sid}/tts`,
-          { method: "POST", body: JSON.stringify({ text: text.slice(0, 500) }) },
-        );
+        const runs = typeof input === "string" ? [{ lang: "en" as const, text: input }] : input;
+        const data = await api<{
+          clips: Array<{ audioBase64: string; alignment: ElevenAlignment | null; lang: string }>;
+        }>(`/v1/sessions/${sid}/tts`, { method: "POST", body: JSON.stringify({ runs }) });
         if (gen !== genRef.current) return;
 
         const audio = ensureAudio();
-        const bytes = Uint8Array.from(atob(data.audioBase64), (c) => c.charCodeAt(0));
-        if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
-        const url = URL.createObjectURL(new Blob([bytes], { type: "audio/mpeg" }));
-        blobUrlRef.current = url;
 
-        setTimeline(data.alignment ? buildTimeline([alignmentToLine(data.alignment)], null) : null);
-        audio.src = url;
-
-        // AKIŞ `onEnd`'İN İÇİNDE YAŞIYOR: kaybolan her callback dersi kilitler
-        // (mikrofon ve klavye `awaiting === null` iken kapalı). Bu yüzden onEnd
-        // TAM OLARAK BİR KEZ çalışmalı — ses bitse de, hata verse de, hiç bitmese de.
         let settled = false;
         let watchdog = 0;
         const settle = () => {
@@ -140,16 +137,49 @@ export function useVoiceSession(sessionId: string | null) {
           setStatus("idle");
           onEnd?.();
         };
-        audio.onended = settle;
-        audio.onerror = settle; // çözme/ağ hatası: sessiz kalma, akışı sürdür
 
-        await audio.play();
-        if (gen === genRef.current) setStatus("speaking");
+        // TTS kapsamı dışı dil: hiç klip gelmemiş olabilir — metin ekranda kaldı,
+        // akış yine ilerlemeli.
+        if (data.clips.length === 0) {
+          settle();
+          return;
+        }
 
-        // Son çare: `ended` hiç gelmezse (tarayıcı takılması, kaynak değişimi)
-        // ders ölmesin. Süre bilinirse ona göre, yoksa cömert bir tavan.
-        const ms = Number.isFinite(audio.duration) ? audio.duration * 1000 + 5000 : 90_000;
-        watchdog = window.setTimeout(settle, ms);
+        let index = 0;
+        const playClip = async () => {
+          const clip = data.clips[index];
+          if (!clip || gen !== genRef.current) {
+            settle();
+            return;
+          }
+          const bytes = Uint8Array.from(atob(clip.audioBase64), (c) => c.charCodeAt(0));
+          if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+          const url = URL.createObjectURL(new Blob([bytes], { type: "audio/mpeg" }));
+          blobUrlRef.current = url;
+
+          setTimeline(clip.alignment ? buildTimeline([alignmentToLine(clip.alignment)], null) : null);
+          audio.src = url;
+
+          audio.onended = () => {
+            index += 1;
+            if (index < data.clips.length) void playClip();
+            else settle();
+          };
+          audio.onerror = () => {
+            // Bozuk klip: kalanları dene, hiçbiri gitmezse yine settle
+            index += 1;
+            if (index < data.clips.length) void playClip();
+            else settle();
+          };
+
+          await audio.play();
+          if (gen === genRef.current) setStatus("speaking");
+        };
+
+        await playClip();
+
+        // Son çare: `ended` hiç gelmezse ders ölmesin — klip sayısına göre cömert tavan
+        watchdog = window.setTimeout(settle, 90_000 + data.clips.length * 30_000);
       } catch (err) {
         if (gen === genRef.current) {
           setError(errorText(err));
@@ -168,6 +198,8 @@ export function useVoiceSession(sessionId: string | null) {
       ctx: ChatContext = {},
     ): Promise<{
       text: string;
+      /** v7: dil etiketli parçalar — ekran ve TTS bunları kullanır, text yalnızca yedek */
+      runs?: Array<{ lang: "en" | "l1"; text: string }>;
       segmentDone: boolean;
       beatDone: boolean;
       /** Alıştırma/açık uçlu adımda: öğrencinin sözü cevap denemesi miydi? */
@@ -180,6 +212,7 @@ export function useVoiceSession(sessionId: string | null) {
       try {
         const data = await api<{
           text: string;
+          runs?: Array<{ lang: "en" | "l1"; text: string }>;
           segmentDone?: boolean;
           beatDone?: boolean;
           isAttempt?: boolean;

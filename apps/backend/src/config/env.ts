@@ -1,5 +1,14 @@
-import "dotenv/config"; // apps/backend/.env'i yükler (prod'da dosya yoksa sessizce geçer)
+import { config as loadDotenv } from "dotenv";
 import { z } from "zod";
+
+// apps/backend/.env geliştirmede TEK doğruluk kaynağıdır (override: true).
+//
+// Varsayılan dotenv, süreç ortamında ZATEN duran değişkeni ezmez — canlıda bunu
+// pahalı öğrendik: shell bir kez eski ELEVENLABS_VOICE_ID'yi export etmişti,
+// .env kaç kez düzenlenirse düzenlensin süreç eski (silinmiş) sesi kullanmaya
+// devam etti ve TTS sessizce 502 verdi. Prod'da dosya yok → çağrı no-op, gerçek
+// ortam değişkenleri geçerli kalır.
+loadDotenv({ override: true });
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),

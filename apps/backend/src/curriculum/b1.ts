@@ -136,7 +136,8 @@ export const B1: LevelSpec = {
       title: "I've Lived Here for Years",
       focus: "present perfect with for and since",
       themeHint: "talking about how long you have done the things in your life",
-      targetPhrases: ["I've lived here", "for three years", "since I was"],
+      // "for three years" kişisel gerçek dayatıyordu — süre nötr olmalı (inceleme, Ağu 2026)
+      targetPhrases: ["I've lived here", "for a long time", "since I was"],
     },
     {
       position: 8,
@@ -154,7 +155,8 @@ export const B1: LevelSpec = {
       title: "I've Been Working on It",
       focus: "present perfect continuous for an activity still going on",
       themeHint: "explaining what has been keeping you busy lately",
-      targetPhrases: ["I've been working", "we've been trying", "she's been away"],
+      // "she's been away" hem kişisel gerçek hem de PPC bile değil — hedef yapıyı taşımıyordu
+      targetPhrases: ["I've been working", "we've been trying", "I've been learning"],
     },
     {
       position: 10,
@@ -163,7 +165,8 @@ export const B1: LevelSpec = {
       title: "How Long Have You Been Doing That?",
       focus: "present perfect continuous in questions",
       themeHint: "getting to know what someone has been up to",
-      targetPhrases: ["how long have you", "have you been", "since last year"],
+      // "since last year" kişisel gerçek dayatıyordu
+      targetPhrases: ["how long have you", "have you been", "for a while"],
     },
     {
       position: 11,
@@ -201,7 +204,8 @@ export const B1: LevelSpec = {
       title: "I'll Have Finished by Then",
       focus: "future perfect for something completed before a future point",
       themeHint: "planning backwards from a deadline",
-      targetPhrases: ["I'll have finished", "by next month", "we'll have moved"],
+      // "we'll have moved" kişisel gerçek dayatıyordu
+      targetPhrases: ["I'll have finished", "by next month", "by the end of"],
     },
     {
       position: 15,
@@ -425,7 +429,8 @@ export const B1: LevelSpec = {
       title: "My Brother, Who Lives Abroad",
       focus: "adding extra information with commas around the added part",
       themeHint: "adding detail about people as you mention them",
-      targetPhrases: ["my brother who", "which was lovely", "who happens to be"],
+      // "my brother who" non-defining hedefi virgülsüz temsil ediyordu (defining okunur) — çıkarıldı
+      targetPhrases: ["which was lovely", "who happens to be"],
     },
     {
       position: 39,
