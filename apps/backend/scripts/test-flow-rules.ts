@@ -9,7 +9,7 @@ import {
   decideAfterTutorReply,
   decideInWrapup,
   decideOnStudentInput,
-  isLastQuestionExchange,
+  isLastExchange,
   isSurrender,
   MAX_BEAT_EXCHANGES,
   MAX_QUESTION_INVITES,
@@ -151,7 +151,7 @@ expect(
   decideAfterTutorReply(questions, reply({ exchanges: MAX_BEAT_EXCHANGES })),
   { kind: "advance" },
 );
-const lastFlags = [0, 1, 2, 3].map((e) => isLastQuestionExchange(questions, e));
+const lastFlags = [0, 1, 2, 3].map((e) => isLastExchange(questions, e));
 expect(
   `bayrak yalnızca son turda açık (${lastFlags.join(",")})`,
   { kind: lastFlags.join(",") === "false,false,true,true" ? "advance" : "askTutor" },
@@ -159,13 +159,25 @@ expect(
 );
 expect(
   "readiness beat'inde bayrak hiç açılmaz",
-  { kind: isLastQuestionExchange(readiness, 9) ? "askTutor" : "advance" },
+  { kind: isLastExchange(readiness, 9) ? "askTutor" : "advance" },
+  { kind: "advance" },
+);
+// CANLI HATA: üç anlamsız cevaptan sonra beat tavana takılıp kapandı ve doğru cevap
+// HİÇ söylenmedi. Bayrak artık alıştırmada da açılır; sunucu son turda cevabı verir.
+expect(
+  "exercise beat'inde bayrak SON turda açılır",
+  { kind: isLastExchange(exercise, MAX_BEAT_EXCHANGES - 1) ? "askTutor" : "advance" },
+  { kind: "askTutor" },
+);
+expect(
+  "exercise beat'inde bayrak erken turda KAPALI",
+  { kind: isLastExchange(exercise, 0) ? "askTutor" : "advance" },
   { kind: "advance" },
 );
 expect(
-  "exercise beat'inde bayrak hiç açılmaz",
-  { kind: isLastQuestionExchange(exercise, 9) ? "askTutor" : "advance" },
-  { kind: "advance" },
+  "open_response beat'inde de bayrak son turda açılır",
+  { kind: isLastExchange(openResponse, MAX_BEAT_EXCHANGES - 1) ? "askTutor" : "advance" },
+  { kind: "askTutor" },
 );
 
 // ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 import type { LevelSpec } from "./types.js";
 
 /**
- * A2 — Pre-Intermediate. 9 ünite, 57 ders.
+ * A2 — Pre-Intermediate. 9 ünite, 66 ders.
  *
  * A1 şimdiki zaman ve tek cümlelik geçmiş üzerine kuruluydu; A2 bunları ANLATIYA
  * ve PLANA bağlar: hikâye anlatma (past continuous), gelecek (going to / will),
@@ -280,7 +280,7 @@ export const A2: LevelSpec = {
       position: 24,
       unitIndex: 3,
       kind: "practice",
-      title: "Shopping II",
+      title: "It Doesn't Fit",
       focus: "changing something in a shop for a different size or colour",
       themeHint: "going back to a shop to change a purchase",
       targetPhrases: ["in a smaller size", "can I change", "it doesn't fit"],
@@ -569,7 +569,7 @@ export const A2: LevelSpec = {
       position: 55,
       unitIndex: 8,
       kind: "practice",
-      title: "Requests II",
+      title: "A Small Favour",
       focus: "asking neighbours and colleagues for favours politely",
       themeHint: "asking a neighbour and a colleague for small favours",
       targetPhrases: ["would you mind", "could you please", "no problem"],

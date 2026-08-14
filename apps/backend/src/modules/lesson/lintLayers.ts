@@ -23,6 +23,34 @@ function walkStrings(value: unknown, path: string, out: Array<[string, string]>)
   }
 }
 
+/**
+ * Örnek cevap, istenen kalıbı gösteriyor mu?
+ *
+ * KISALTMA-DUYARSIZ olmak ZORUNDA: canlıda tek gerçek B1 vakası buydu — mustUse
+ * `["would"]`, örnek "Every summer we'd visit the beach". Kalıp oradaydı, denetim
+ * göremedi. Kısaltmayı açmayan bir kural kendi yanlış pozitifini üretir.
+ */
+function demonstrates(example: string, phrase: string): boolean {
+  const expand = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/n't\b/g, " not")
+      .replace(/'d\b/g, " would")
+      .replace(/'ll\b/g, " will")
+      .replace(/'re\b/g, " are")
+      .replace(/'ve\b/g, " have")
+      .replace(/'m\b/g, " am")
+      .replace(/'s\b/g, " is")
+      .replace(/[^a-z0-9 ]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  // Hem ham hem açılmış biçim denenir: "it's a small" ifadesi açılınca
+  // "it is a small" olur ve örnekte "It's a small" yazıyorsa yine yakalanır.
+  const ex = example.toLowerCase().replace(/[^a-z0-9' ]/g, " ").replace(/\s+/g, " ").trim();
+  const p = phrase.toLowerCase().replace(/[^a-z0-9' ]/g, " ").replace(/\s+/g, " ").trim();
+  return ex.includes(p) || expand(example).includes(expand(phrase));
+}
+
 function scanForbidden(blob: string, forbidden: string[], errors: string[], layer: string): void {
   const haystack = blob.toLowerCase();
   for (const value of forbidden) {
@@ -81,9 +109,12 @@ export function lintCore(core: LessonCore, ctx: LayerLintContext): LintReport {
           warnings.push(`örnek "${ex.id}" çok kısa: "${ex.textEn}"`);
         }
       }
-      // "Filler iddia" sezgisi: iddia bir şey SÖYLEMELİ
+      // "Filler iddia" sezgisi: iddia bir şey SÖYLEMELİ.
+      // Tırnak içi ÇIKARILIR: öğretilen ifadenin kendisi "that sounds great" olabilir
+      // ve bu dolgu değildir — sezgi iddianın KENDİ düzyazısını hedefler.
       for (const c of p.claimsEn) {
-        if (/\b(very useful|important|great|fun)\b/i.test(c)) {
+        const prose = c.replace(/'[^']*'/g, "").replace(/"[^"]*"/g, "");
+        if (/\b(very useful|important|great|fun)\b/i.test(prose)) {
           warnings.push(`point "${p.id}": iddia dolgu gibi görünüyor — "${c.slice(0, 60)}"`);
         }
       }
@@ -97,7 +128,10 @@ export function lintCore(core: LessonCore, ctx: LayerLintContext): LintReport {
   // Alıştırmalar — format bazlı yapı kuralları
   const exercises = beats.filter((b) => b.kind === "exercise");
   if (exercises.length < 2) errors.push("En az 2 alıştırma olmalı");
-  if (exercises.length > 3) warnings.push(`${exercises.length} alıştırma — 2-3 bekleniyordu`);
+  // Üst sınır A2'den itibaren 4: gramer dersleri daha çok tekrar istiyor (kullanıcı
+  // kararı, Ağu 2026). 5'te ders ~9 dk'ya çıkıyor ve alıştırma ekranı sohbetin önüne
+  // geçiyor — konuşma uygulamasında istemediğimiz şey.
+  if (exercises.length > 4) warnings.push(`${exercises.length} alıştırma — 2-4 bekleniyordu`);
 
   for (const ex of exercises) {
     if (ex.kind !== "exercise") continue;
@@ -142,6 +176,20 @@ export function lintCore(core: LessonCore, ctx: LayerLintContext): LintReport {
   for (const o of openResponses) {
     if (o.kind !== "open_response") continue;
     if (!o.rubric.criteria.trim()) errors.push(`open_response '${o.id}': rubric.criteria boş`);
+    // ÖRNEK CEVAP İSTENEN YAPIYI GÖSTERMELİ. `exampleAnswer` öğrenciye İpucu
+    // butonunda gösterilir — takılıp bilerek istediği an. O anda öğretilen kalıbı
+    // hiç içermeyen bir örnek, ölçüm değil ÖĞRETİM hatasıdır (canlıda 7 vaka).
+    //
+    // Kural kasten "en az biri", "hepsi" DEĞİL: mustUse bir kontrol listesi değil
+    // örnek ifade listesidir (judge prompt'u da "examples, not a checklist" der) ve
+    // sorular çoğu zaman "use ONE of the phrases" der. "Hepsi" kuralı 58 kez boşuna
+    // bağırıp güvenilirliğini yitirirdi — CLAUDE.md'deki anahtar-kelime tuzağı.
+    if (o.rubric.mustUse.length && !o.rubric.mustUse.some((p) => demonstrates(o.exampleAnswer, p))) {
+      warnings.push(
+        `open_response '${o.id}': örnek cevap mustUse ifadelerinden hiçbirini göstermiyor — ` +
+          `ister ${JSON.stringify(o.rubric.mustUse)}, örnek "${o.exampleAnswer.slice(0, 70)}"`,
+      );
+    }
   }
 
   // Alıştırmalar anlatımdan sonra

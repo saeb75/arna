@@ -6,6 +6,7 @@ import {
   SCENE_FORMAT,
   lessonCoreSchema,
   lessonLocalePackSchema,
+  permuteChoices,
   sceneSetSchema,
   TRACKS,
   type LessonContentV7,
@@ -239,6 +240,28 @@ async function generateLocaleInto(
 // Birleşik çözümleme — route'ların kullandığı tek giriş
 // ---------------------------------------------------------------------------
 
+/**
+ * Alıştırma MCQ'larının şıklarını deterministik olarak yeniden dizer.
+ * `exampleAnswer` metni değişmez ve doğru indeks DEĞERE göre yeniden hesaplandığı
+ * için `exampleAnswer === options[correctIndex]` değişmezi korunur (lint kuralı).
+ * `quiz` burada karıştırılmaz: quiz maddeleri derste gösterilmiyor, ünite testine
+ * gidiyor ve orada dil paketindeki şık geri bildirimiyle birlikte taşınmaları
+ * gerekiyor — o iş `buildCheckpoint` içinde yapılır.
+ */
+function permuteExerciseChoices(core: LessonCore, coreId: string): LessonCore {
+  return {
+    ...core,
+    lecture: {
+      ...core.lecture,
+      beats: core.lecture.beats.map((b) => {
+        if (b.kind !== "exercise" || b.answerSpec.kind !== "choice" || !b.options?.length) return b;
+        const p = permuteChoices(`${coreId}:${b.id}`, b.options, b.answerSpec.correctIndex);
+        return { ...b, options: p.options, answerSpec: { ...b.answerSpec, correctIndex: p.correctIndex } };
+      }),
+    },
+  };
+}
+
 export interface ResolvedLesson {
   content: LessonContentV7;
   core: LessonCore;
@@ -267,7 +290,11 @@ export async function resolveLesson(userId: string, catalogLessonId: string): Pr
   if (!coreRow?.core) {
     throw new LayerError("core_not_published", `"${catalogLessonId}" için yayınlanmış çekirdek yok — üretim/yayın hattı koşulmamış`);
   }
-  const core = coreRow.core as LessonCore;
+  // Şıklar SERVİS ANINDA karıştırılır — yazılan içerikte doğru şık neredeyse her
+  // zaman ilk sıradaydı (bkz. permuteChoices). Burada yapılıyor çünkü bu fonksiyon
+  // hem istemci içeriğinin hem judge bağlamının TEK kaynağı: ikisi de aynı diziyi
+  // görür. Tohum satır kimliğine bağlı, yani dizilim oturumlar arasında da sabit.
+  const core = permuteExerciseChoices(coreRow.core as LessonCore, coreRow.id);
 
   const sceneRow = await getPublishedSceneSet(coreRow.id);
   if (!sceneRow?.scenes) {

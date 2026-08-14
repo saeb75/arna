@@ -92,6 +92,64 @@ console.log("[Emma]", b2.text);
 check("son denemeden sonra adım kapanıyor (akış tıkanmıyor)", b2.beatDone === true, `beatDone=${b2.beatDone}`);
 check("son denemede hoca doğrusunu söylüyor, tekrar sormuyor", !/\?\s*$/.test(b2.text.trim()), b2.text);
 
+// ---------------------------------------------------------------------------
+// 4) CANLI HATA: rubric.mustUse BİREBİR şart sanılıyordu
+//
+// Ders 3. tekil -s öğretiyor, rubric örnekleri "she works / he lives". Öğrenci
+// "my brother has a lot of work at home" dedi — bu hedefin ta kendisi (has = -s),
+// ama reddedildi ve üstüne "'He works' demelisin" diye YANLIŞ düzeltme verildi.
+// Örnekler artık kontrol listesi değil, hedefin örneği olarak sunuluyor.
+// ---------------------------------------------------------------------------
+console.log("\n=== HEDEFİ KENDİ SÖZLERİYLE KULLANAN CEVAP ===");
+const thirdPerson = makeLessonContent({
+  title: "Test",
+  topic: "present simple third person -s",
+  focus: "present simple: third person -s",
+  theme: "Test",
+  objectives: ["Add -s after he, she and it.", "Describe what someone does."],
+  communicationGoal: "Say what someone in your family does every day.",
+  tutorNotes: {
+    target: "present simple with -s after he, she and it",
+    commonErrors: ["forgetting the -s"],
+    correction: "recast with the -s form",
+  },
+  lecture: {
+    beats: [
+      { id: "b1", kind: "ask", purpose: "readiness", intent: "greet, name the topic, ask if ready" },
+      { id: "b2", kind: "teach", introIntent: "announce the explanation", points: ["Add **-s** after he, she and it."] },
+      { id: "b3", kind: "ask", purpose: "questions", intent: "invite any question before the exercises" },
+      { id: "b4", kind: "say", intent: "acknowledge and announce the questions" },
+      { id: "b5", kind: "exercise", prompt: "Fill in the blank: She ___ in a hospital.", answers: ["works"], hint: "Example: works" },
+      { id: "b6", kind: "exercise", prompt: "Fill in the blank: He ___ near the office.", answers: ["lives"], hint: "Example: lives" },
+      {
+        id: "b7",
+        kind: "open_response",
+        prompt: "Describe what someone in your family does every day. Use he or she.",
+        // Gerçek A1 dersindeki gibi BİREBİR kalıplar — hata tam buradan çıkmıştı
+        rubric: { mustUse: ["she works", "he lives"], criteria: "The answer describes a routine using the -s form after he, she or it." },
+        hint: "Example of what you can say: She works in a hospital.",
+        maxAttempts: 2,
+      },
+    ],
+  },
+});
+const lesson3 = await seedTestCatalogLesson({ level: "A1", slot: 6 });
+await seedTestContent({ userId: testUserId, catalogLessonId: lesson3.id, content: thirdPerson });
+const { sessionId: s3 } = await openSession(testUserId, lesson3.id);
+
+const c1 = await chatTurn(testUserId, s3, "my brother has a lot of work at home", {
+  phase: "lecture", beatId: "b7", attempt: 0,
+});
+console.log("\n[öğrenci] my brother has a lot of work at home  (hedef: 3. tekil -s)");
+console.log("[Emma]", c1.text);
+check("hedefi farklı özne/fiille kullanan cevap KABUL edildi", c1.beatDone === true, `beatDone=${c1.beatDone}`);
+
+const { sessionId: s4 } = await openSession(testUserId, lesson3.id);
+const c2 = await chatTurn(testUserId, s4, "I like pizza very much", { phase: "lecture", beatId: "b7", attempt: 0 });
+console.log("\n[öğrenci] I like pizza very much  (hedef yapı YOK)");
+console.log("[Emma]", c2.text);
+check("hedefi hiç kullanmayan cevap REDDEDİLDİ", c2.beatDone === false, `beatDone=${c2.beatDone}`);
+
 await sql`delete from user_profiles where user_id = ${testUserId}`;
 await sql`delete from llm_calls where user_id = ${testUserId}`;
 await sql.end();

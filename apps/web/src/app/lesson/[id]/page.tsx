@@ -16,7 +16,7 @@ import {
   decideAfterTutorReply,
   decideInWrapup,
   decideOnStudentInput,
-  isLastQuestionExchange,
+  isLastExchange,
   matchesAnswerSpec,
   normalizeUtterance,
   type AckKind,
@@ -57,12 +57,33 @@ const nextId = () => `m${++msgSeq}`;
 
 const OPTION_LETTERS = ["a", "b", "c", "d"];
 
+/**
+ * Yeni bir hoca balonu düştükten sonra girdinin kapalı kaldığı süre.
+ * Söz kesme serbest, ama METİN GELMEDEN kesilmesin: kullanıcı okumaya fırsat
+ * bulmadan tuşa basıp mesajı atlamasın diye kısa bir nefes payı.
+ */
+const INPUT_GRACE_MS = 500;
+
 /** RichText → düz metin (çeviri, transkript, yedekler için). */
 const runsText = (runs: RichText | undefined | null): string =>
   (runs ?? []).map((r) => r.text).join(" ");
 
 /** Düz İngilizce metni tek parçalık RichText'e sarar. */
 const enRuns = (text: string): RichText => [{ lang: "en", text }];
+
+/**
+ * Balondaki İNGİLİZCE parçalar — çeviri butonunun kaynağı.
+ *
+ * CANLI HATA: eskiden balonun TAMAMI çeviriye gidiyordu. Native modda balon zaten
+ * ana dilde olduğu için model aynı cümleyi geri veriyordu ("Aferin, çok doğru!" →
+ * "Aferin, çok doğru!"). Öğrencinin merak ettiği şey İngilizce parçanın anlamı.
+ */
+const englishOf = (m: Message): string =>
+  (m.points ? m.points.flat() : (m.runs ?? []))
+    .filter((r) => r.lang === "en")
+    .map((r) => r.text)
+    .join(" ")
+    .trim();
 
 /**
  * Kısa onaylar LLM'e sorulmaz. AMA kutup önemlidir: "Hazır mısın?" ile
@@ -154,6 +175,8 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
   const [typing, setTyping] = useState(false);
   const [draft, setDraft] = useState("");
   const [hintShown, setHintShown] = useState<RichText | null>(null);
+  /** Yeni metin düştükten sonraki kısa kilit (bkz. INPUT_GRACE_MS) */
+  const [inputGrace, setInputGrace] = useState(false);
   const [finishOpen, setFinishOpen] = useState(false);
 
   const voice = useVoiceSession(sessionId);
@@ -172,7 +195,19 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
   const invitesRef = useRef(0);
   /** Övgü havuzunda sıradaki cümle — aynı ders içinde tekrar etmesin */
   const praiseIndexRef = useRef(0);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
+  /** Sohbetin dibindeki işaret — kaydırma buna yapılır (yükseklik okumadan) */
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const graceTimerRef = useRef(0);
+  // Grace zamanlayıcısı SADECE sayfa kapanırken temizlenir. Mesaj/durum değişiminde
+  // koşan bir efektin temizleyicisine konulamaz: her yeni balonda kendi zamanlayıcısını
+  // iptal eder ve kilit bir daha hiç açılmazdı.
+  useEffect(() => () => window.clearTimeout(graceTimerRef.current), []);
+  /**
+   * Emma konuşurken gelen girdi. Akış `onEnd` zincirinde ilerlediği için girdiyi
+   * o an işleyemeyiz: önce ileri sarıp cevap beklenen noktaya varmak, sonra
+   * girdiyi ORAYA teslim etmek gerekir. Kuyruk bunun için.
+   */
+  const pendingInputRef = useRef<string | null>(null);
   const enteredRef = useRef<string | null>(null);
 
   // --- ders içeriğini getir -------------------------------------------------
@@ -195,6 +230,12 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
   const pushTeacher = useCallback((runs: RichText, points?: RichText[]) => {
     const msg: Message = { id: nextId(), role: "teacher", text: runsText(runs), runs, points };
     setMessages((m) => [...m, msg]);
+    // Yeni metin ekrana düştüğü an kısa bir kilit: kullanıcı okumaya fırsat
+    // bulmadan yanlışlıkla sözü kesmesin. Kilit YALNIZCA bu aralıkta; sonrasında
+    // söz kesme serbest.
+    setInputGrace(true);
+    window.clearTimeout(graceTimerRef.current);
+    graceTimerRef.current = window.setTimeout(() => setInputGrace(false), INPUT_GRACE_MS);
     return msg.id;
   }, []);
 
@@ -202,8 +243,24 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
     setMessages((m) => [...m, { id: nextId(), role: "user", text }]);
   }, []);
 
+  /**
+   * Yeni mesaj gelince dibe in.
+   *
+   * CANLI HATA: eski hâli `messages` değişir değişmez `scrollHeight` okuyordu.
+   * Yeni balon henüz YERLEŞMEDİĞİ için okunan değer eski yükseklikti ve kaydırma
+   * eski dibe gidiyordu. Elle yazılan A1 derslerinde anlatım balonu ekrandan uzun
+   * olduğu için bir sonraki mesaj ("sormak istediğin bir şey var mı?") görüş
+   * alanının ALTINDA kalıyor, kullanıcı "mesaj hiç gelmedi" sanıyordu.
+   *
+   * Çözüm: yerleşimden SONRA (rAF) ve yükseklik hesabı yapmadan, dipteki işarete
+   * kaydır. Eleman hedeflemek yazı tipi/satır kırılması gecikmelerine de bağışık.
+   */
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    const id = requestAnimationFrame(() => {
+      const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      bottomRef.current?.scrollIntoView({ block: "end", behavior: reduced ? "auto" : "smooth" });
+    });
+    return () => cancelAnimationFrame(id);
   }, [messages, status]);
 
   const finishLesson = useCallback(async () => {
@@ -418,7 +475,7 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
       // Bu, soru penceresinin son turuysa hoca "başka sorun var mı?" DEMEZ, kapanış
       // yapar — yoksa Emma soru sorarken akış ilerliyor, ders kendiyle çelişiyor.
       // (Sayaç ARTMADAN önce, yani bu turun kaçıncı olduğuna göre hesaplanır.)
-      const lastExchange = isLastQuestionExchange(beat, beatExchangesRef.current);
+      const lastExchange = isLastExchange(beat, beatExchangesRef.current);
 
       beatExchangesRef.current += 1;
       attemptRef.current += 1;
@@ -456,10 +513,39 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
     [lesson, script, awaiting, beatIndex, pushUser, pushTeacher, voice, advance, startWrapup],
   );
 
+  /**
+   * SÖZ KESME. Emma konuşurken kullanıcı yazar ya da mikrofona basarsa: ses susar,
+   * akış cevabın beklendiği ilk noktaya kadar SESSİZ ilerler (balonlar görünmeye
+   * devam eder), sonra girdi oraya teslim edilir.
+   */
+  const bargeIn = useCallback(
+    (text?: string) => {
+      if (text) pendingInputRef.current = text;
+      voice.setFastForward(true);
+      voice.skipSpeaking();
+    },
+    [voice],
+  );
+
+  /** İleri sarma cevap beklenen noktada durur; kuyruktaki girdi orada işlenir. */
+  useEffect(() => {
+    if (!awaiting) return;
+    voice.setFastForward(false);
+    const queued = pendingInputRef.current;
+    if (!queued) return;
+    pendingInputRef.current = null;
+    void handleUserText(queued);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [awaiting]);
+
   const handleRelease = useCallback(async () => {
     const text = await voice.release();
-    if (text) void handleUserText(text);
-  }, [voice, handleUserText]);
+    if (!text) return;
+    // Kayıt sırasında akış ileri sarıldıysa cevap beklenen noktaya gelmiş olabilir;
+    // gelmediyse kuyruğa alınır ve oraya varınca işlenir.
+    if (awaiting) void handleUserText(text);
+    else pendingInputRef.current = text;
+  }, [voice, handleUserText, awaiting]);
 
   const start = useCallback(async () => {
     try {
@@ -545,15 +631,24 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
             <p className="text-muted-foreground" dir="auto">{lesson.title}</p>
           </CardContent>
         </Card>
-        {lesson.quiz && lesson.quiz.length > 0 && (
-          <QuizSection quiz={lesson.quiz} title={lesson.ui.labels.quizTitle} />
-        )}
+        {/* Mini test buradan KALDIRILDI: maddeler artık ünite sonu testinde
+            kullanılıyor. Dersin hemen ardından sorulan soru kısa süreli belleği
+            ölçer; aynı maddeyi günler sonra ve başka derslerin maddeleriyle
+            KARIŞIK sormak hem gerçek öğrenmeyi ölçer hem pekiştirir. */}
         <Button size="lg" onClick={() => router.push("/lessons")}>Derslere dön</Button>
       </main>
     );
   }
 
-  const micBusy = status === "speaking" || status === "thinking" || status === "transcribing";
+  /**
+   * Girdi kilidi — TEK kaynak.
+   *
+   * Konuşma sırasında girdi AÇIK: basmak/yazmak sözü keser (bkz. bargeIn).
+   * Kapalı kaldığı iki durum var ve ikisi de "ortada okunacak metin yok" demek:
+   *  - cevap sunucudan gelmemiş (thinking / transcribing),
+   *  - metin yeni düştü, kullanıcıya okuması için yarım saniye tanınıyor.
+   */
+  const inputLocked = status === "thinking" || status === "transcribing" || inputGrace;
 
   return (
     <main className="flex h-dvh flex-col bg-background">
@@ -578,7 +673,7 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
       </div>
 
       {/* Sohbet */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4">
         <div className="mx-auto flex max-w-2xl flex-col gap-3">
           {messages.map((m) =>
             m.role === "teacher" ? (
@@ -592,10 +687,10 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
                 onReplay={() =>
                   void voice.speak(m.points ? m.points.flat() : (m.runs ?? enRuns(m.text)))
                 }
+                /* Yalnız İngilizce parçalar çevrilir; İngilizce yoksa buton yok */
+                canTranslate={englishOf(m).length > 0}
                 onTranslate={async () => {
-                  const tr = await voice.translate(
-                    m.points ? m.points.map(runsText).join(" ") : m.text,
-                  );
+                  const tr = await voice.translate(englishOf(m));
                   if (tr) setMessages((all) => all.map((x) => (x.id === m.id ? { ...x, translation: tr } : x)));
                 }}
               />
@@ -625,6 +720,8 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
             </div>
           )}
           {error && <p className="self-center text-xs text-destructive">{error}</p>}
+          {/* Kaydırma hedefi — yükseklik hesaplamadan hep dibe inmek için */}
+          <div ref={bottomRef} className="h-px shrink-0" aria-hidden="true" />
         </div>
       </div>
 
@@ -647,18 +744,23 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
               onSubmit={(e) => {
                 e.preventDefault();
                 const t = draft.trim();
-                if (!t || !awaiting) return;
+                if (!t) return;
                 setDraft("");
-                void handleUserText(t);
+                // Emma konuşuyorsa sözü kes; girdi kuyruğa girer ve akış cevabın
+                // beklendiği noktaya varınca işlenir.
+                if (awaiting) void handleUserText(t);
+                else bargeIn(t);
               }}
               className="mb-3 flex gap-2"
             >
               <Input
                 autoFocus value={draft} onChange={(e) => setDraft(e.target.value)}
-                placeholder={awaiting ? "Cevabını yaz…" : "Emma konuşuyor…"}
-                disabled={!awaiting}
+                placeholder={
+                  inputLocked ? "Emma yazıyor…" : awaiting ? "Cevabını yaz…" : "Yaz ve gönder — Emma susar"
+                }
+                disabled={inputLocked}
               />
-              <Button type="submit" disabled={!awaiting || !draft.trim()}>Gönder</Button>
+              <Button type="submit" disabled={inputLocked || !draft.trim()}>Gönder</Button>
             </form>
           )}
 
@@ -673,10 +775,13 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
 
             <button
               type="button"
-              disabled={!awaiting || micBusy}
+              disabled={inputLocked}
               onPointerDown={(e) => {
-                if (!awaiting || micBusy) return;
+                if (inputLocked) return;
                 e.currentTarget.setPointerCapture(e.pointerId);
+                // Emma konuşurken mikrofona basmak sözü keser: ses susar, akış
+                // cevap beklenen noktaya ilerler, kayıt bırakılınca oraya işlenir.
+                if (!awaiting) bargeIn();
                 voice.press();
               }}
               onPointerUp={() => void handleRelease()}
@@ -704,7 +809,9 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
             {status === "listening"
               ? "Dinliyor… bırakınca gönderilir"
               : status === "speaking"
-                ? "Emma konuşuyor…"
+                ? inputLocked
+                  ? "Emma konuşuyor…"
+                  : "Emma konuşuyor — araya girebilirsin"
                 : status === "transcribing"
                   ? "Yazıya döküyor…"
                   : awaiting
@@ -789,12 +896,14 @@ function PhaseRail({ phase }: { phase: Phase }) {
 }
 
 function TeacherBubble({
-  message, onReplay, onTranslate, replayDisabled,
+  message, onReplay, onTranslate, replayDisabled, canTranslate,
 }: {
   message: Message;
   onReplay: () => void;
   onTranslate: () => Promise<void>;
   replayDisabled: boolean;
+  /** Balonda İngilizce parça var mı — yoksa çeviri butonu anlamsız */
+  canTranslate: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   return (
@@ -819,19 +928,21 @@ function TeacherBubble({
         )}
       </div>
       <div className="mt-1 flex shrink-0 gap-1">
-        <button
-          onClick={async () => {
-            if (message.translation || busy) return;
-            setBusy(true);
-            await onTranslate();
-            setBusy(false);
-          }}
-          aria-label="Çevir"
-          className="flex size-7 items-center justify-center rounded-full bg-muted text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
-          disabled={busy}
-        >
-          文
-        </button>
+        {canTranslate && (
+          <button
+            onClick={async () => {
+              if (message.translation || busy) return;
+              setBusy(true);
+              await onTranslate();
+              setBusy(false);
+            }}
+            aria-label="İngilizce kısmı çevir"
+            className="flex size-7 items-center justify-center rounded-full bg-muted text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+            disabled={busy}
+          >
+            文
+          </button>
+        )}
         <button
           onClick={onReplay}
           aria-label="Tekrar dinle"
@@ -845,149 +956,3 @@ function TeacherBubble({
   );
 }
 
-// --- Ders sonrası isteğe bağlı mini test ------------------------------------
-
-function QuizSection({
-  quiz, title,
-}: { quiz: NonNullable<LessonContentV7["quiz"]>; title: string }) {
-  const [started, setStarted] = useState(false);
-  const [index, setIndex] = useState(0);
-  const done = index >= quiz.length;
-
-  if (!started) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-between gap-3 pt-4">
-          <div>
-            <p className="font-semibold">{title}</p>
-            <p className="text-xs text-muted-foreground">{quiz.length} soru · isteğe bağlı</p>
-          </div>
-          <Button variant="secondary" onClick={() => setStarted(true)}>Teste başla</Button>
-        </CardContent>
-      </Card>
-    );
-  }
-  if (done) {
-    return (
-      <Card>
-        <CardContent className="pt-4 text-center">
-          <p className="font-semibold text-emerald-500">✓ Test bitti — tebrikler!</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const q = quiz[index]!;
-  return (
-    <div className="grid gap-2">
-      <p className="px-1 text-xs text-muted-foreground">Soru {index + 1}/{quiz.length}</p>
-      {q.type === "mcq" ? (
-        <QuizMcq key={q.id} q={q} onNext={() => setIndex((i) => i + 1)} />
-      ) : (
-        <QuizFill key={q.id} q={q} onNext={() => setIndex((i) => i + 1)} />
-      )}
-      <button
-        onClick={() => setIndex((i) => i + 1)}
-        className="text-center text-xs text-muted-foreground hover:text-foreground"
-      >
-        Bu soruyu atla →
-      </button>
-    </div>
-  );
-}
-
-function QuizMcq({
-  q, onNext,
-}: {
-  q: { id: string; type: "mcq"; stem: string; options: string[]; correctIndex: number; feedbackPerOption?: string[] };
-  onNext: () => void;
-}) {
-  const [picked, setPicked] = useState<number | null>(null);
-  const correct = picked === q.correctIndex;
-  return (
-    <Card>
-      <CardContent className="grid gap-3 pt-4">
-        <p className="text-sm font-medium">{q.stem}</p>
-        <div className="grid gap-2">
-          {q.options.map((opt, i) => (
-            <button
-              key={i}
-              disabled={picked !== null && correct}
-              onClick={() => setPicked(i)}
-              className={`rounded-lg border px-3 py-2 text-left text-sm transition ${
-                picked === null
-                  ? "border-border hover:bg-muted"
-                  : i === q.correctIndex && picked === i
-                    ? "border-emerald-500 bg-emerald-500/20"
-                    : picked === i
-                      ? "border-red-500 bg-red-500/20"
-                      : "border-border opacity-60"
-              }`}
-            >
-              {opt}
-            </button>
-          ))}
-        </div>
-        {picked !== null && (
-          <p className={`text-xs ${correct ? "text-emerald-500" : "text-red-500"}`} dir="auto">
-            {correct ? "✓ Doğru!" : "✗ Tekrar dene"}
-            {q.feedbackPerOption?.[picked] ? ` — ${q.feedbackPerOption[picked]}` : ""}
-          </p>
-        )}
-        {correct && <Button onClick={onNext} className="w-full">Devam →</Button>}
-      </CardContent>
-    </Card>
-  );
-}
-
-function QuizFill({
-  q, onNext,
-}: { q: { id: string; type: "fill_blank"; text: string; answers: string[][] }; onNext: () => void }) {
-  const parts = q.text.split("___");
-  const [values, setValues] = useState<string[]>(() => new Array(q.answers.length).fill(""));
-  const [checked, setChecked] = useState(false);
-  const results = q.answers.map((accepted, i) =>
-    accepted.some((a) => a.trim().toLowerCase() === (values[i] ?? "").trim().toLowerCase()),
-  );
-  const allOk = results.every(Boolean);
-
-  return (
-    <Card>
-      <CardContent className="grid gap-3 pt-4">
-        <div className="flex flex-wrap items-center gap-1 text-sm leading-8">
-          {parts.map((part, i) => (
-            <span key={i} className="contents">
-              <span>{part}</span>
-              {i < q.answers.length && (
-                <Input
-                  value={values[i] ?? ""}
-                  onChange={(e) => {
-                    const next = [...values];
-                    next[i] = e.target.value;
-                    setValues(next);
-                    setChecked(false);
-                  }}
-                  className={`inline-flex h-8 w-32 ${
-                    checked ? (results[i] ? "border-emerald-500" : "border-red-500") : ""
-                  }`}
-                />
-              )}
-            </span>
-          ))}
-        </div>
-        {checked && !allOk && (
-          <p className="text-xs text-red-500">
-            İpucu: {q.answers.map((a) => a[0]).join(", ")}
-          </p>
-        )}
-        {checked && allOk ? (
-          <Button onClick={onNext} className="w-full">✓ Doğru — devam →</Button>
-        ) : (
-          <Button variant="secondary" onClick={() => setChecked(true)} className="w-full">
-            Kontrol et
-          </Button>
-        )}
-      </CardContent>
-    </Card>
-  );
-}

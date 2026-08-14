@@ -392,3 +392,4 @@ export type CurriculumResponse = z.infer<typeof curriculumResponseSchema>;
 
 export * from "./lessonFlow.js";
 export * from "./lessonLayers.js";
+export * from "./checkpoint.js";

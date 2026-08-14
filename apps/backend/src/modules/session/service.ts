@@ -418,13 +418,17 @@ function momentContext(
  * çıkarılmaz.
  */
 const attemptRule = [
-  `First decide: did the student ENGAGE WITH THE QUESTION at all?`,
-  `- isAttempt=true — they tried to answer, however badly. A right answer, a wrong answer, a`,
-  `  single letter, a guess, a half sentence, or GIVING UP all count. "I don't know", "no idea",`,
-  `  "bilmiyorum", "pass", "skip" are ATTEMPTS — surrendering is an answer and the student`,
-  `  deserves to be told the answer once their tries run out.`,
-  `- isAttempt=false — they did not engage with the question at all: a greeting ("hey", "hello"),`,
-  `  small talk, a remark about something else, or asking you to repeat.`,
+  `First decide: did the student TRY TO ANSWER, or were they talking about something else?`,
+  `- isAttempt=true — anything aimed at the question, however bad. A right answer, a wrong answer,`,
+  `  a single letter, a guess, a half sentence, GIBBERISH or random letters typed into the answer`,
+  `  box ("erf", "kloi", "asdf"), or GIVING UP. "I don't know", "no idea", "bilmiyorum", "pass",`,
+  `  "skip" are ATTEMPTS — surrendering is an answer and the student deserves to be told the`,
+  `  answer once their tries run out. Nonsense is still an ANSWER, just a poor one; it is not a`,
+  `  change of subject. (Whether it is RIGHT is a separate decision, made below.)`,
+  `- isAttempt=false — ONLY when they clearly engaged with something else instead of the question:`,
+  `  a greeting ("hey", "hello"), small talk, a remark about another topic, or asking you to`,
+  `  repeat or explain. If in doubt, choose true.`,
+  `Your words must match your flag: if you set isAttempt=false, do NOT say they tried to answer.`,
   `When isAttempt=false: acknowledge in at most one short clause, correct nothing, NEVER say which`,
   `answer is correct, and ASK THE QUESTION AGAIN. Stay on the lesson.`,
 ].join("\n");
@@ -526,13 +530,20 @@ async function judgeExercise(
       surrendered
         ? `IMPORTANT: the student has GIVEN UP on this question. That IS an attempt — isAttempt=true, ok=false.`
         : "",
+      // Tavana gelindiğinde "konu dışı girdiye cevabı söyleme" kuralı geçersizdir:
+      // beat kapanıyor, öğrenci cevabı öğrenmeden gitmemeli.
+      opts.lastExchange
+        ? `THIS BEAT IS ENDING after your reply, whatever they wrote. Even if isAttempt=false, give them the correct answer once, warmly, and do not ask again.`
+        : "",
       ``,
       `If it IS an attempt, decide "ok" in TWO STEPS.`,
       ``,
-      `STEP 1 — repair obvious typing slips before you judge anything. "Doo" is "Do", "schoool"`,
-      `is "school", "teh" is "the". Extra, missing or swapped letters in a word that is otherwise`,
-      `the right word are typing, never grammar. Casing, punctuation and contractions are also`,
-      `noise. Judge the REPAIRED answer; you may still show the correct spelling kindly.`,
+      `STEP 1 — repair obvious typing slips before you judge anything. If the letters are one or`,
+      `two characters away from a word that would fit, it is a typing slip: "Doo" is "Do",`,
+      `"schoool" is "school", "teh" is "the". Casing, punctuation and contractions are noise too.`,
+      `Judge the REPAIRED answer; you may still show the correct spelling kindly.`,
+      `Letters that resemble no fitting word at all ("erf", "kloi", "asdf") are NOT slips — repair`,
+      `nothing and judge them as the wrong answer they are.`,
       ``,
       `STEP 2 — judge the repaired answer against WHAT THIS LESSON TEACHES, not against the list.`,
       `The example answers above are what one author happened to write down; many blanks take`,
@@ -547,9 +558,12 @@ async function judgeExercise(
       `If ok=true: praise in ONE short sentence. If they misspelled, you may gently show the`,
       `correct written form in its own "en" run. Do NOT ask the question again.`,
       `If ok=false:`,
-      attempt === 0
-        ? `Reply in 1-2 short sentences: encourage, remind them of today's target, then ASK THE SAME QUESTION again. Do NOT reveal the answer yet.`
-        : `Reply in 1-2 short sentences: kindly give the correct answer in a full ENGLISH sentence (its own "en" run) and add one word of encouragement. Do NOT ask the question again.`,
+      // CANLI HATA: öğrenci üç kez anlamsız cevap yazdı, model üçünü de "deneme değil"
+      // saydı, tur tavanı dolunca ders doğru cevabı HİÇ söylemeden geçti. Beat'ten
+      // çıkarken cevap her hâlükârda verilir — bayrağı istemci hesaplar.
+      opts.lastExchange || attempt >= 1
+        ? `This is the LAST time you can respond on this question. Kindly GIVE the correct answer in a full ENGLISH sentence (its own "en" run), whatever they wrote, and add one word of encouragement. Do NOT ask the question again.`
+        : `Reply in 1-2 short sentences: encourage, remind them of today's target, then ASK THE SAME QUESTION again. Do NOT reveal the answer yet. Do not repeat your previous wording word for word — say it a different way.`,
       ``,
       `Reply with STRICT JSON: {"isAttempt": <true|false>, "ok": <true|false>, "reply": [{"lang":"l1"|"en","text":"..."}]}`,
       `Plain speech only: no markdown, no emojis, no stage directions.`,
@@ -608,14 +622,25 @@ async function judgeOpenResponse(
     system: [
       `You are Emma, a warm English teacher marking one spoken answer.`,
       `Task the student was given: "${beat.question}"`,
-      `They must use: ${beat.rubric.mustUse.join(" / ")}`,
+      `What the lesson is measuring: ${ctx.core.tutorNotes.target}`,
+      `Example phrases that show the target: ${beat.rubric.mustUse.join(" / ")}`,
       `Accept the answer when: ${beat.rubric.criteria}`,
       ``,
       judgeLanguageRule(ctx.tutorLanguage, ctx.l1Name),
       ``,
-      `Judge MEANING and STRUCTURE, not perfection. Accept it if they used the target correctly,`,
-      `even with small slips elsewhere or a different personal content than you expected.`,
-      `Reject only if the target structure is missing or used wrongly.`,
+      // CANLI HATA: bu satır "They must use: she works / he lives" diyordu ve model
+      // BİREBİR arıyordu. "my brother has a lot of work at home" 3. tekil -s'in ta
+      // kendisiydi, reddedildi; üstüne "'He works' demelisin" diye yanlış düzeltme
+      // verildi. Alıştırma judge'ında düzeltilen "kabul listesi = beyaz liste"
+      // hatasının aynısı.
+      `THE EXAMPLE PHRASES ARE EXAMPLES, NOT A CHECKLIST. The student does not have to`,
+      `repeat them. Judge whether their answer USES THE TARGET the lesson measures — with`,
+      `their own subject, verb and content. "My brother has a lot of work" shows third`,
+      `person -s just as well as "she works" does.`,
+      `Judge MEANING and STRUCTURE, not perfection. Accept it if they used the target`,
+      `correctly, even with small slips elsewhere (a wrong plural, a missing article) —`,
+      `you may mention such a slip kindly in your feedback, but it does NOT make ok false.`,
+      `Reject only when the target structure is absent or actually used wrongly.`,
       ``,
       // Pes etme deterministik biliniyor; o durumda modele SORULMAZ, tek yönerge verilir.
       // Yığılmış koşullu talimatlar çelişiyordu: model "konu dışı" dalını seçip görevi
@@ -644,7 +669,7 @@ async function judgeOpenResponse(
       .join("\n"),
     user: `The student said: "${text}"`,
     schema: openResponseVerdictSchema,
-    promptVersion: "open-response.v2",
+    promptVersion: "open-response.v3",
     userId,
     sessionId,
     maxTokens: 250,

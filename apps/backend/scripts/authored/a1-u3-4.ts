@@ -765,7 +765,7 @@ export const A1_U3_4: Authored[] = [
       q: "Describe what someone in your family does every day. Use he or she.",
       must: ["she works", "he lives"],
       criteria: "The answer uses -s on the verb after he or she.",
-      example: "My brother works in a restaurant. He starts at four and finishes very late.",
+      example: "My sister works in a restaurant. She works at night and finishes very late.",
     },
     success: "The learner uses the -s form correctly after he, she or it at least twice.",
     quiz: [
@@ -1007,7 +1007,9 @@ export const A1_U3_4: Authored[] = [
     ],
     open: {
       q: "Tell me what time you start and finish work or school, and when you have lunch.",
-      must: ["at six o'clock", "it's half past"],
+      // Kalıp istenir, belirli saat değil: "at six o'clock" öğrenciye altıda
+      // başlamayı dayatıyordu ve örnek cevap doğal olarak tutmuyordu.
+      must: ["o'clock", "half past"],
       criteria: "The answer gives times with the correct time words.",
       example: "I start at eight o'clock, I have lunch at half past twelve and I finish at five.",
     },

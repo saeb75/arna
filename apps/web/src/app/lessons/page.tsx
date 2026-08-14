@@ -191,6 +191,26 @@ export default function LessonsPage() {
                       </Link>
                     );
                   })}
+
+                  {/* ÜNİTE SONU TESTİ — ünitenin dersleri karışık sorulur.
+                      Dersin hemen ardından değil, günler sonra: aralıklı geri
+                      getirme + harmanlama. Kapı DEĞİL, ayna: hiçbir dersi kilitlemez. */}
+                  <Link
+                    href={`/checkpoint/${curriculum.level}/${unit.index}`}
+                    className="group rounded-xl border border-dashed border-primary/40 bg-primary/5 p-4 transition hover:border-primary"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="font-semibold group-hover:text-primary">
+                          Ünite {unit.index} testi
+                        </h3>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Bu ünitenin dersleri karışık — kendini sına
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-lg">🎯</span>
+                    </div>
+                  </Link>
                 </div>
               </section>
             );

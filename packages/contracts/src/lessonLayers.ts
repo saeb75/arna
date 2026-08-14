@@ -401,6 +401,8 @@ export const chromeBundleSchema = z.object({
     hint: z.string(),
     practiceHint: z.string(),
     quizTitle: z.string(),
+    /** Ünite sonu testinin madde yönergeleri — ana dilde */
+    checkpoint: z.object({ mcq: z.string(), gap: z.string(), order: z.string() }),
   }),
   /** Akış sinyalleri — eskiden lessonFlow/istemcide hardcode'du (50 dilde kırılırdı).
    *  Boş OLABİLİR: İngilizce çekirdek onaylar lessonFlow.ACK_EN'de her dilde geçerli. */
@@ -673,3 +675,65 @@ export function assembleLesson(input: AssembleInput): LessonContentV7 {
 }
 
 export { interpolate as interpolateTemplate };
+
+// ---------------------------------------------------------------------------
+// Şık permütasyonu
+// ---------------------------------------------------------------------------
+
+/**
+ * DOĞRU ŞIK HEP İLK SIRADA OLAMAZ. Ölçülen bir külliyatta bu bir sızıntıdır:
+ * yayınlanmış 208 MCQ'nun 201'i `correctIndex: 0` ile yazılmıştı (A1 156/156,
+ * A2 45/45, B1 172/199) — "hep ilkini seç" stratejisi %97 doğru ediyordu.
+ *
+ * Düzeltme İÇERİKTE değil SERVİS ANINDA yapılır: elle indeks dağıtmak yalnız
+ * elle yazılan seviyeleri kurtarır, üretilmiş B1'i ve gelecekteki her satırı
+ * açıkta bırakırdı.
+ *
+ * Permütasyon TOHUMLA DETERMİNİSTİKTİR, rastgele değil. Sebep: `resolveLesson`
+ * hem istemci içeriğini hem judge bağlamını besliyor ve bir oturumda birden çok
+ * kez çağrılıyor; rastgele karıştırma iki çağrıyı ayrıştırıp judge'a YANLIŞ
+ * şıkkı "doğru" diye söyletirdi. Aynı tohum → aynı dizilim, her yerde, durum
+ * tutmadan. (Checkpoint ayrı: orada `correctIndex` istemciye gidiyor ve test
+ * her istekte yeniden derleniyor, o yüzden orada rastgele karıştırma güvenli.)
+ */
+function seededRandom(seed: string): () => number {
+  // FNV-1a → mulberry32: kısa, bağımlılıksız, platformlar arası aynı sonuç.
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  let a = h >>> 0;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Şıkları `seed`e göre karıştırır ve doğru şıkkın YENİ indeksini döndürür.
+ * `order[i]` = yeni i. sıradaki şıkkın ESKİ indeksi — çağıran, şıkla aynı
+ * hizada duran yan dizileri (dil paketindeki `quizFeedback` gibi) bununla
+ * taşır. İki şıktan azsa dokunmaz.
+ */
+export function permuteChoices(
+  seed: string,
+  options: readonly string[],
+  correctIndex: number,
+): { options: string[]; correctIndex: number; order: number[] } {
+  if (options.length < 2) return { options: [...options], correctIndex, order: options.map((_, i) => i) };
+  const rand = seededRandom(seed);
+  const order = options.map((_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [order[i], order[j]] = [order[j]!, order[i]!];
+  }
+  return {
+    options: order.map((i) => options[i]!),
+    correctIndex: order.indexOf(correctIndex),
+    order,
+  };
+}

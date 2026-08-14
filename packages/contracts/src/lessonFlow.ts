@@ -169,16 +169,27 @@ export interface StudentInputContext {
 }
 
 /**
- * Bu, soru penceresinde İZİN VERİLEN SON tur mu?
+ * Bu, bu beat'te İZİN VERİLEN SON tur mu?
  *
- * İstemci LLM'i çağırmadan ÖNCE hesaplar ve sunucuya bayrak olarak geçer; hoca da
- * "başka sorun var mı?" demek yerine kapanış yapar. Yoksa Emma soru sorarken akış
- * ilerliyor ve ders kendi kendiyle çelişiyor (canlı görülen hâli buydu).
+ * İstemci LLM'i çağırmadan ÖNCE hesaplar ve sunucuya bayrak olarak geçer, çünkü
+ * hocanın son cümlesi farklı olmalı:
+ *  - soru penceresinde "başka sorun var mı?" demek yerine kapanış yapar (yoksa
+ *    Emma soru sorarken akış ilerliyor ve ders kendiyle çelişiyor),
+ *  - ALIŞTIRMADA doğru cevabı VERİR. Canlı hata: öğrenci üç kez anlamsız cevap
+ *    yazdı, model üçünü de "cevap denemesi değil" saydı (hak yanmadı), tur tavanı
+ *    dolunca ders doğru cevap hiç söylenmeden sonraki soruya geçti.
  */
-export function isLastQuestionExchange(beat: FlowBeat, exchanges: number): boolean {
-  if (beat.kind !== "ask" || beat.purpose !== "questions") return false;
+export function isLastExchange(beat: FlowBeat, exchanges: number): boolean {
+  const capped =
+    (beat.kind === "ask" && beat.purpose === "questions") ||
+    beat.kind === "exercise" ||
+    beat.kind === "open_response";
+  if (!capped) return false;
   return exchanges + 1 >= MAX_BEAT_EXCHANGES;
 }
+
+/** @deprecated `isLastExchange` kullanın — eski ad geriye uyum için duruyor. */
+export const isLastQuestionExchange = isLastExchange;
 
 /**
  * Öğrencinin sözü geldi — LLM'e gitmeden ÖNCEKİ karar.

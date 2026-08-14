@@ -9,7 +9,7 @@
  *   npx tsx scripts/publish-level.ts --level B1
  */
 import { writeFileSync } from "node:fs";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, like, not } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
 import { catalogLessons, lessonCores, lessonSceneSets } from "../src/db/schema.js";
 import type { LessonCore, SceneVariant } from "@arna/contracts";
@@ -24,7 +24,8 @@ const rows = await db
   .select({ cat: catalogLessons, core: lessonCores })
   .from(catalogLessons)
   .innerJoin(lessonCores, eq(lessonCores.catalogLessonId, catalogLessons.id))
-  .where(and(eq(catalogLessons.level, level), eq(catalogLessons.status, "active")))
+  // `zz-` test fixture'ları hariç — inceleme dökümü insan gözünün okuduğu yüzey
+  .where(and(eq(catalogLessons.level, level), eq(catalogLessons.status, "active"), not(like(catalogLessons.id, "zz-%"))))
   .orderBy(asc(catalogLessons.position));
 
 const lines: string[] = [

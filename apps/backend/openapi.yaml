@@ -141,6 +141,72 @@ paths:
               schema: { $ref: "#/components/schemas/Error" }
               example: { error: no_profile }
 
+  /v1/checkpoints/{level}/{unitIndex}:
+    parameters:
+      - { name: level, in: path, required: true, schema: { $ref: "#/components/schemas/CefrLevel" } }
+      - { name: unitIndex, in: path, required: true, schema: { type: integer, minimum: 1, maximum: 99 } }
+    get:
+      tags: [Curriculum]
+      summary: Ünite sonu testini derle
+      description: |
+        Ünitenin **yayınlı** çekirdeklerinden 8 madde derler (~3 mcq / 2 gap /
+        3 order). Test SAKLANMAZ: her istekte yeniden örneklenir, yani tekrar
+        denemede farklı sorular gelir. Ölçüm katmanı olduğu için LLM çağrısı
+        YOKTUR — değerlendirme istemcide `gradeCheckpointItem` ile yapılır ve
+        her maddenin tek doğru cevabı vardır.
+      responses:
+        "200":
+          description: Derlenmiş test
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Checkpoint" }
+        "400": { $ref: "#/components/responses/InvalidInput" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: Profil ya da ünite yok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { error: unit_not_found }
+        "409":
+          description: Ünitenin dersleri henüz yayınlanmadı — test derlenemez
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { error: not_enough_items }
+    post:
+      tags: [Curriculum]
+      summary: Test sonucunu kaydet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [score, total]
+              properties:
+                score: { type: integer, minimum: 0 }
+                total: { type: integer, minimum: 1 }
+                weakLessonIds:
+                  type: array
+                  description: "Yanlış cevaplanan maddelerin geldiği dersler — tekrar önerisi için"
+                  items: { type: string }
+                  maxItems: 20
+            example: { score: 6, total: 8, weakLessonIds: [a1-she-works-at-night] }
+      responses:
+        "200":
+          description: Kaydedildi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  saved: { type: boolean }
+                  id: { type: string, format: uuid }
+                  takenAt: { type: string, format: date-time }
+        "400": { $ref: "#/components/responses/InvalidInput" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
   /v1/lessons/{catalogLessonId}:
     get:
       tags: [Ders]
@@ -502,6 +568,71 @@ components:
       required: [error]
       properties:
         error: { type: string, description: Makine-okunur hata kodu }
+
+    Checkpoint:
+      type: object
+      description: |
+        Ünite sonu testi. `labels` yönergeleri chrome'dan ana dilde gelir; madde
+        metinleri İngilizcedir (ölçülen malzeme). Her madde tek doğru cevaplıdır.
+      required: [level, unitIndex, unitTitle, unitGoal, labels, items]
+      properties:
+        level: { $ref: "#/components/schemas/CefrLevel" }
+        unitIndex: { type: integer }
+        unitTitle: { type: string }
+        unitGoal: { type: string }
+        labels:
+          type: object
+          description: "Madde tipi yönergeleri, ana dilde"
+          required: [mcq, gap, order]
+          properties:
+            mcq: { type: string }
+            gap: { type: string }
+            order: { type: string }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/CheckpointItem" }
+
+    CheckpointItem:
+      oneOf:
+        - type: object
+          description: "Çoktan seçmeli — doğru cümleyi/cevabı seç"
+          required: [kind, id, lessonId, prompt, options, correctIndex]
+          properties:
+            kind: { type: string, enum: [mcq] }
+            id: { type: string }
+            lessonId: { type: string, description: "Yanlışta tekrar önerilecek ders" }
+            prompt: { type: string }
+            options: { type: array, items: { type: string } }
+            correctIndex: { type: integer }
+            optionFeedback:
+              type: array
+              description: "Dil paketinden şık açıklamaları (ana dilde, opsiyonel)"
+              items: { type: string }
+        - type: object
+          description: |
+            Boşluk doldurma — **kelime bankasıyla**. Serbest yazım yoktur;
+            çeldiriciler aynı ünitenin diğer derslerinin cevaplarından gelir ve
+            harf deseni doğruyla eşleşir (büyük harf ipucu vermez).
+          required: [kind, id, lessonId, prompt, options, correctIndex]
+          properties:
+            kind: { type: string, enum: [gap] }
+            id: { type: string }
+            lessonId: { type: string }
+            prompt: { type: string }
+            options: { type: array, items: { type: string } }
+            correctIndex: { type: integer }
+        - type: object
+          description: |
+            Cümle sıralama — 4-9 kelimelik **tek** cümle (iki cümle kutucuklara
+            bölününce tek doğru cevap kalmaz). `tokens` karıştırılmış dizidir.
+          required: [kind, id, lessonId, tokens, answer]
+          properties:
+            kind: { type: string, enum: [order] }
+            id: { type: string }
+            lessonId: { type: string }
+            tokens: { type: array, items: { type: string } }
+            answer: { type: array, items: { type: string } }
+      discriminator: { propertyName: kind }
 
     CefrLevel:
       type: string

@@ -121,7 +121,9 @@ export const A1_U5_8: Authored[] = [
     ],
     open: {
       q: "Your friend gives you a gift. Say what you think about it, without repeating the name of the gift.",
-      must: ["I like it"],
+      // Dersin hedefi NESNE ZAMİRİ; "I like it" fiili de dayatıyordu ve öğrenci
+      // "I love it" dediğinde örnek cevapla kalıp uyuşmuyordu.
+      must: ["it", "them"],
       criteria: "The answer uses an object pronoun instead of repeating the noun.",
       example: "Thank you so much, I love it! I will use it every day.",
     },
@@ -539,7 +541,7 @@ export const A1_U5_8: Authored[] = [
     ],
     open: {
       q: "You lost a bag. Describe it so someone can find it: size, colour and one more detail.",
-      must: ["it's very small", "really nice"],
+      must: ["it's a small", "it's really"],
       criteria: "The answer describes an object with describing words in the correct position.",
       example: "It's a small black bag. It's really old and there's a red label on it.",
     },
@@ -621,10 +623,13 @@ export const A1_U5_8: Authored[] = [
       say("what / she / look like / question", ["What does she look like?"]),
     ],
     open: {
-      q: "You are meeting someone at the station who has never seen you. Describe yourself.",
+      // Ders 3. ŞAHIS betimlemeyi öğretiyor ("what does she look like") ama soru
+      // birinci şahıs istiyordu — öğrenci ipucuna baktığında öğretilen yapıyı
+      // hiç görmüyordu. Soru da örnek de 3. şahsa çevrildi.
+      q: "A friend is meeting your sister at the station and has never seen her. Describe her.",
       must: ["he is tall", "she has long hair"],
       criteria: "The answer describes appearance with be and have correctly.",
-      example: "I'm quite tall and I have short dark hair. I'm wearing a blue coat.",
+      example: "My sister is tall and she has long hair. She usually wears a blue coat.",
     },
     success: "The learner describes people using be and have correctly at least twice.",
     quiz: [
@@ -1594,7 +1599,7 @@ export const A1_U5_8: Authored[] = [
       q: "Say three things you did yesterday, using -ed verbs.",
       must: ["I watched", "we visited"],
       criteria: "The answer uses regular past forms with time words.",
-      example: "I worked until six, then I cooked dinner and watched a film.",
+      example: "I worked until six, then I cooked dinner and I watched a film.",
     },
     success: "The learner describes past actions with -ed forms at least twice.",
     quiz: [

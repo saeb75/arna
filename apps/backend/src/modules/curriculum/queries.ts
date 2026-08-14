@@ -1,8 +1,18 @@
 import type { CefrLevel, CurriculumResponse, LessonKind, LessonStatus, Track } from "@arna/contracts";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, not, like, type Column } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { catalogLessons, catalogUnits, lessonProgress, userProfiles } from "../../db/schema.js";
 import { CURRICULUM } from "../../curriculum/index.js";
+
+/**
+ * Test fixture'ları PAYLAŞIMLI kataloğa yazıyor (`scripts/_fixture.ts`, `zz-` öneki)
+ * ve her koşuda satırı `status='active'`e geri çeviriyor — `seed-curriculum` onları
+ * emekliye ayırsa bile bir sonraki test koşusu geri diriltiyor. Bu yüzden guard
+ * YAZMA tarafında değil, SERVİS tarafında duruyor: canlıda bir kullanıcının ders
+ * listesinde "Test Unit / Test Lesson 1" görünmesi, seed'in ne zaman koştuğuna
+ * bağlı olamaz.
+ */
+const notFixture = (col: Column) => not(like(col, "zz-%"));
 
 export class CurriculumError extends Error {
   constructor(public code: "no_profile") {
@@ -46,13 +56,13 @@ export async function getCurriculumForUser(userId: string): Promise<CurriculumRe
         eq(lessonProgress.userId, userId),
       ),
     )
-    .where(and(eq(catalogLessons.level, level), eq(catalogLessons.status, "active")))
+    .where(and(eq(catalogLessons.level, level), eq(catalogLessons.status, "active"), notFixture(catalogLessons.id)))
     .orderBy(asc(catalogLessons.position));
 
   const unitRows = await db
     .select()
     .from(catalogUnits)
-    .where(and(eq(catalogUnits.level, level), eq(catalogUnits.status, "active")))
+    .where(and(eq(catalogUnits.level, level), eq(catalogUnits.status, "active"), notFixture(catalogUnits.id)))
     .orderBy(asc(catalogUnits.unitIndex));
 
   const byUnit = new Map<number, CurriculumResponse["units"][number]["lessons"]>();

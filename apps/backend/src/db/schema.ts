@@ -447,3 +447,27 @@ export const llmCalls = pgTable(
   },
   (t) => [index("llm_calls_user_idx").on(t.userId, t.createdAt)],
 );
+
+/**
+ * ÜNİTE SONU TESTİ SONUCU.
+ *
+ * Testin KENDİSİ saklanmaz — her girişte yayınlı çekirdeklerden yeniden derlenir
+ * (farklı örneklem). Burada yalnız sonuç durur: ilerleme ekranında "Ünite 3 · 7/8"
+ * göstermek ve zayıf konuları hatırlatmak için. Aynı üniteye tekrar girilebilir,
+ * her deneme yeni satırdır — ilerleme kapısı YOKTUR, bu bir ayna.
+ */
+export const unitCheckpoints = pgTable(
+  "unit_checkpoints",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    userId: uuid("user_id").notNull(),
+    level: text("level").notNull(),
+    unitIndex: integer("unit_index").notNull(),
+    score: integer("score").notNull(),
+    total: integer("total").notNull(),
+    /** Yanlış yapılan maddelerin ders kimlikleri — "tekrar et" bağlantıları için */
+    weakLessonIds: jsonb("weak_lesson_ids").notNull().default([]),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("unit_checkpoints_user_idx").on(t.userId, t.level, t.unitIndex)],
+);

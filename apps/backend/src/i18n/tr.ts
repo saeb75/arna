@@ -14,6 +14,7 @@ export const TR_CHROME: ChromeBundle = {
     hint: "Şöyle diyebilirsin:",
     practiceHint: "Şunları kullanmayı dene:",
     quizTitle: "Mini test",
+    checkpoint: { mcq: "Doğru olanı seç", gap: "Boşluğu doldur", order: "Kelimeleri sırala" },
   },
   ack: {
     yes: ["evet", "var", "sorum var", "tabii", "olur", "evet var"],

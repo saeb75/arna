@@ -18,6 +18,7 @@ export const EN_CHROME: ChromeBundle = {
     hint: "Example of what you can say:",
     practiceHint: "Try to use:",
     quizTitle: "Quick quiz",
+    checkpoint: { mcq: "Choose the correct one", gap: "Fill in the blank", order: "Put the words in order" },
   },
   // İngilizce onaylar lessonFlow.ACK_EN'de — çekirdek küme her dilde geçerli,
   // assembleLesson birleştirir (surrender ile aynı desen)

@@ -150,7 +150,25 @@ console.log("[Emma]   ", wrongForm.text);
 check("hedef yapı yanlışsa hoşgörü YOK", wrongForm.beatDone === false, `beatDone=${wrongForm.beatDone}`);
 check("yanlış biçim DENEME sayılıyor", wrongForm.isAttempt === true, `isAttempt=${wrongForm.isAttempt}`);
 
-// --- 5) Doğru cevap LLM'e hiç gitmiyor (istemcide eşleşir) ------------------
+// --- 5) ANLAMSIZ CEVAP + BEAT'TEN ÇIKARKEN CEVABIN VERİLMESİ ----------------
+// CANLI HATA (kullanıcı testi): öğrenci üç kez anlamsız harf yazdı ("erf", "kloi",
+// "qwa"); model üçünü de "cevap denemesi değil" saydı, deneme hakkı hiç yanmadı,
+// tur tavanı dolunca ders DOĞRU CEVABI HİÇ SÖYLEMEDEN sonraki soruya geçti.
+// Üstelik aynı cümle iki kez birebir tekrarlandı (aynı prompt dalı).
+console.log("\n=== ANLAMSIZ CEVAP ZİNCİRİ ===");
+const g1 = await chatTurn(testUserId, sessionId, "erf", { phase: "lecture", beatId: "b5", attempt: 0 });
+console.log("[öğrenci] erf");
+console.log("[Emma]   ", g1.text);
+check("anlamsız harf DENEME sayılıyor (hak yakar)", g1.isAttempt === true, `isAttempt=${g1.isAttempt}`);
+
+const g2 = await chatTurn(testUserId, sessionId, "kloi", { phase: "lecture", beatId: "b5", attempt: 1, lastExchange: true });
+console.log("\n[öğrenci] kloi  (beat'in SON turu)");
+console.log("[Emma]   ", g2.text);
+// NOT: bu alıştırmanın doğru cevabı zaten bir SORU cümlesi, o yüzden "?" ile
+// bitip bitmediğine bakılamaz. Ölçülen tek şey: cevap söylendi mi.
+check("son turda DOĞRU CEVAP veriliyor", g2.text.toLowerCase().includes("do you work here"), g2.text);
+
+// --- 6) Doğru cevap LLM'e hiç gitmiyor (istemcide eşleşir) ------------------
 const before = (await db.select().from(llmCalls).where(eq(llmCalls.userId, testUserId))).length;
 console.log(`\nLLM çağrısı sayısı: ${before} (doğru cevaplar istemcide eşleştiği için buraya hiç gelmez)`);
 

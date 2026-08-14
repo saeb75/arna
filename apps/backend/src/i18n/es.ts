@@ -10,6 +10,7 @@ export const ES_CHROME: ChromeBundle = {
     hint: "Puedes decir, por ejemplo:",
     practiceHint: "Intenta usar:",
     quizTitle: "Mini prueba",
+    checkpoint: { mcq: "Elige la opción correcta", gap: "Completa el espacio", order: "Ordena las palabras" },
   },
   ack: {
     yes: ["si", "sí", "claro", "por supuesto", "tengo una pregunta", "vale si"],

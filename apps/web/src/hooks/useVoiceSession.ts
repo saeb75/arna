@@ -62,6 +62,10 @@ export function useVoiceSession(sessionId: string | null) {
   const recStartRef = useRef(0);
   const micPromiseRef = useRef<Promise<void> | null>(null);
   const genRef = useRef(0);
+  /** O an çalan konuşmanın sonlandırıcısı — söz kesildiğinde zorla çağrılır. */
+  const currentFinishRef = useRef<((force?: boolean) => void) | null>(null);
+  /** Açıkken konuşmalar sessiz ve anında geçilir (söz kesme sonrası ileri sarma). */
+  const fastForwardRef = useRef(false);
 
   /** Tek audio elementi + RMS analiz zinciri (ilk kullanıcı jestinde kurulur). */
   const ensureAudio = useCallback((): HTMLAudioElement => {
@@ -117,6 +121,16 @@ export function useVoiceSession(sessionId: string | null) {
       const gen = genRef.current;
       const sid = sessionRef.current;
       if (!sid) return;
+
+      // İLERİ SARMA: kullanıcı söz kesti, akış kullanıcının konuşabileceği ilk
+      // noktaya kadar SESSİZ koşar. Balonlar `speak`'ten ÖNCE ekrana basıldığı
+      // için hiçbir içerik kaybolmaz; yalnız ses atlanır ve zincir hemen ilerler.
+      if (fastForwardRef.current) {
+        setStatus("idle");
+        onEnd?.();
+        return;
+      }
+
       try {
         const runs = typeof input === "string" ? [{ lang: "en" as const, text: input }] : input;
         const data = await api<{
@@ -128,15 +142,22 @@ export function useVoiceSession(sessionId: string | null) {
 
         let settled = false;
         let watchdog = 0;
-        const settle = () => {
+        /**
+         * `force`: söz kesme kaynaklı BİLİNÇLİ sonlandırma — akış ilerlemeli.
+         * Zorlanmadığında gen koruması aynen geçerli: geç gelen eski bir TTS
+         * yanıtı akışı ilerletemez (o koruma söz kesmeden bağımsız durmalı).
+         */
+        const finish = (force = false) => {
           if (settled) return;
           settled = true;
           window.clearTimeout(watchdog);
-          // Barge-in olduysa akışı ilerletme — kullanıcı sözü devraldı.
-          if (gen !== genRef.current) return;
+          if (currentFinishRef.current === finish) currentFinishRef.current = null;
+          if (!force && gen !== genRef.current) return;
           setStatus("idle");
           onEnd?.();
         };
+        const settle = () => finish();
+        currentFinishRef.current = finish;
 
         // TTS kapsamı dışı dil: hiç klip gelmemiş olabilir — metin ekranda kaldı,
         // akış yine ilerlemeli.
@@ -309,6 +330,27 @@ export function useVoiceSession(sessionId: string | null) {
     }
   }, []);
 
+  /**
+   * SÖZ KESME. Çalan sesi durdurur ve o konuşmanın `onEnd`'ini ZORLA çalıştırır.
+   *
+   * Eskiden yalnız `genRef` artırılıyordu; `settle()` gen uyuşmazlığında sessizce
+   * dönüyor ve `onEnd` hiç çalışmıyordu — akış `onEnd` zincirinde yaşadığı için
+   * ders KİLİTLENİYORDU. Bu yüzden konuşma sırasında girdi kapalıydı. Artık akış
+   * ilerler; `fastForward` ile de kullanıcının konuşabileceği ilk noktaya kadar
+   * kalan konuşmalar sessizce geçilir.
+   */
+  const skipSpeaking = useCallback(() => {
+    const audio = audioRef.current;
+    if (audio && !audio.paused) audio.pause();
+    setTimeline(null);
+    currentFinishRef.current?.(true);
+  }, []);
+
+  /** İleri sarma anahtarı — `awaiting` kurulunca istemci kapatır. */
+  const setFastForward = useCallback((on: boolean) => {
+    fastForwardRef.current = on;
+  }, []);
+
   /** Bas-konuş: basılınca (jest bağlamında senkron). */
   const press = useCallback(() => {
     if (pressedRef.current) return;
@@ -367,6 +409,7 @@ export function useVoiceSession(sessionId: string | null) {
     status, error, timeline,
     getTime, getLevel,
     unlock, speak, sendChat, translate, press, release,
+    skipSpeaking, setFastForward,
     setStatus, setError,
   };
 }
