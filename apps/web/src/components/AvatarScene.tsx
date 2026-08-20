@@ -67,6 +67,16 @@ type BoneState = {
   ofs: { x: number; y: number; z: number; py: number };
 };
 
+/** Sahnedeki ilk iskelet (tüm mesh'ler aynı iskeleti paylaşıyor) */
+function findSkeleton(scene: THREE.Object3D): THREE.Skeleton | null {
+  let found: THREE.Skeleton | null = null;
+  scene.traverse((o) => {
+    const sm = o as THREE.SkinnedMesh;
+    if (sm.isSkinnedMesh && !found) found = sm.skeleton;
+  });
+  return found;
+}
+
 // [kemik, çocuk kemik, hedef dünya yönü] — kolu bu yöne bakacak şekilde döndürür
 const REST_AIM: Array<[string, string, [number, number, number]]> = [
   ["LeftArm", "LeftForeArm", [0.22, -1, 0.02]],
@@ -81,6 +91,13 @@ const REST_AIM: Array<[string, string, [number, number, number]]> = [
  * böylece rig'in eksen düzeninden bağımsız çalışır ve tekrar uygulanabilir.
  */
 function applyRestPose(scene: THREE.Object3D) {
+  // Poz HER ZAMAN bind pozundan kurulur: aynı sahne nesnesi useGLTF
+  // önbelleğinden tekrar gelebilir, burulma adımı ise ölçüme dayanır — sıfırlama
+  // olmadan ikinci çağrı pozu kolun üstüne bindirirdi.
+  const skeleton = findSkeleton(scene);
+  if (skeleton) skeleton.pose();
+  scene.updateMatrixWorld(true);
+
   const from = new THREE.Vector3();
   const to = new THREE.Vector3();
   const bonePos = new THREE.Vector3();
@@ -111,52 +128,115 @@ function applyRestPose(scene: THREE.Object3D) {
   applyFlatArmRest(scene);
 }
 
+// Kolun duruşu: dikeyden gövdeden DIŞA açı + ÖNE salınım. Şişman karakterde
+// kol gövdeyi sıyırmasın diye açıklık geniş; önkol biraz daha dik ve daha önde
+// durur — aradaki fark dirsek kırılımını verir.
+const DEG = Math.PI / 180;
+const ARM_ABDUCT = 13 * DEG;
+const ARM_FORWARD = 7 * DEG;
+const FOREARM_ABDUCT = 6 * DEG;
+const FOREARM_FORWARD = 22 * DEG;
+// Sarkan kolda başparmak öne (hafif dışa) bakar → avuç uyluğa döner
+const THUMB_FORWARD_OUT = 0.35;
+
+/** Uzuv hedef yönü: dikeyden `abduct` kadar dışa, `forward` kadar öne */
+function limbDir(sx: number, abduct: number, forward: number): THREE.Vector3 {
+  return new THREE.Vector3(sx * Math.sin(abduct), -Math.cos(abduct), 0)
+    .applyAxisAngle(new THREE.Vector3(1, 0, 0), -forward)
+    .normalize();
+}
+
 /**
- * Auto-Rig Pro düz iskeleti (Fat Man T-pose): kol/önkol/el kemikleri ebeveyn
- * zinciri DEĞİL, aynı düğümün kardeşleri — REST_AIM'in ebeveynlik varsayımı
- * çalışmaz. FK elle kurulur: üst kol kendi pivotunda döndürülür, önkol ve el
- * aynı dönüşle pivot etrafında taşınıp döndürülür (parmaklar ile önkol twist
- * kemiği zaten çocuk — kendiliğinden izler). İkinci adımda hafif dirsek
- * kırılımı için el, önkol pivotu etrafında öne alınır.
+ * Kemik kümesini DÜNYA uzayında `pivot` etrafında döndürür; her kemik kendi
+ * ebeveyn uzayına geri yazılır. Zincirdeki kemikler aynı ebeveyne bağlı DEĞİL
+ * (bkz. applyFlatArmRest), o yüzden tek bir yerel eksende çalışmak yetmez.
+ */
+function rotateWorld(bones: THREE.Object3D[], pivot: THREE.Vector3, q: THREE.Quaternion) {
+  const scratch = new THREE.Vector3();
+  // Önce hepsinin dünya hâli okunur, sonra yazılır: kardeş kemiklerden birini
+  // yazmak diğerinin okumasını bozmasın.
+  const snapshot = bones.map((bone) => {
+    bone.updateWorldMatrix(true, false);
+    const pos = new THREE.Vector3();
+    const rot = new THREE.Quaternion();
+    bone.matrixWorld.decompose(pos, rot, scratch);
+    return { bone, pos, rot };
+  });
+  const parentInv = new THREE.Matrix4();
+  const parentQ = new THREE.Quaternion();
+  const world = new THREE.Vector3();
+  for (const { bone, pos, rot } of snapshot) {
+    if (!bone.parent) continue;
+    world.copy(pos).sub(pivot).applyQuaternion(q).add(pivot);
+    bone.parent.updateWorldMatrix(true, false);
+    bone.position.copy(world).applyMatrix4(parentInv.copy(bone.parent.matrixWorld).invert());
+    bone.parent.getWorldQuaternion(parentQ).invert();
+    bone.quaternion.copy(parentQ.multiply(q).multiply(rot));
+  }
+}
+
+const worldPos = (o: THREE.Object3D) => o.getWorldPosition(new THREE.Vector3());
+
+/** `root`–`tip` doğrusunu verilen dünya yönüne çevirir (zincirin tamamı taşınır) */
+function aimSegment(chain: THREE.Object3D[], root: THREE.Object3D, tip: THREE.Object3D, dir: THREE.Vector3) {
+  const pivot = worldPos(root);
+  const from = worldPos(tip).sub(pivot).normalize();
+  rotateWorld(chain, pivot, new THREE.Quaternion().setFromUnitVectors(from, dir));
+}
+
+/**
+ * Auto-Rig Pro düz iskeleti (Fat Man T-pose): kol kemikleri ebeveyn zinciri
+ * DEĞİL, aynı düğümün kardeşleri — REST_AIM'in ebeveynlik varsayımı çalışmaz,
+ * FK elle kurulur. Ama asıl tuzak isimlerde: üst kol İKİ kemiğe bölünmüş ve
+ * omuzdan dirseğe giden ÜST yarısı `c_arm_twist_offset` (ARP "controller"
+ * öneki, buna rağmen 250 ağırlık birimiyle deformasyona giriyor) ve o kemik
+ * gövdeye (`spine_03x`) bağlı. `arm_stretch` üst kolun ORTASI. Pivotu
+ * `arm_stretch` alan eski sürüm kolu üst kolun ortasından kırıyor, omuzdan
+ * ortaya kadar olan et T-pose'da yana uzanmış kalıyordu (deltoid yana açılmış
+ * bir levha gibi görünüyordu — kullanıcının bildirdiği hata).
+ *
+ * Zincir bu yüzden dört kemik: gerçek omuz eklemi = `c_arm_twist_offset`.
+ * Adımlar tamamen MUTLAK hedeflere nişan alır (göreli açı eklemez) → poz
+ * tekrar uygulanınca aynı sonucu verir. Bilerek ölçülen tek şey burulmadır:
+ * başparmağın yönü aynalamadan etkilenmez, avuç normali sağ/sol elde işaret
+ * değiştirip bir kolu 180° ters çeviriyordu.
  */
 function applyFlatArmRest(scene: THREE.Object3D) {
-  const q = new THREE.Quaternion();
-  const parentInv = new THREE.Quaternion();
-  const cur = new THREE.Vector3();
-  const target = new THREE.Vector3();
+  scene.updateMatrixWorld(true);
 
   for (const [side, sx] of [
     ["l", 1],
     ["r", -1],
   ] as const) {
-    const arm = scene.getObjectByName(`arm_stretch${side}`);
-    const forearm = scene.getObjectByName(`forearm_stretch${side}`);
+    const shoulder = scene.getObjectByName(`c_arm_twist_offset${side}`);
+    const upper = scene.getObjectByName(`arm_stretch${side}`);
+    const elbow = scene.getObjectByName(`forearm_stretch${side}`);
     const hand = scene.getObjectByName(`hand${side}`);
-    if (!arm || !forearm || !hand || !arm.parent) continue;
-    if (forearm.parent !== arm.parent || hand.parent !== arm.parent) continue;
+    if (!shoulder || !upper || !elbow || !hand) continue;
+    if (![shoulder, upper, elbow, hand].every((b) => b.parent)) continue;
+    // önkol twist kemiği ve parmaklar bu kemiklerin çocuğu — kendiliğinden izler
+    const arm = [shoulder, upper, elbow, hand];
 
+    // 1) Tüm kol gerçek omuz ekleminden aşağı
+    aimSegment(arm, shoulder, elbow, limbDir(sx, ARM_ABDUCT, ARM_FORWARD));
     scene.updateMatrixWorld(true);
-    arm.parent.getWorldQuaternion(parentInv).invert();
 
-    // 1) Tüm kol omuz pivotunda aşağı: hedef hafif dışa açık, yanda
-    target.set(sx * 0.22, -1, 0.02).applyQuaternion(parentInv).normalize();
-    cur.copy(forearm.position).sub(arm.position).normalize();
-    q.setFromUnitVectors(cur, target);
-    for (const b of [forearm, hand]) {
-      b.position.sub(arm.position).applyQuaternion(q).add(arm.position);
-      b.quaternion.premultiply(q);
+    // 2) Burulma: kol kendi ekseninde döndürülüp başparmak öne getirilir
+    const thumb = scene.getObjectByName(`c_thumb3${side}`) ?? scene.getObjectByName(`thumb1${side}`);
+    if (thumb) {
+      const axis = worldPos(elbow).sub(worldPos(shoulder)).normalize();
+      const have = worldPos(thumb).sub(worldPos(hand)).projectOnPlane(axis).normalize();
+      const want = new THREE.Vector3(sx * THUMB_FORWARD_OUT, 0, 1).projectOnPlane(axis).normalize();
+      let angle = Math.acos(THREE.MathUtils.clamp(have.dot(want), -1, 1));
+      if (new THREE.Vector3().crossVectors(have, want).dot(axis) < 0) angle = -angle;
+      rotateWorld(arm, worldPos(shoulder), new THREE.Quaternion().setFromAxisAngle(axis, angle));
+      scene.updateMatrixWorld(true);
     }
-    arm.quaternion.premultiply(q);
 
-    // 2) Hafif dirsek kırılımı: el önkol pivotunda biraz öne
-    target.set(sx * 0.08, -1, 0.18).applyQuaternion(parentInv).normalize();
-    cur.copy(hand.position).sub(forearm.position).normalize();
-    q.setFromUnitVectors(cur, target);
-    hand.position.sub(forearm.position).applyQuaternion(q).add(forearm.position);
-    hand.quaternion.premultiply(q);
-    forearm.quaternion.premultiply(q);
+    // 3) Önkol: daha dik ve daha önde → dirsek doğal kırılır
+    aimSegment([elbow, hand], elbow, hand, limbDir(sx, FOREARM_ABDUCT, FOREARM_FORWARD));
+    scene.updateMatrixWorld(true);
   }
-  scene.updateMatrixWorld(true);
 }
 
 const BONE_NAMES = ["Head", "Neck", "Spine", "Spine1", "Spine2", "Hips", "LeftShoulder", "RightShoulder"] as const;
