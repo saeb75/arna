@@ -19,7 +19,10 @@ import {
   isLastExchange,
   matchesAnswerSpec,
   normalizeUtterance,
+  triageAnswer,
   type AckKind,
+  type AnswerReview,
+  type AnswerReviewKind,
   type LessonContentV7,
   type RichText,
   type SessionScript,
@@ -50,6 +53,8 @@ interface Message {
   /** Madde madde anlatım balonu — her madde kendi parça dizisi */
   points?: RichText[];
   translation?: string;
+  /** `?` sheet'inin sonucu — balon başına BİR kez çekilir, sonra cache'lenir */
+  review?: AnswerReview;
 }
 
 let msgSeq = 0;
@@ -178,6 +183,8 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
   /** Yeni metin düştükten sonraki kısa kilit (bkz. INPUT_GRACE_MS) */
   const [inputGrace, setInputGrace] = useState(false);
   const [finishOpen, setFinishOpen] = useState(false);
+  /** Sheet'i açık olan kullanıcı balonu (null = kapalı) */
+  const [reviewFor, setReviewFor] = useState<string | null>(null);
 
   const voice = useVoiceSession(sessionId);
   const { status, error, timeline, getTime, getLevel } = voice;
@@ -262,6 +269,31 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
     });
     return () => cancelAnimationFrame(id);
   }, [messages, status]);
+
+  /**
+   * `?` ikonu → sheet. Sonuç balonda cache'lenir: ikinci tıklamada ağa çıkılmaz.
+   * Çağrı DOKUNUŞTA yapılır, önden değil — her mesaj için peşin hesaplamak
+   * maliyeti katlar ve o sheet'lerin çoğu hiç açılmaz.
+   *
+   * AKIŞA DOKUNMAZ: burada hiçbir faz, sayaç veya `awaiting` değişmez.
+   */
+  const openReview = useCallback(
+    async (messageId: string) => {
+      setReviewFor(messageId);
+      const idx = messages.findIndex((m) => m.id === messageId);
+      const msg = messages[idx];
+      if (!msg || msg.review) return; // cache
+
+      // Bağlam = hemen üstteki hoca mesajı. Cevap PARÇASI ("twenty five")
+      // tek başına incelenirse haksız yere hata damgası yer.
+      const prior = messages.slice(0, idx).reverse().find((m) => m.role === "teacher");
+      const result = await voice.review(msg.text, prior?.text);
+      if (result) {
+        setMessages((all) => all.map((x) => (x.id === messageId ? { ...x, review: result } : x)));
+      }
+    },
+    [messages, voice],
+  );
 
   const finishLesson = useCallback(async () => {
     setPhase("done");
@@ -695,9 +727,11 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
                 }}
               />
             ) : (
-              <div key={m.id} dir="auto" className="max-w-[80%] self-end rounded-2xl bg-primary px-4 py-2.5 text-primary-foreground">
-                {m.text}
-              </div>
+              <UserBubble
+                key={m.id}
+                message={m}
+                onReview={() => void openReview(m.id)}
+              />
             ),
           )}
           {status === "thinking" && (
@@ -835,11 +869,119 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ReviewSheet
+        message={messages.find((m) => m.id === reviewFor) ?? null}
+        onClose={() => setReviewFor(null)}
+      />
     </main>
   );
 }
 
 // ---------------------------------------------------------------------------
+
+/**
+ * Kullanıcı balonu + `?` incelemesi.
+ *
+ * `?` yalnız incelenecek bir şey varken çıkar: `triageAnswer` "too_short"
+ * derse ("...", tek harf) ikon hiç gösterilmez — açılıp boş bir sheet
+ * göstermek, hiç göstermemekten kötüdür.
+ */
+function UserBubble({ message, onReview }: { message: Message; onReview: () => void }) {
+  if (triageAnswer(message.text) === "too_short") {
+    return (
+      <div dir="auto" className="max-w-[80%] self-end rounded-2xl bg-primary px-4 py-2.5 text-primary-foreground">
+        {message.text}
+      </div>
+    );
+  }
+  return (
+    <div className="flex max-w-[85%] items-start gap-2 self-end">
+      <button
+        onClick={onReview}
+        aria-label="Bu cümleyi incele"
+        className="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground hover:text-foreground"
+      >
+        ?
+      </button>
+      <div dir="auto" className="rounded-2xl bg-primary px-4 py-2.5 text-primary-foreground">
+        {message.text}
+      </div>
+    </div>
+  );
+}
+
+/** Hüküm → rozet. Yeşil YALNIZ `correct` içindir: düzeltme taşıyan bir sonuca
+ *  yeşil tik koymak, iki durumu görsel olarak aynılaştırır ve geri bildirimi
+ *  anlamsızlaştırır. */
+const REVIEW_BADGE: Record<AnswerReviewKind, { icon: string; title: string; tone: string }> = {
+  correct: { icon: "✓", title: "Harika — cümlen doğru", tone: "bg-emerald-500/15 text-emerald-500" },
+  unnatural: { icon: "~", title: "Şöyle demek daha doğal", tone: "bg-amber-500/15 text-amber-500" },
+  error: { icon: "!", title: "Şöyle demek daha doğru", tone: "bg-orange-500/15 text-orange-500" },
+  other_language: { icon: "⇄", title: "İngilizce şöyle denir", tone: "bg-sky-500/15 text-sky-500" },
+  too_short: { icon: "·", title: "İncelenecek bir şey yok", tone: "bg-muted text-muted-foreground" },
+};
+
+/**
+ * Alttan açılan inceleme sheet'i.
+ *
+ * FAZ 2 NOTU: telaffuz bölümü `review.pronunciation` dolduğunda buraya EKLENİR;
+ * gövde bilerek iki bağımsız bloğa ayrıldı ki o faz bu bileşeni yeniden
+ * yazdırmasın. Faz 1'de alan daima null olduğu için blok hiç çizilmez.
+ */
+function ReviewSheet({ message, onClose }: { message: Message | null; onClose: () => void }) {
+  const review = message?.review;
+  const badge = review ? REVIEW_BADGE[review.kind] : null;
+
+  return (
+    <Dialog open={message !== null} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="top-auto bottom-0 max-w-lg translate-y-0 rounded-b-none rounded-t-2xl sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="sr-only">Cümle incelemesi</DialogTitle>
+          <DialogDescription className="sr-only">
+            Yazdığın cümlenin genel İngilizce açısından değerlendirmesi.
+          </DialogDescription>
+        </DialogHeader>
+
+        <p dir="auto" className="self-end rounded-2xl bg-primary px-4 py-2 text-primary-foreground">
+          {message?.text}
+        </p>
+
+        {!review ? (
+          <div className="grid gap-2 py-2">
+            <div className="h-4 w-2/5 animate-pulse rounded bg-muted" />
+            <div className="h-4 w-4/5 animate-pulse rounded bg-muted" />
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            <div className="flex items-start gap-3">
+              <span className={`flex size-7 shrink-0 items-center justify-center rounded-full text-sm font-bold ${badge!.tone}`}>
+                {badge!.icon}
+              </span>
+              <div className="grid gap-1">
+                <p className="font-semibold">{badge!.title}</p>
+                {review.corrected && (
+                  <p dir="auto" className="text-[15px]">
+                    <bdi className="font-semibold text-primary">{review.corrected}</bdi>
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {review.runs.length > 0 && (
+              <div className="grid gap-1 border-t pt-3">
+                <p className="text-xs font-semibold text-muted-foreground">Açıklama</p>
+                <p dir="auto" className="text-[15px] leading-relaxed">
+                  <RunsView runs={review.runs} />
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 /**
  * Dil etiketli parçaların tek çizim yolu. `en` parçalar vurgulanır ve <bdi> ile

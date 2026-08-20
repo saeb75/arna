@@ -13,6 +13,10 @@ const MODEL_BY_PURPOSE: Record<LLMPurpose, string> = {
   lesson_scenes: "gpt-4.1",
   lesson_locale: "gpt-4.1",
   chat: "gpt-4o-mini",
+  // Cevap incelemesi güncel nesil ucuz katmanda: iki zor işi birden yapıyor —
+  // "doğru ama native böyle demez" yargısı ve açıklamayı ÖĞRENCİNİN DİLİNDE yazmak.
+  // İkincisi ekibin göremeyeceği hata sınıfı, o yüzden 2024 modeline bırakılmadı.
+  answer_review: "gpt-5.6-luna",
   memory_extract: "gpt-4o-mini",
   embedding: "text-embedding-3-small",
 };
@@ -29,12 +33,17 @@ export const EMBEDDING_DIMENSIONS = 1536;
 const PRICING: Record<string, { in: number; out: number }> = {
   "gpt-4.1": { in: 2.0, out: 8.0 },
   "gpt-4o-mini": { in: 0.15, out: 0.6 },
+  "gpt-5.6-luna": { in: 0.2, out: 1.2 },
   "text-embedding-3-small": { in: 0.02, out: 0 },
 };
 
 function costUsd(model: string, inTok: number, outTok: number): string {
   const p = PRICING[model];
-  if (!p) return "0";
+  // Fiyatı bilinmeyen model maliyeti SESSİZCE 0 yazardı — bütçe takibi böyle körleşir.
+  if (!p) {
+    console.warn(`[llm] "${model}" PRICING'de yok — llm_calls.cost_usd 0 yazılıyor`);
+    return "0";
+  }
   return (((inTok * p.in) + (outTok * p.out)) / 1_000_000).toFixed(6);
 }
 

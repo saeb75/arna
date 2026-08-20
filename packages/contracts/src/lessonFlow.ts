@@ -61,7 +61,7 @@ export const ACK_EN = {
 } as const;
 
 /** Kısa söz normalizasyonu — dil-bağımsız (\p{L}; eski regex yalnız Latin+Türkçe tanıyordu) */
-function normalizeShort(text: string): string {
+export function normalizeShort(text: string): string {
   return text
     .toLowerCase()
     .replace(/[’‘]/g, "'")

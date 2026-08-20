@@ -7,6 +7,8 @@ export type LLMPurpose =
   | "lesson_scenes"
   | "lesson_locale"
   | "chat"
+  /** İstek-üzerine cevap incelemesi (ders ekranındaki `?` sheet'i) — akış kararı DEĞİL */
+  | "answer_review"
   | "memory_extract"
   | "embedding";
 

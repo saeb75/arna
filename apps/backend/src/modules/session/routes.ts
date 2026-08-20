@@ -1,7 +1,16 @@
 import { catalogLessonIdSchema } from "@arna/contracts";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { chatTurn, endSession, openSession, SessionError, stt, translate, tts } from "./service.js";
+import {
+  chatTurn,
+  endSession,
+  openSession,
+  reviewAnswer,
+  SessionError,
+  stt,
+  translate,
+  tts,
+} from "./service.js";
 
 const sessionParams = z.object({ sessionId: z.string().uuid() });
 const lessonParams = z.object({ catalogLessonId: catalogLessonIdSchema });
@@ -118,6 +127,38 @@ export default async function sessionRoutes(app: FastifyInstance) {
       }
       try {
         return await translate(request.userId, params.data.sessionId, body.data.text);
+      } catch (err) {
+        return sendError(reply, err);
+      }
+    },
+  );
+
+  app.post(
+    "/sessions/:sessionId/review",
+    {
+      preHandler: app.requireAuth,
+      config: { rateLimit: { max: 120, timeWindow: "1 hour", keyGenerator: byUser } },
+    },
+    async (request, reply) => {
+      const params = sessionParams.safeParse(request.params);
+      // `context` = bir önceki hoca mesajı; cevap PARÇASI ("twenty five") haksız
+      // yere hata sayılmasın diye prompt'a bağlam olarak girer, karar girdisi değildir.
+      const body = z
+        .object({
+          text: z.string().trim().min(1).max(900),
+          context: z.string().trim().max(900).optional(),
+        })
+        .safeParse(request.body);
+      if (!params.success || !body.success) {
+        return reply.code(400).send({ error: "invalid_input" });
+      }
+      try {
+        return await reviewAnswer(
+          request.userId,
+          params.data.sessionId,
+          body.data.text,
+          body.data.context,
+        );
       } catch (err) {
         return sendError(reply, err);
       }

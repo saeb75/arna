@@ -7,6 +7,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { triageAnswer, type AnswerReview } from "@arna/contracts";
 import { api } from "@/lib/api";
 import { alignmentToLine, type ElevenAlignment } from "@/lib/alignment";
 import { buildTimeline, type Timeline } from "@/lib/viseme";
@@ -280,6 +281,32 @@ export function useVoiceSession(sessionId: string | null) {
     }
   }, []);
 
+  /**
+   * Cevap incelemesi (balonun yanındaki `?`). Ders akışına DOKUNMAZ — sonucu
+   * yalnız sheet gösterir, hiçbir faz/sayaç bundan etkilenmez.
+   *
+   * `triageAnswer` burada da çağrılır: "yes" gibi ifadeler için ağa hiç çıkılmaz
+   * (sunucu aynı kapıyı ikinci kez tutuyor, bu yalnız gereksiz gidiş-dönüşü keser).
+   */
+  const review = useCallback(
+    async (text: string, context?: string): Promise<AnswerReview | null> => {
+      const triaged = triageAnswer(text);
+      if (triaged) return { kind: triaged, corrected: "", runs: [], pronunciation: null };
+
+      const sid = sessionRef.current;
+      if (!sid) return null;
+      try {
+        return await api<AnswerReview>(`/v1/sessions/${sid}/review`, {
+          method: "POST",
+          body: JSON.stringify({ text: text.slice(0, 900), context: context?.slice(0, 900) }),
+        });
+      } catch {
+        return null;
+      }
+    },
+    [],
+  );
+
   const stopAndProcess = useCallback(async (): Promise<string | null> => {
     const rec = recRef.current;
     recRef.current = null;
@@ -408,7 +435,7 @@ export function useVoiceSession(sessionId: string | null) {
   return {
     status, error, timeline,
     getTime, getLevel,
-    unlock, speak, sendChat, translate, press, release,
+    unlock, speak, sendChat, translate, review, press, release,
     skipSpeaking, setFastForward,
     setStatus, setError,
   };

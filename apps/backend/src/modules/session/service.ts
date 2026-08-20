@@ -1,9 +1,12 @@
 import {
+  answerReviewModelSchema,
   decideInWrapup,
   isSurrender,
   normalizeUtterance,
   PRACTICE_MIN_MAX_TURNS,
   PRACTICE_MIN_TURNS_BEFORE_GOAL,
+  triageAnswer,
+  type AnswerReview,
   type CoreBeat,
   type LessonContentV7,
   type LessonCore,
@@ -29,6 +32,7 @@ import {
 } from "../../db/schema.js";
 import { getChrome } from "../../i18n/index.js";
 import { completeJson, completeText } from "../llm/index.js";
+import { ANSWER_REVIEW_VERSION, buildAnswerReviewPrompt } from "../llm/prompts/answer-review.v1.js";
 import { openaiClient } from "../llm/openai.js";
 import { resolveLesson, LayerError } from "../lesson/layers.js";
 import { buildTutorPrompt } from "../lesson/tutorPrompt.js";
@@ -1091,6 +1095,82 @@ export async function translate(
   });
 
   return { text: translated.trim() };
+}
+
+// ---------------------------------------------------------------------------
+// Cevap incelemesi — ders ekranındaki `?` sheet'i
+// ---------------------------------------------------------------------------
+
+/**
+ * Öğrencinin TEK bir sözünü genel İngilizce açısından inceler.
+ *
+ * AKIŞA DOKUNMAZ: `sessions.state` yazmaz, `transcript_turns`'e yazmaz, hiçbir
+ * faz/beat sayacını kıpırdatmaz. İstek üzerine çalışan bir AYNADIR — ders içindeki
+ * ölçüm (`beatDone`) yalnız ÖĞRETİLEN yapıyı sıkı ölçmeye devam eder.
+ *
+ * İskelet `translate()` ile aynı: sahiplik → profil → dil → tek çağrı.
+ */
+export async function reviewAnswer(
+  userId: string,
+  sessionId: string,
+  text: string,
+  context?: string,
+): Promise<AnswerReview> {
+  const owned = await getOwnedSession(userId, sessionId);
+  if (!owned) throw new SessionError("not_found", "Oturum bulunamadı");
+
+  // Katman 1 — istemci de aynı fonksiyonu çağırıyor; bu, ona GÜVENMEYEN ikinci kapı.
+  const triaged = triageAnswer(text);
+  if (triaged) return { kind: triaged, corrected: "", runs: [], pronunciation: null };
+
+  const [profile] = await db
+    .select()
+    .from(userProfiles)
+    .where(eq(userProfiles.userId, userId))
+    .limit(1);
+
+  const nativeLanguage = nativeLanguageOf(profile);
+  // Oturum açılırken dondurulan mod tercih edilir; yoksa profil, o da yoksa native.
+  const tutorLanguage = owned.state?.tutorLanguage ?? profile?.tutorLanguage ?? "native";
+  const explainInNative = tutorLanguage === "native";
+
+  const { system, user } = buildAnswerReviewPrompt({
+    nativeLanguage,
+    explainInNative,
+    text,
+    context,
+  });
+
+  const verdict = await completeJson({
+    purpose: "answer_review",
+    system,
+    user,
+    schema: answerReviewModelSchema,
+    promptVersion: ANSWER_REVIEW_VERSION,
+    userId,
+    sessionId,
+    // gpt-5 ailesinde tavan `max_completion_tokens`'a çevrilir ve düşünme
+    // token'larını da kapsar — kısa tutulursa gövde boş dönebilir.
+    maxTokens: 800,
+  });
+
+  const corrected = verdict.corrected.trim();
+  const explanation = verdict.explanation.trim();
+
+  // DİL ETİKETİNİ SUNUCU KOYAR — modele bırakılsaydı İngilizce metin `l1`
+  // etiketiyle gelip TTS tarafından ana dil sesiyle okunabilirdi.
+  const runs: RichText = explanation
+    ? [{ lang: explainInNative ? "l1" : "en", text: explanation }]
+    : [];
+
+  return {
+    // `correct` hükmünde düzeltme gösterilmez: model yine de bir cümle
+    // yazdıysa ekranda "düzeltildim" izlenimi bırakmasın diye kodda kesilir.
+    kind: verdict.kind,
+    corrected: verdict.kind === "correct" ? "" : corrected,
+    runs,
+    pronunciation: null,
+  };
 }
 
 // ---------------------------------------------------------------------------
