@@ -839,7 +839,7 @@ export const A1_U5_8: Authored[] = [
   },
 
   {
-    id: "a1-my-favorite-place",
+    id: "a1-my-favourite-place",
     topic: "describing a place you like",
     objectives: ["Describe a room or place and what is in it.", "Say why I like a place."],
     goal: "Show someone around your favourite place.",

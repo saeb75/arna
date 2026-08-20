@@ -12,10 +12,11 @@
  * yazımda da lesson-core.v1'dir: sunum anahtarı üretim yöntemini değil FORMATI
  * tanımlar; başka bir değer yazsak servis satırı bulamazdı.
  */
-import { and, eq, inArray, notInArray, sql as raw } from "drizzle-orm";
+import { and, eq, inArray, ne, notInArray, sql as raw } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
 import { catalogLessons, lessonCores, lessonLocales, lessonSceneSets } from "../src/db/schema.js";
 import { lessonCoreSchema, sceneSetSchema } from "@arna/contracts";
+import { localeSourceHash } from "../src/modules/lesson/layers.js";
 import { lintCore, lintScenes } from "../src/modules/lesson/lintLayers.js";
 import { LESSON_CORE_VERSION } from "../src/modules/llm/prompts/lesson-core.v1.js";
 import { LESSON_SCENES_VERSION } from "../src/modules/llm/prompts/lesson-scenes.v1.js";
@@ -96,12 +97,24 @@ for (const a of authored) {
     continue;
   }
 
+  // BAYAT paketleri sil — HEPSİNİ değil. Eskiden koşulsuz siliniyordu ve bu bir
+  // footgun'dı: B1'de 6 ders değiştiği hâlde 136 paketin tamamı gitti, 124'ü
+  // boşuna yeniden üretildi (~$2.7). Artık `localeSourceHash` çekirdeği kapsıyor,
+  // yani içeriği değişmeyen paketin hash'i de değişmiyor — onu silmenin sebebi yok.
+  // Değişen çekirdeğin paketi zaten anahtarla eşleşmez; burada yalnız DB'de ölü
+  // satır kalmasın diye temizliyoruz.
   if (forcePublished) {
+    // Hash SAKLANAN satırdan hesaplanır, bellekteki nesneden DEĞİL. Sebebi canlıda
+    // görüldü: `lessonCoreSchema.parse()` bazı alanlara varsayılan uyguluyor, yani
+    // `buildCore` çıktısı ile DB'ye yazılan JSON birebir aynı olmayabiliyor. Servis
+    // yolu ve `warm-locales` saklanandan hesapladığı için burada da öyle olmalı —
+    // yoksa değişmemiş 37 dersin paketi "bayat" sanılıp boşuna siliniyor.
+    const fresh = localeSourceHash(cat.title, coreRow.core, { sceneFormat: SCENE_FORMAT, scenes: scenes.scenes });
     const gone = await db
       .delete(lessonLocales)
-      .where(eq(lessonLocales.coreId, coreRow.id))
+      .where(and(eq(lessonLocales.coreId, coreRow.id), ne(lessonLocales.sourceHash, fresh)))
       .returning({ language: lessonLocales.language });
-    if (gone.length) console.log(`  ♻ ${a.id}: ${gone.length} dil paketi silindi (${gone.map((g) => g.language).join(", ")})`);
+    if (gone.length) console.log(`  ♻ ${a.id}: ${gone.length} bayat paket silindi (${gone.map((g) => g.language).join(", ")})`);
   }
 
   await db
@@ -142,11 +155,11 @@ if (!dry) {
     );
   const deletable: string[] = [];
   for (const s of stale) {
-    const [{ n }] = await db
+    const [counted] = await db
       .select({ n: raw<number>`count(*)::int` })
       .from(lessonLocales)
       .where(eq(lessonLocales.coreId, s.id));
-    if ((n ?? 0) === 0) deletable.push(s.id);
+    if ((counted?.n ?? 0) === 0) deletable.push(s.id);
   }
   if (deletable.length) {
     await db.delete(lessonCores).where(inArray(lessonCores.id, deletable));

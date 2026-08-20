@@ -163,7 +163,7 @@ export const A2_U1_2: Authored[] = [
       criteria: "The answer asks questions with was or were plus an -ing verb, in the correct order.",
       example: "What were you doing at seven? Were you working? Where were you sitting?",
     },
-    success: "The learner asks at least two correct past continuous questions.",
+    success: "The learner asks three correct past continuous questions.",
     quiz: [
       qmcq("Which question is correct?", [
         "Were you sleeping when I rang?",

@@ -10,6 +10,10 @@
 import { buildCore, type Authored } from "./authored/dsl.js";
 import { LESSONS as A1 } from "./authored/a1.js";
 import { LESSONS as A2 } from "./authored/a2.js";
+import { LESSONS as B1 } from "./authored/b1.js";
+import { LESSONS as B2 } from "./authored/b2.js";
+import { LESSONS as C1 } from "./authored/c1.js";
+import { LESSONS as C2 } from "./authored/c2.js";
 import { lintCore } from "../src/modules/lesson/lintLayers.js";
 
 let fail = 0;
@@ -54,7 +58,7 @@ check("mustUse boşsa kural susar",
   rubricWarnings(withOpen({ ...base.open!, must: [], example: "Anything at all." })).length === 0);
 
 console.log("\n=== YAZILMIŞ KÜLLİYAT ===");
-for (const [name, lessons] of [["A1", A1], ["A2", A2]] as const) {
+for (const [name, lessons] of [["A1", A1], ["A2", A2], ["B1", B1], ["B2", B2], ["C1", C1], ["C2", C2]] as const) {
   const bad = lessons.filter((l) => l.open && rubricWarnings(l).length > 0);
   check(`${name}: her açık uçlu adım kalıbını gösteriyor`, bad.length === 0,
     bad.length ? bad.map((l) => l.id).join(", ") : `${lessons.filter((l) => l.open).length} ders`);

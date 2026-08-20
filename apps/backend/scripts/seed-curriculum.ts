@@ -12,7 +12,7 @@
  * `specHash` değişen satırları ayrıca raporlar: bu, o dersin üretilmiş içeriğinin
  * bayatladığı ve ilk açılışta yeniden üretileceği anlamına gelir.
  */
-import { and, eq, notInArray, sql as raw } from "drizzle-orm";
+import { and, eq, inArray, notInArray, sql as raw } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
 import { catalogLessons, catalogUnits, lessonContents } from "../src/db/schema.js";
 import { AUTHORED_LEVELS, CURRICULUM, lessonId, specHash, unitId } from "../src/curriculum/index.js";
@@ -87,14 +87,31 @@ for (const level of AUTHORED_LEVELS) {
   // --- Pozisyon park alanı ----------------------------------------------------
   // Araya ders EKLEMEK sonraki pozisyonları kaydırır; satır satır upsert ederken
   // (level, position) unique index'i geçici çakışma üretir (canlıda: yeni satır 27'yi
-  // isterken eski satır hâlâ 27'deydi). Önce seviyenin tüm satırları +10000 park
-  // alanına itilir; upsert'ler gerçek pozisyonları yazar. Emekli satırlar parkta
-  // kalır ve `< 10000` şartı sayesinde her koşuda yeniden itilip taşmaz.
+  // isterken eski satır hâlâ 27'deydi). Çözüm: upsert'lerden önce satırları geçici
+  // bir banda itmek.
+  //
+  // BAND HESAPLANIR, SABİT DEĞİL. Sabit +10000 canlıda çöktü: katalogdan çıkarılan
+  // satır 10024'te park hâlinde kalıyor, bir sonraki koşuda aktif 24. ders tam
+  // oraya park etmek istiyor ve unique index patlıyor. Band artık seviyedeki EN
+  // BÜYÜK pozisyonun 1000 üstünden başlıyor — hiçbir ünitede 1000 ders olmadığı
+  // için bu aralığın boş olduğu garanti. Upsert'ler gerçek pozisyonları yazınca
+  // band boşalır, yani pozisyonlar koşudan koşuya büyümez.
+  //
+  // SEVİYENİN TAMAMI PARKLANIR, yalnız spec'te olanlar değil. İkinci canlı çöküş
+  // buydu: bir dersin BAŞLIĞI değişince kimliği de değişiyor (slug başlıktan
+  // türer), eski satır emekliye ayrılıyor ama pozisyonunu BIRAKMIYOR — ve yeni
+  // satır tam o pozisyonu istiyor. Emekli satır da parklanınca sorun kalmıyor;
+  // spec satırları gerçek pozisyonlarını geri alır, emekliler bandda kalır.
   if (!DRY_RUN) {
+    const [{ top }] = await db
+      .select({ top: raw<number>`coalesce(max(${catalogLessons.position}), 0)::int` })
+      .from(catalogLessons)
+      .where(eq(catalogLessons.level, level));
+    const offset = (top ?? 0) + 1000;
     await db
       .update(catalogLessons)
-      .set({ position: raw`${catalogLessons.position} + 10000` })
-      .where(and(eq(catalogLessons.level, level), raw`${catalogLessons.position} < 10000`));
+      .set({ position: raw`${catalogLessons.position} + ${offset}` })
+      .where(eq(catalogLessons.level, level));
   }
 
   // --- Dersler --------------------------------------------------------------

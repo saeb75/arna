@@ -49,9 +49,39 @@ export class LayerError extends Error {
   }
 }
 
-/** Katalog başlığının parmak izi: başlık değişince YALNIZCA dil paketi yenilenir. */
-export function localeSourceHash(titleEn: string): string {
-  return createHash("sha256").update(titleEn).digest("hex").slice(0, 12);
+/**
+ * Dil paketinin ANLATTIĞI her şeyin parmak izi: başlık + çekirdek + sahne seti.
+ *
+ * Eskiden yalnızca başlığı hash'liyordu ve bu sessiz bir yalan üretiyordu: anahtar
+ * `coreId`yi de içeriyor ama çekirdek satırı YERİNDE güncelleniyor (aynı uuid),
+ * yani bir dersin iddiası düzeltilince paket eskisini anlatmaya devam ediyor ve
+ * bunu hiçbir şey fark etmiyordu. Tek emniyet `author-cores --replace-published`ın
+ * paketleri silmesiydi — ama hedefli bir yama script'i onu atlar.
+ *
+ * İçerik hash'e girince bayatlık YAPISAL olarak yakalanır: iddia değişir → hash
+ * değişir → anahtar tutmaz → paket ilk açılışta yeniden üretilir.
+ *
+ * Anahtar sırasından bağımsız olmalı: Postgres `jsonb` anahtarları yeniden
+ * sıralıyor, düz JSON.stringify her okumada farklı hash verirdi.
+ */
+export function localeSourceHash(titleEn: string, core?: unknown, sceneSet?: unknown): string {
+  const canonical = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(canonical);
+    if (v && typeof v === "object") {
+      return Object.fromEntries(
+        Object.keys(v as Record<string, unknown>)
+          .sort()
+          .map((k) => [k, canonical((v as Record<string, unknown>)[k])]),
+      );
+    }
+    return v;
+  };
+  return createHash("sha256")
+    .update(titleEn)
+    .update(JSON.stringify(canonical(core ?? null)))
+    .update(JSON.stringify(canonical(sceneSet ?? null)))
+    .digest("hex")
+    .slice(0, 12);
 }
 
 async function getCatalogLesson(catalogLessonId: string) {
@@ -130,6 +160,12 @@ export async function getOrGenerateLocale(opts: {
   titleEn: string;
   themeHint: string;
   userId: string | null;
+  /**
+   * Çağıran hesaplar, çünkü hash SAKLANAN çekirdekten türemeli — buradaki `core`
+   * şıkları karıştırılmış SUNUM kopyasıdır ve hash'i sunum sırasına bağlamak
+   * yeniden üretimi tetiklerdi.
+   */
+  sourceHash: string;
 }): Promise<{ localeId: string; pack: LessonLocalePack }> {
   const key: LocaleKey = {
     coreId: opts.coreId,
@@ -137,7 +173,7 @@ export async function getOrGenerateLocale(opts: {
     language: opts.language,
     l10nFormat: L10N_FORMAT,
     promptVersion: LESSON_LOCALE_VERSION,
-    sourceHash: localeSourceHash(opts.titleEn),
+    sourceHash: opts.sourceHash,
   };
 
   const [ready] = await db
@@ -317,6 +353,8 @@ export async function resolveLesson(userId: string, catalogLessonId: string): Pr
       titleEn: lesson.title,
       themeHint: lesson.themeHint,
       userId,
+      // SAKLANAN çekirdekten — permüte edilmiş sunum kopyasından değil
+      sourceHash: localeSourceHash(lesson.title, coreRow.core, sceneSet),
     });
     pack = res.pack;
     localeId = res.localeId;

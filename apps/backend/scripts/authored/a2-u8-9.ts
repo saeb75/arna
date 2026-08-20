@@ -61,12 +61,12 @@ export const A2_U8_9: Authored[] = [
       say("would you mind / wait / a moment", ["Would you mind waiting a moment?"]),
     ],
     open: {
-      q: "You need a stranger to move so you can pass. Ask politely and imagine both a yes and a no answer.",
+      q: "Ask a stranger to move so you can pass. Give one reply that accepts the request and one that refuses politely.",
       must: ["would you mind", "not at all", "of course not"],
-      criteria: "The answer makes a polite request with -ing and gives a correct reply.",
-      example: "Would you mind moving along a little? Not at all, I would say, or of course not.",
+      criteria: "The answer makes a polite request with an -ing form, accepts it naturally and also gives a polite refusal.",
+      example: "Would you mind moving along a little? An agreeing reply is: Not at all. A polite refusal is: Sorry, I'm afraid I need this seat.",
     },
-    success: "The learner makes a polite request and answers one correctly.",
+    success: "The learner makes a correct 'would you mind' request and produces both an agreeing reply and a polite refusal.",
     quiz: [
       qmcq("Which request is correct?", [
         "Would you mind opening the window?",
@@ -145,19 +145,19 @@ export const A2_U8_9: Authored[] = [
     ex: [
       fill("I'm ___ I can't make it on Friday. (afraid)", ["afraid"]),
       mcq("Which refusal is polite?", [
-        "I'm afraid I can't, I have something on.",
+        "I'm afraid I can't because I have something on.",
         "No, I do not want to.",
         "That is not interesting to me.",
       ], 0),
       say("maybe / next time", ["Maybe next time.", "Maybe next time!"]),
     ],
     open: {
-      q: "A friend invites you to dinner on a night you are busy. Refuse politely and suggest something else.",
+      q: "A friend invites you to dinner on a night you are busy. Refuse politely, give a short reason and suggest another day.",
       must: ["I'm afraid I can't", "sorry about that", "maybe next time"],
-      criteria: "The answer refuses politely, gives a short reason and keeps the door open.",
-      example: "I'm afraid I can't come on Thursday, I have a class. Sorry about that. Maybe next time?",
+      criteria: "The answer refuses politely, gives a short reason and suggests a clear alternative.",
+      example: "I'm afraid I can't come on Thursday because I have a class. Sorry about that. Could we do Friday instead, or maybe next time?",
     },
-    success: "The learner refuses politely and offers an alternative.",
+    success: "The learner refuses politely, gives a reason and suggests a clear alternative.",
     quiz: [
       qmcq("Which sentence is a polite refusal?", [
         "I'm afraid that won't work for me.",
@@ -214,7 +214,10 @@ export const A2_U8_9: Authored[] = [
           "With people you know, 'would you mind' still works and stays polite.",
           "Adding the reason first makes the favour easier to accept.",
         ],
-        ex: ["Would you mind taking a parcel for me?", "Would you mind keeping an eye on it?"],
+        ex: [
+          "I'll be away next week. Would you mind taking in any parcels for me?",
+          "I have a meeting this afternoon. Would you mind keeping an eye on the front desk?",
+        ],
       },
       {
         form: "could you please",
@@ -234,7 +237,7 @@ export const A2_U8_9: Authored[] = [
       },
     ],
     ex: [
-      fill("Would you mind ___ a parcel for me? (take)", ["taking"]),
+      fill("Would you mind ___ in any parcels for me? (take)", ["taking"]),
       mcq("Which reply agrees to a favour?", [
         "No problem, leave it with me.",
         "That is not my job.",
@@ -243,12 +246,12 @@ export const A2_U8_9: Authored[] = [
       say("could you please / water / the plants", ["Could you please water the plants?", "Could you water the plants, please?"]),
     ],
     open: {
-      q: "You will be away for a week. Ask a neighbour for two favours and imagine their reply.",
+      q: "You will be away for a week. Ask a neighbour for two favours and give a natural agreeing reply.",
       must: ["would you mind", "could you please", "no problem"],
-      criteria: "The answer asks for favours politely and includes a natural agreement.",
-      example: "Would you mind taking any parcels? Could you please water the plants too? No problem, they would say.",
+      criteria: "The answer makes two polite requests and includes a natural agreement.",
+      example: "Would you mind taking in any parcels for me? Could you please water the plants too? A natural reply is: No problem.",
     },
-    success: "The learner asks for at least two favours politely.",
+    success: "The learner makes two polite requests and responds to a favour naturally.",
     quiz: [
       qmcq("Which request is correct?", [
         "Would you mind keeping an eye on it?",
@@ -299,7 +302,7 @@ export const A2_U8_9: Authored[] = [
         form: "I'd like to book",
         claims: [
           "'I'd like to book' opens a booking politely and clearly.",
-          "Say what, for when and for how many people, in that order.",
+          "Include the room type, the dates and the number of guests; the exact order can vary.",
         ],
         ex: ["I'd like to book a double room.", "I'd like to book a table for four."],
       },
@@ -322,7 +325,7 @@ export const A2_U8_9: Authored[] = [
     ],
     ex: [
       fill("I'd like ___ book a room for two nights.", ["to"]),
-      mcq("Which question asks about the price?", [
+      mcq("Which question asks what the price includes?", [
         "Is breakfast included?",
         "Is breakfast at eight?",
         "Where is breakfast served?",
@@ -333,7 +336,7 @@ export const A2_U8_9: Authored[] = [
       q: "Call a small hotel. Book a room, give the dates and ask one question about what is included.",
       must: ["I'd like to book", "for two nights", "is breakfast included"],
       criteria: "The answer makes a clear booking with dates and asks what is included.",
-      example: "Hello, I'd like to book a single room for two nights, from Friday. Is breakfast included?",
+      example: "Hello, I'd like to book a single room for two nights, from Friday the twelfth to Sunday the fourteenth. Is breakfast included?",
     },
     success: "The learner makes a complete booking and asks at least one question.",
     quiz: [
@@ -488,8 +491,8 @@ export const A2_U8_9: Authored[] = [
       {
         form: "sorry, I didn't catch",
         claims: [
-          "'I didn't catch that' says you heard but did not understand.",
-          "Naming the part you missed gets a faster answer.",
+          "'I didn't catch that' means you did not hear or understand something clearly.",
+          "Naming the part you missed helps the speaker repeat the right information.",
         ],
         ex: ["Sorry, I didn't catch the last part.", "Sorry, I didn't catch your name."],
       },
@@ -512,12 +515,12 @@ export const A2_U8_9: Authored[] = [
       say("sorry / I / not catch / the last part", ["Sorry, I didn't catch the last part.", "Sorry, I did not catch the last part."]),
     ],
     open: {
-      q: "You are on a bad phone line and the other person speaks fast. Ask for help in three different ways.",
+      q: "You are on a bad phone line, the other person speaks quickly and uses a word you do not know. Ask for help in three different ways.",
       must: ["could you repeat that", "what does that mean", "sorry I didn't catch"],
-      criteria: "The answer asks for repetition, slower speech or the meaning of a word.",
-      example: "Sorry, I didn't catch that. Could you repeat that a bit more slowly? What does that word mean?",
+      criteria: "The answer asks for repetition, slower speech and the meaning of an unfamiliar word.",
+      example: "Sorry, I didn't catch that. Could you repeat it a bit more slowly? What does that word mean?",
     },
-    success: "The learner asks for clarification in at least two different ways.",
+    success: "The learner asks for clarification naturally in three different ways.",
     quiz: [
       qmcq("Which request is polite?", [
         "Could you say that again, please?",
@@ -603,12 +606,12 @@ export const A2_U8_9: Authored[] = [
       say("thanks / for / your help", ["Thanks for your help.", "Thanks for your help!"]),
     ],
     open: {
-      q: "An order you paid for two weeks ago never arrived. Make the call from opening to closing.",
+      q: "An order you paid for two weeks ago never arrived. Make the call from opening to closing and ask for a solution.",
       must: ["I'm calling about", "thanks for your help"],
-      criteria: "The answer opens the call with a reason, explains the problem and closes it politely.",
-      example: "Hello, I'm calling about an order from two weeks ago that never arrived. Thanks for your help.",
+      criteria: "The answer explains the reason for the call, describes the problem, requests a solution, confirms the outcome and closes politely.",
+      example: "I'm calling about an order that hasn't arrived. Could you send a replacement? Thursday works for me. Thanks for your help.",
     },
-    success: "The learner opens, explains and closes the call clearly.",
+    success: "The learner opens the call, explains the problem, requests and confirms a solution, and closes politely.",
     quiz: [
       qmcq("Which sentence opens a call?", [
         "I'm calling about my delivery.",
@@ -663,16 +666,16 @@ export const A2_U8_9: Authored[] = [
       {
         form: "someone who",
         claims: [
-          "'Who' introduces information about a person.",
-          "'That' can replace 'who' in everyday speech.",
+          "'Who' introduces defining information about a person.",
+          "In informal defining clauses, 'that' can often replace 'who'.",
         ],
         ex: ["The man who helped me was very kind.", "I need someone who speaks Spanish."],
       },
       {
         form: "something that",
         claims: [
-          "'Which' and 'that' introduce information about a thing.",
-          "'That' is the more common choice in speech and works for people and things alike.",
+          "'Which' and 'that' introduce defining information about a thing.",
+          "'That' is very common in everyday defining clauses.",
         ],
         ex: ["It's a thing that opens bottles.", "The bag which I lost was blue."],
       },
@@ -699,7 +702,7 @@ export const A2_U8_9: Authored[] = [
       q: "Describe an object without naming it, so I can guess what it is.",
       must: ["someone who", "something that", "people who live"],
       criteria: "The answer describes a person or thing using who, which or that correctly.",
-      example: "It's something that you use in the kitchen, and it's for people who live alone.",
+      example: "It's something that you use in the kitchen and that helps you open bottles.",
     },
     success: "The learner uses a relative clause correctly at least twice.",
     quiz: [
@@ -744,7 +747,7 @@ export const A2_U8_9: Authored[] = [
     topic: "myself, yourself and each other",
     objectives: [
       "Use reflexive pronouns when the action comes back to the person.",
-      "Use 'each other' when two people do the same thing to each other.",
+      "Use 'each other' when people perform an action mutually.",
     ],
     goal: "Talk about doing things alone and looking after yourself.",
     target: "reflexive pronouns and each other",
@@ -771,7 +774,7 @@ export const A2_U8_9: Authored[] = [
       {
         form: "each other",
         claims: [
-          "'Each other' is used when two people do the same thing to one another.",
+          "'Each other' is used when two or more people perform an action mutually.",
           "'They helped each other' is different from 'they helped themselves'.",
         ],
         ex: ["We help each other at work.", "They have known each other for years."],
@@ -848,15 +851,15 @@ export const A2_U8_9: Authored[] = [
         form: "another one",
         claims: [
           "'Another' means one more or a different one, and is written as one word.",
-          "It is used with singular things only.",
+          "At this level, it is usually used before a singular countable noun: another shop, another one.",
         ],
         ex: ["Could I have another one, please?", "Let's try another shop."],
       },
       {
         form: "the other",
         claims: [
-          "'The other' means the second of exactly two.",
-          "'The other one' avoids repeating the noun.",
+          "'The other one' means the remaining member of a pair.",
+          "It avoids repeating the noun when both options are already known.",
         ],
         ex: ["I prefer the other one.", "The other shoe is under the bed."],
       },
@@ -883,9 +886,9 @@ export const A2_U8_9: Authored[] = [
       q: "You are choosing between several items and the first is not right. Ask about the alternatives.",
       must: ["I prefer the other", "another one", "what about the others"],
       criteria: "The answer uses another, the other and the others with the right meanings.",
-      example: "This one is too small. Could I see another one? Actually, I prefer the other colour.",
+      example: "This one is too small. Could I see another one? I prefer the other colour. What about the others on that shelf?",
     },
-    success: "The learner uses at least two of these forms correctly.",
+    success: "The learner uses another, the other and the others correctly.",
     quiz: [
       qmcq("Which sentence is correct?", [
         "The other shoe is under the bed.",
@@ -903,7 +906,7 @@ export const A2_U8_9: Authored[] = [
       sc("Rosalie", "a shop assistant", "to show you the alternatives",
         "The first item you tried is not right.",
         "Ask about the alternatives.",
-        "That one is not quite right, is it? Shall I bring others?", "attentive"),
+        "That one is not quite right, is it? Shall I bring you some other options?", "attentive"),
       sc("Tobias", "a colleague reviewing options", "to work through a list of candidates",
         "Several options are on the table and one has been ruled out.",
         "Talk about the remaining options.",
@@ -925,22 +928,22 @@ export const A2_U8_9: Authored[] = [
 
   {
     id: "a2-i-used-to-play-football",
-    topic: "past habits that have stopped",
+    topic: "past habits and situations that have changed",
     objectives: [
-      "Use 'used to' for something you did regularly in the past.",
+      "Use 'used to' for repeated past actions and past situations that are no longer true.",
       "Form questions and negatives with 'use to'.",
     ],
-    goal: "Talk about how your life was different years ago.",
-    target: "used to for past habits",
+    goal: "Talk about past habits and situations that are different now.",
+    target: "used to for past habits and past states",
     correction: "Repeat the sentence with the correct form and let the learner say it again.",
-    summary: "You learned to talk about past habits with used to, and to drop the -d in questions.",
+    summary: "You learned to talk about past habits and past situations with used to, and to drop the -d in questions.",
     minutes: 7,
     points: [
       {
         form: "I used to",
         claims: [
-          "'Used to' plus the base verb describes a past habit that has stopped.",
-          "It says nothing about how many times, only that it was regular.",
+          "'Used to' plus the base verb describes a repeated past action or a past situation that is no longer true.",
+          "With actions it suggests something happened regularly; with state verbs it describes how things were before.",
         ],
         ex: ["I used to play football every Sunday.", "We used to live near the sea."],
       },
@@ -972,12 +975,12 @@ export const A2_U8_9: Authored[] = [
       say("we / used to / live / near the sea", ["We used to live near the sea."]),
     ],
     open: {
-      q: "Describe two things that were different in your life five years ago.",
+      q: "Describe two habits or situations that were different in your life five years ago.",
       must: ["I used to", "we used to", "didn't use to"],
-      criteria: "The answer describes past habits with 'used to' and contrasts them with now.",
-      example: "I used to walk to work every day, and we used to live in a much smaller flat.",
+      criteria: "The answer describes past habits or situations with 'used to' and contrasts them with the present.",
+      example: "I used to walk to work every day, and we used to live in a smaller flat. I didn't use to drive, but now I do.",
     },
-    success: "The learner describes at least two past habits with 'used to'.",
+    success: "The learner correctly describes at least two past habits or situations with 'used to'.",
     quiz: [
       qmcq("Which sentence is correct?", [
         "We used to walk, but now we drive.",
@@ -1042,7 +1045,7 @@ export const A2_U8_9: Authored[] = [
           "'You're right' and 'exactly' agree strongly.",
           "'That's a good point' agrees with part of what was said.",
         ],
-        ex: ["You're right, I hadn't thought of that.", "That's a good point."],
+        ex: ["You're right, I didn't think of that.", "That's a good point."],
       },
       {
         form: "I don't agree",
@@ -1060,7 +1063,10 @@ export const A2_U8_9: Authored[] = [
         "You are completely wrong.",
         "That is nonsense.",
       ], 0),
-      say("you / be / right / I / not think of that", ["You're right, I hadn't thought of that.", "You are right, I had not thought of that."]),
+      say("you / be / right / I / not think of that", [
+        "You're right, I didn't think of that.",
+        "You are right, I did not think of that.",
+      ]),
     ],
     open: {
       q: "I think working from home is always better than working in an office. Do you agree?",
@@ -1217,7 +1223,7 @@ export const A2_U8_9: Authored[] = [
           "'It's about' introduces the subject in one or two sentences.",
           "Keep it short: too much detail spoils the story.",
         ],
-        ex: ["It's about a family who move to another country.", "It's about how cities change."],
+        ex: ["It's about a family that moves to another country.", "It's about how cities change."],
       },
       {
         form: "you should watch",
@@ -1237,7 +1243,7 @@ export const A2_U8_9: Authored[] = [
       },
     ],
     ex: [
-      fill("It's ___ a family who move to another country.", ["about"]),
+      fill("It's ___ a family that moves to another country.", ["about"]),
       mcq("Which sentence recommends something?", [
         "You should watch it, it's excellent.",
         "I watched it last night.",
@@ -1248,8 +1254,8 @@ export const A2_U8_9: Authored[] = [
     open: {
       q: "Recommend a film or a book to me. Say what it is about and why I should try it.",
       must: ["you should watch", "it's about", "I'd recommend it"],
-      criteria: "The answer recommends something, says what it is about and gives a reason.",
-      example: "You should watch it this weekend. It's about two brothers who lose touch. I'd recommend it to anyone.",
+      criteria: "The answer recommends something, briefly explains the story or subject and gives a clear reason.",
+      example: "You should watch this film. It's about two brothers who lose touch. I'd recommend it because the story is simple but very moving.",
     },
     success: "The learner recommends something with a summary and a reason.",
     quiz: [
@@ -1269,7 +1275,7 @@ export const A2_U8_9: Authored[] = [
       sc("Lorenzo", "a friend with nothing to watch", "to get a recommendation from you",
         "A friend cannot decide what to watch tonight.",
         "Recommend something and explain why.",
-        "I have been scrolling for an hour. Just tell me what to watch?", "bored"),
+        "I have been scrolling for an hour. What should I watch?", "bored"),
       sc("Ndidi", "a colleague on a long commute", "to find something for the journey",
         "A colleague wants something to read on a long trip.",
         "Recommend something with reasons.",

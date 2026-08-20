@@ -71,7 +71,7 @@ export const C2: LevelSpec = {
       title: "The Weight of a Word",
       focus: "choosing between near-synonyms by what they suggest, not what they mean",
       themeHint: "describing the same behaviour generously and harshly",
-      targetPhrases: ["I'd hesitate to call", "closer to say", "that carries a suggestion"],
+      targetPhrases: ["I'd hesitate to call", "more accurate to say", "that carries a suggestion"],
     },
     {
       position: 2,
@@ -95,10 +95,10 @@ export const C2: LevelSpec = {
       position: 4,
       unitIndex: 1,
       kind: "phrases",
-      title: "Overstatement and Understatement",
-      focus: "dialling a description up or down for effect",
-      themeHint: "describing a disaster and a triumph in the same register",
-      targetPhrases: ["slightly inconvenient", "somewhat of an issue", "to put it mildly"],
+      title: "The Art of Understatement",
+      focus: "dialling a description down so the gap does the work",
+      themeHint: "describing a disaster in the calmest available register",
+      targetPhrases: ["slightly inconvenient", "something of an issue", "to put it mildly"],
     },
     {
       position: 5,
@@ -107,7 +107,7 @@ export const C2: LevelSpec = {
       title: "Describing a Person Precisely",
       focus: "building a portrait of someone that avoids cliche",
       themeHint: "describing a complicated person to someone who has never met them",
-      targetPhrases: ["what defines him is", "she comes across as", "I'd describe her as"],
+      targetPhrases: ["what defines them is", "they come across as", "I'd describe them as"],
     },
     {
       position: 6,
@@ -181,7 +181,7 @@ export const C2: LevelSpec = {
       title: "Persuading Without Pressure",
       focus: "influencing someone while leaving the decision genuinely theirs",
       themeHint: "advising a friend without pushing them",
-      targetPhrases: ["it's entirely your call", "worth considering perhaps", "no obligation at all"],
+      targetPhrases: ["it's entirely your call", "it might be worth considering", "no obligation at all"],
     },
     {
       position: 14,
@@ -219,7 +219,7 @@ export const C2: LevelSpec = {
       title: "Deadlock and Deadlines",
       focus: "moving a conversation that has stopped moving",
       themeHint: "a negotiation running out of time and patience",
-      targetPhrases: ["we're going round circles", "by end of week", "let's park that"],
+      targetPhrases: ["going round in circles", "by end of week", "let's park that"],
     },
     {
       position: 18,
@@ -488,7 +488,7 @@ export const C2: LevelSpec = {
       title: "Technology and Society",
       focus: "discussing a broad contemporary question from several angles",
       themeHint: "a conversation about a change nobody fully understands yet",
-      targetPhrases: ["it cuts both ways", "we're already seeing", "hard to put back"],
+      targetPhrases: ["it cuts both ways", "we're already seeing", "hard to reverse"],
     },
     {
       position: 47,

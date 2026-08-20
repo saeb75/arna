@@ -326,7 +326,7 @@ export const C1: LevelSpec = {
       title: "Correlation and Cause",
       focus: "being careful about claiming that one thing caused another",
       themeHint: "questioning a confident claim about why something happened",
-      targetPhrases: ["that doesn't prove", "it may simply reflect", "correlation isn't cause"],
+      targetPhrases: ["that doesn't prove", "it may simply reflect", "correlation isn't causation"],
     },
     {
       position: 29,

@@ -8,7 +8,7 @@ import {
   type LessonCore,
   type LessonLocalePack,
 } from "@arna/contracts";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, type Column, eq, like, not } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { catalogLessons, catalogUnits, lessonCores, lessonLocales } from "../../db/schema.js";
 import { getChrome } from "../../i18n/index.js";
@@ -32,6 +32,15 @@ export class CheckpointError extends Error {
 }
 
 /** Yayınlanmamış ders teste GİRMEZ — yayın kapısı burada da geçerli. */
+/**
+ * Test fixture'ları (`zz-%`) SERVİS EDİLMEZ. Bu koruma `curriculum/queries.ts`'e
+ * eklenmişti ama BURAYA eklenmemişti: rota `unitIndex`'i 99'a kadar kabul ediyor
+ * ve fixture birimi tam 99'da duruyor, yani fixture testi kimliği doğrulanmış bir
+ * kullanıcıya servis edilebiliyordu. Fixture'lar her koşuda kendilerini yeniden
+ * aktif ettiği için koruma SERVİS tarafında olmak zorunda.
+ */
+const notFixture = (col: Column) => not(like(col, "zz-%"));
+
 async function publishedCoresOfUnit(level: string, unitIndex: number) {
   const rows = await db
     .select({ lessonId: catalogLessons.id, kind: catalogLessons.kind, core: lessonCores.core, coreId: lessonCores.id })
@@ -49,6 +58,7 @@ async function publishedCoresOfUnit(level: string, unitIndex: number) {
         eq(catalogLessons.level, level),
         eq(catalogLessons.unitIndex, unitIndex),
         eq(catalogLessons.status, "active"),
+        notFixture(catalogLessons.id),
       ),
     )
     .orderBy(asc(catalogLessons.position));
@@ -264,6 +274,7 @@ export async function buildCheckpoint(opts: {
         eq(catalogUnits.level, opts.level),
         eq(catalogUnits.unitIndex, opts.unitIndex),
         eq(catalogUnits.status, "active"),
+        notFixture(catalogUnits.id),
       ),
     )
     .limit(1);

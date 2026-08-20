@@ -8,7 +8,7 @@
  * çalıştırılabilir. Uzun kuyruk diller lazy kalır; bu script yalnız lansman
  * dilleri için koşulur.
  */
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, like, not } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
 import { catalogLessons } from "../src/db/schema.js";
 import { normalizeNativeLanguage } from "../src/lib/language.js";
@@ -16,6 +16,7 @@ import {
   getOrGenerateLocale,
   getPublishedCore,
   getPublishedSceneSet,
+  localeSourceHash,
 } from "../src/modules/lesson/layers.js";
 import { SCENE_FORMAT, type LessonCore, type SceneSet } from "@arna/contracts";
 
@@ -32,10 +33,21 @@ if (!level || langs.length === 0) {
   process.exit(1);
 }
 
+// Test fixture'ları (`zz-%`) ISITILMAZ. Bu koruma önce liste sorgularına, sonra
+// checkpoint'e eklendi ama BURAYA eklenmemişti: C2 ısıtması 130 yerine 132 paket
+// üretti, ikisi bir fixture dersi içindi — yani paralı üretim. Fixture'lar her
+// test koşusunda kendilerini yeniden aktif ettiği için koruma tüketici tarafında
+// olmak zorunda.
 const lessons = await db
   .select()
   .from(catalogLessons)
-  .where(and(eq(catalogLessons.level, level), eq(catalogLessons.status, "active")))
+  .where(
+    and(
+      eq(catalogLessons.level, level),
+      eq(catalogLessons.status, "active"),
+      not(like(catalogLessons.id, "zz-%")),
+    ),
+  )
   .orderBy(asc(catalogLessons.position));
 
 interface Job { lessonId: string; lang: string }
@@ -64,16 +76,20 @@ async function worker() {
         skipped++;
         continue;
       }
+      const sceneSet = { sceneFormat: SCENE_FORMAT, scenes: sceneRow.scenes } as SceneSet;
       await getOrGenerateLocale({
         core: coreRow.core as LessonCore,
         coreId: coreRow.id,
-        sceneSet: { sceneFormat: SCENE_FORMAT, scenes: sceneRow.scenes } as SceneSet,
+        sceneSet,
         sceneSetId: sceneRow.id,
         language: job.lang,
         cefrLevel: lesson.level,
         titleEn: lesson.title,
         themeHint: lesson.themeHint,
         userId: null,
+        // resolveLesson ile AYNI formül olmalı, yoksa ısıtılan paketi canlı yol
+        // bulamaz ve ders açılışında yeniden üretir.
+        sourceHash: localeSourceHash(lesson.title, coreRow.core, sceneSet),
       });
       ok++;
       if (ok % 10 === 0) console.log(`  ${ok}/${jobs.length}…`);

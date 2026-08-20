@@ -114,7 +114,11 @@ export function lintCore(core: LessonCore, ctx: LayerLintContext): LintReport {
       // ve bu dolgu değildir — sezgi iddianın KENDİ düzyazısını hedefler.
       for (const c of p.claimsEn) {
         const prose = c.replace(/'[^']*'/g, "").replace(/"[^"]*"/g, "");
-        if (/\b(very useful|important|great|fun)\b/i.test(prose)) {
+        // Yalnızca kalıbın KENDİSİ hakkında "bu faydalıdır" diyen cümleler dolgudur.
+        // Kelimeyi geçtiği her yerde aramak canlı bir yanlış pozitif üretti:
+        // "use the passive when the doer is not important" — edilgen çatının TANIMI
+        // budur, dolgu değil. Desen artık özne+yüklem arıyor.
+        if (/\b(this|it|that|these|they)\s+(is|are|'s|'re)\s+(all\s+|very\s+|really\s+|quite\s+)*(useful|important|great|fun)\b/i.test(prose)) {
           warnings.push(`point "${p.id}": iddia dolgu gibi görünüyor — "${c.slice(0, 60)}"`);
         }
       }

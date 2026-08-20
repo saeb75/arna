@@ -22,17 +22,33 @@ export interface Pt {
 }
 
 // --- Alıştırmalar ------------------------------------------------------------
+/**
+ * `opts` yalnızca DIŞA AKTARIM için var (export-authored.ts): elle yazarken hiçbiri
+ * gerekmez, varsayılanlar doğrudur. LLM'e üretilmiş B1 bunlarsız kayıpsız geri
+ * yazılamıyordu — beat id'leri farklıydı (ve oturum script'i beat id'siyle
+ * anahtarlanıyor), bir derste `exampleAnswer` kabul listesinin ilk maddesi değildi,
+ * bir derste kısaltmalar kapalıydı.
+ */
+export interface ExOpts {
+  /** Beat kimliği; verilmezse ex1, ex2… üretilir */
+  id?: string;
+  /** İpucu olarak gösterilen cevap; verilmezse kabul listesinin ilki kullanılır */
+  example?: string;
+  /** say_sentence için kısaltma toleransı (varsayılan true) */
+  contractions?: boolean;
+}
+
 export type Ex =
-  | { t: "fill"; item: string; accept: string[] }
-  | { t: "mcq"; item: string; options: string[]; correct: number }
-  | { t: "say"; item: string; accept: string[] };
+  | ({ t: "fill"; item: string; accept: string[] } & ExOpts)
+  | ({ t: "mcq"; item: string; options: string[]; correct: number } & ExOpts)
+  | ({ t: "say"; item: string; accept: string[] } & ExOpts);
 
 /** Boşluk doldurma — item TAM BİR ___ içermeli; kabul listesi geniş tutulur */
-export const fill = (item: string, accept: string[]): Ex => ({ t: "fill", item, accept });
+export const fill = (item: string, accept: string[], o: ExOpts = {}): Ex => ({ t: "fill", item, accept, ...o });
 /** Çoktan seçmeli — çeldiriciler TARTIŞMASIZ yanlış olmalı (B1 incelemesi dersi) */
-export const mcq = (item: string, options: string[], correct: number): Ex => ({ t: "mcq", item, options, correct });
+export const mcq = (item: string, options: string[], correct: number, o: ExOpts = {}): Ex => ({ t: "mcq", item, options, correct, ...o });
 /** Cümle kurma — kabul listesi kısaltmalı/kısaltmasız tüm doğal biçimleri içerir */
-export const say = (item: string, accept: string[]): Ex => ({ t: "say", item, accept });
+export const say = (item: string, accept: string[], o: ExOpts = {}): Ex => ({ t: "say", item, accept, ...o });
 
 // --- Mini test ---------------------------------------------------------------
 export type Q =
@@ -82,6 +98,13 @@ export interface Authored {
   minutes?: number;
   minUses?: number;
   maxTurns?: number;
+  /**
+   * Hocanın o beat'te NE YAPACAĞI (cümlesi değil). Elle yazımda gerekmez —
+   * aşağıdaki kanonik metinler kullanılır. Yalnızca dışa aktarımda doldurulur:
+   * B1'in 55 dersinde derse özel, daha zengin intent metinleri vardı ve onları
+   * kanoniğe indirgemek gerçek bir içerik kaybı olurdu.
+   */
+  intents?: Partial<Record<"readiness" | "teach" | "questions" | "say", string>>;
   quiz?: Q[];
   /** SIRA: everyday, work, travel, academic, exam */
   scenes: [Sc, Sc, Sc, Sc, Sc];
@@ -95,12 +118,13 @@ const INTENTS = {
 } as const;
 
 export function buildCore(a: Authored, catalog: { focus: string; mustUse: string[] }): LessonCore {
+  const it = { ...INTENTS, ...a.intents };
   const beats: LessonCore["lecture"]["beats"] = [
-    { id: "b1", kind: "ask", purpose: "readiness", intent: INTENTS.readiness },
+    { id: "b1", kind: "ask", purpose: "readiness", intent: it.readiness },
     {
       id: "b2",
       kind: "teach",
-      introIntent: INTENTS.teach,
+      introIntent: it.teach,
       points: a.points.map((p, i) => ({
         id: `p${i + 1}`,
         formEn: p.form,
@@ -108,29 +132,30 @@ export function buildCore(a: Authored, catalog: { focus: string; mustUse: string
         examples: p.ex.map((textEn, j) => ({ id: `p${i + 1}e${j + 1}`, textEn })),
       })),
     },
-    { id: "b3", kind: "ask", purpose: "questions", intent: INTENTS.questions },
-    { id: "b4", kind: "say", intent: INTENTS.say },
+    { id: "b3", kind: "ask", purpose: "questions", intent: it.questions },
+    { id: "b4", kind: "say", intent: it.say },
   ];
 
   a.ex.forEach((e, i) => {
-    const id = `ex${i + 1}`;
+    const id = e.id ?? `ex${i + 1}`;
     if (e.t === "fill") {
       beats.push({
         id, kind: "exercise", format: "fill_blank", item: e.item,
         answerSpec: { kind: "token", accepted: e.accept },
-        exampleAnswer: e.accept[0]!,
+        exampleAnswer: e.example ?? e.accept[0]!,
       });
     } else if (e.t === "mcq") {
       beats.push({
         id, kind: "exercise", format: "mcq", item: e.item, options: e.options,
         answerSpec: { kind: "choice", correctIndex: e.correct },
+        // MCQ'da ipucu DOĞRU ŞIKKIN birebir kopyası olmalı (lint kuralı)
         exampleAnswer: e.options[e.correct]!,
       });
     } else {
       beats.push({
         id, kind: "exercise", format: "say_sentence", item: e.item,
-        answerSpec: { kind: "utterance", accepted: e.accept, contractionsAllowed: true },
-        exampleAnswer: e.accept[0]!,
+        answerSpec: { kind: "utterance", accepted: e.accept, contractionsAllowed: e.contractions ?? true },
+        exampleAnswer: e.example ?? e.accept[0]!,
       });
     }
   });

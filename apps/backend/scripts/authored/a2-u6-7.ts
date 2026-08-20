@@ -68,7 +68,7 @@ export const A2_U6_7: Authored[] = [
       q: "Look in your kitchen in your mind. Say what there is a lot of and what there is not much of.",
       must: ["how much", "how many", "not much"],
       criteria: "The answer uses much and many with the right kind of noun.",
-      example: "There's a lot of rice, but not much milk. How many eggs do we have? I think three.",
+      example: "There's a lot of rice, but not much milk. How much sugar is left, and how many eggs do we have?",
     },
     success: "The learner uses much and many correctly with the right nouns at least twice.",
     quiz: [
@@ -140,7 +140,7 @@ export const A2_U6_7: Authored[] = [
       {
         form: "quite a lot",
         claims: [
-          "'Quite a lot' sits between 'a little' and 'a lot' and works with both kinds.",
+          "'Quite a lot' means a fairly large amount and works with both countable and uncountable nouns.",
           "'A few' and 'a little' are positive; 'few' and 'little' alone sound negative.",
         ],
         ex: ["It costs quite a lot.", "We still have quite a lot of time."],
@@ -160,7 +160,7 @@ export const A2_U6_7: Authored[] = [
       q: "Think of something you are planning. Say how much time and how much money it needs.",
       must: ["just a few", "only a little", "quite a lot"],
       criteria: "The answer uses 'a few' and 'a little' with the right kind of noun.",
-      example: "It only takes just a few days to organise, but it costs quite a lot if you book late.",
+      example: "It takes just a few days to organise, but it costs quite a lot if you book late, and I have only a little money.",
     },
     success: "The learner uses 'a few' and 'a little' correctly at least twice.",
     quiz: [
@@ -217,7 +217,7 @@ export const A2_U6_7: Authored[] = [
         form: "it's too small",
         claims: [
           "'Too' comes before the describing word and means more than you want.",
-          "'Too' is always negative: 'too big' is a problem, not a compliment.",
+          "When 'too' means more than wanted or suitable, it describes a problem: too big, too noisy.",
         ],
         ex: ["This jacket is too small for me.", "The room was too noisy to work in."],
       },
@@ -252,7 +252,7 @@ export const A2_U6_7: Authored[] = [
       q: "Think of something you decided not to buy or keep. Explain why it did not work for you.",
       must: ["it's too small", "not big enough", "too expensive"],
       criteria: "The answer explains a problem using 'too' or 'enough' in the correct position.",
-      example: "I liked the flat but it's too small for us, and the kitchen isn't big enough for a table.",
+      example: "I liked the flat, but it's too small for us. The kitchen isn't big enough for a table, and the rent is too expensive.",
     },
     success: "The learner uses 'too' and 'enough' in the correct positions at least twice.",
     quiz: [
@@ -294,13 +294,16 @@ export const A2_U6_7: Authored[] = [
 
   {
     id: "a2-how-long-how-far",
-    topic: "asking about time, distance and size",
+    topic: "asking about time and distance",
     objectives: [
       "Ask how long a journey takes and how far it is.",
       "Give approximate answers.",
     ],
     goal: "Check the practical details of a journey before you set off.",
-    target: "questions about duration, distance and size",
+    // Katalog `focus`u "size"ı da anıyor ama `targetPhrases` üçü de süre/mesafe —
+    // ölçülen şey bu, o yüzden hedef de onu söylüyor. Boyut öğretiliyor (p2'de
+    // "how big"), sadece ölçüme girmiyor.
+    target: "questions about duration and distance",
     correction: "Model the question in its natural form and let the learner ask it again.",
     summary: "You learned to ask about time, distance and size, and to answer approximately.",
     minutes: 6,
@@ -316,7 +319,7 @@ export const A2_U6_7: Authored[] = [
       {
         form: "how far is",
         claims: [
-          "'How far' asks about distance and is answered in kilometres or minutes.",
+          "'How far' asks about distance and is usually answered in metres, kilometres or miles.",
           "'How big' and 'how deep' follow the same pattern.",
         ],
         ex: ["How far is the station from here?", "How big is the room?"],
@@ -340,10 +343,10 @@ export const A2_U6_7: Authored[] = [
       say("it / be / about ten kilometres", ["It's about ten kilometres.", "It is about ten kilometres."]),
     ],
     open: {
-      q: "You are planning a journey to a place you know. Ask three practical questions about it.",
+      q: "You are planning a journey with a friend. Ask about the duration and distance, then give one approximate answer.",
       must: ["how long does it", "how far is", "about ten kilometres"],
-      criteria: "The answer asks about duration, distance or size using the right question word.",
-      example: "How long does it take by train? How far is the hotel from the station? Is it about ten kilometres?",
+      criteria: "The answer asks correctly about duration and distance and includes an approximate answer.",
+      example: "How long does it take by train? How far is the hotel from the station? It's about ten kilometres.",
     },
     success: "The learner asks at least two correct practical questions.",
     quiz: [
@@ -393,7 +396,7 @@ export const A2_U6_7: Authored[] = [
     goal: "Say what there is and is not, without naming it exactly.",
     target: "compounds with some-, any- and no-",
     correction: "Repeat the sentence with the correct compound and let the learner say it again.",
-    summary: "You learned when to use something, anything and nothing, and their -body and -where forms.",
+    summary: "You learned when to use something, anything and nothing, with a first look at related forms such as somebody and somewhere.",
     minutes: 7,
     points: [
       {
@@ -432,10 +435,10 @@ export const A2_U6_7: Authored[] = [
       say("somebody / leave / a bag / here", ["Somebody left a bag here.", "Someone left a bag here."]),
     ],
     open: {
-      q: "You open an almost empty fridge. Say what there is, what there isn't, and what you need.",
+      q: "You open an almost empty fridge with a friend. Say what is there, what is missing and ask whether there is anything else.",
       must: ["something to eat", "anything else", "nothing special"],
       criteria: "The answer uses something, anything and nothing correctly with a single negative.",
-      example: "There's nothing special in the fridge, just some eggs. I need something to eat before work.",
+      example: "There's nothing special in the fridge. I need something to eat. Is there anything else in the cupboard?",
     },
     success: "The learner uses these compound words correctly at least twice.",
     quiz: [
@@ -602,7 +605,7 @@ export const A2_U6_7: Authored[] = [
           "'That's enough' closes a decision politely.",
           "'That should do it' means the same thing in a softer way.",
         ],
-        ex: ["Two pairs is enough.", "That's enough for four days."],
+        ex: ["Two pairs are enough.", "That's enough for four days."],
       },
     ],
     ex: [
@@ -612,7 +615,10 @@ export const A2_U6_7: Authored[] = [
         "We took an umbrella.",
         "The umbrella is here.",
       ], 0),
-      say("two pairs / be / enough", ["Two pairs is enough.", "Two pairs are enough."]),
+      // YALNIZ çoğul: "Two pairs is enough" konuşmada duyulur ama standart değil,
+      // A2'de öğretilecek biçim bu değil. Öğrenci yine de "is" derse deterministik
+      // eşleşme kaçırır ve girdi judge'a gider — hoşgörü orada, listede değil.
+      say("two pairs / be / enough", ["Two pairs are enough."]),
     ],
     open: {
       q: "You are packing one small suitcase for four days with a friend. Say what to take and what to leave.",
@@ -711,7 +717,7 @@ export const A2_U6_7: Authored[] = [
       q: "Tell me about a decision you had to make quickly. Give the reason and the result.",
       must: ["because I was", "so I decided", "that's why"],
       criteria: "The answer joins a reason and a result correctly with because or so.",
-      example: "The last bus had gone, so I decided to walk home. That's why I arrived so late.",
+      example: "I missed the last bus because I was late, so I decided to walk home. That's why I arrived after midnight.",
     },
     success: "The learner joins reason and result correctly at least twice.",
     quiz: [
@@ -786,7 +792,7 @@ export const A2_U6_7: Authored[] = [
           "'If you want' and 'if you like' soften an offer.",
           "'Unless' means the same as 'if not'.",
         ],
-        ex: ["I'll book it, if you want.", "We'll go ahead unless it snows."],
+        ex: ["I'll book it if you want.", "We'll go ahead unless it snows."],
       },
     ],
     ex: [
@@ -803,7 +809,7 @@ export const A2_U6_7: Authored[] = [
       q: "You are planning an outdoor event next week. Say what you will do if the weather is bad.",
       must: ["if it rains", "I'll call you", "if you want"],
       criteria: "The answer uses the present after 'if' and will in the other half of the sentence.",
-      example: "If it rains, we'll move everything indoors, and I'll call you the evening before.",
+      example: "If it rains, we'll move everything indoors. I'll call you the evening before, and I'll book an indoor room if you want.",
     },
     success: "The learner produces at least two correct if-sentences about the future.",
     quiz: [
@@ -867,7 +873,7 @@ export const A2_U6_7: Authored[] = [
       {
         form: "when it gets",
         claims: [
-          "'When' says the situation certainly happens; 'if' leaves it open.",
+          "'When' presents the result as regular or certain; 'if' presents it as a condition.",
           "For general truths the two are often interchangeable.",
         ],
         ex: ["When it gets cold, the pipes freeze.", "When you press start, it beeps."],
@@ -876,7 +882,7 @@ export const A2_U6_7: Authored[] = [
         form: "it always happens",
         claims: [
           "Words like always, usually and never fit this pattern naturally.",
-          "They sit before the main verb.",
+          "They usually come before most main verbs but after the verb 'be'.",
         ],
         ex: ["It always happens at the same time.", "The light usually comes on first."],
       },
@@ -895,7 +901,7 @@ export const A2_U6_7: Authored[] = [
       q: "Explain how something you use every day works. Use two steps that are always true.",
       must: ["if you heat", "when it gets", "it always happens"],
       criteria: "The answer describes a general truth with the present tense in both halves.",
-      example: "When it gets dark, the light comes on by itself. If you press the switch, it always happens faster.",
+      example: "If you heat the room, it gets warmer. When it gets dark, the light comes on automatically. It always happens at the same time.",
     },
     success: "The learner produces at least two correct general-truth sentences.",
     quiz: [
@@ -945,7 +951,7 @@ export const A2_U6_7: Authored[] = [
     goal: "Coordinate plans that depend on when things happen.",
     target: "as soon as, when, before and until with future meaning",
     correction: "Repeat the sentence with the present tense after the time word and let the learner try again.",
-    summary: "You learned to use the present tense after as soon as, when, before and until.",
+    summary: "You learned to use the present tense after as soon as, when, before and until when talking about the future.",
     minutes: 7,
     points: [
       {
@@ -960,7 +966,7 @@ export const A2_U6_7: Authored[] = [
         form: "when I get home",
         claims: [
           "'When' works the same way and never takes 'will' in this pattern.",
-          "The other half of the sentence does take will.",
+          "The other half often uses 'will', but it can also be an instruction: 'Call me when you get home.'",
         ],
         ex: ["I'll do it when I get home.", "When the meeting finishes, I'll send the notes."],
       },
@@ -984,10 +990,10 @@ export const A2_U6_7: Authored[] = [
       say("I / finish / it / before I leave", ["I'll finish it before I leave.", "I will finish it before I leave."]),
     ],
     open: {
-      q: "You are arriving in a new city tomorrow. Say what you will do first, and when.",
+      q: "You are travelling tomorrow. Explain what you will do before you leave, when you arrive and when you get home.",
       must: ["as soon as", "when I get home", "before I leave"],
-      criteria: "The answer uses the present tense after the time word and will in the other half.",
-      example: "As soon as I arrive, I'll find the hotel. I'll message you before I leave the airport.",
+      criteria: "The answer uses the present tense after each future time expression.",
+      example: "I'll check my ticket before I leave. As soon as I arrive, I'll call my friend. I'll unpack when I get home.",
     },
     success: "The learner uses future time links correctly at least twice.",
     quiz: [
@@ -1060,7 +1066,7 @@ export const A2_U6_7: Authored[] = [
         form: "almost certainly",
         claims: [
           "'Definitely' and 'almost certainly' are the strongest of these.",
-          "In positive sentences they come before the main verb.",
+          "They usually come before the main verb, after 'be', and after the first auxiliary or modal.",
         ],
         ex: ["I'll definitely be there.", "She's almost certainly right."],
       },
@@ -1080,7 +1086,7 @@ export const A2_U6_7: Authored[] = [
       criteria: "The answer shows different degrees of certainty using the right expressions.",
       example: "I'll almost certainly come on Friday. Saturday is probably not possible, and I'm not sure about Sunday.",
     },
-    success: "The learner expresses at least two different levels of certainty.",
+    success: "The learner expresses three different levels of certainty appropriately.",
     quiz: [
       qmcq("Which sentence is correct?", [
         "I'll definitely be there.",
@@ -1119,7 +1125,7 @@ export const A2_U6_7: Authored[] = [
     topic: "explaining why you do something",
     objectives: [
       "Use 'to' plus a verb to explain purpose.",
-      "Answer a why question with a purpose, not a reason in the past.",
+      "Distinguish a purpose ('to learn') from a cause or reason ('because I wanted to learn').",
     ],
     goal: "Explain your reasons for a big change in your life.",
     target: "to plus verb for purpose",
@@ -1163,10 +1169,10 @@ export const A2_U6_7: Authored[] = [
       say("I / practise / every day / to get better", ["I practise every day to get better."]),
     ],
     open: {
-      q: "Think of a big change you made. Explain what you did and why you did it.",
+      q: "Explain why you came to your current city or started learning English.",
       must: ["to learn English", "to get better", "I came here to"],
       criteria: "The answer explains purpose with 'to' plus a base verb.",
-      example: "I moved to this city to get better opportunities, and I started evening classes to learn English.",
+      example: "I came here to study. I joined an evening course to learn English, and I practise every day to get better.",
     },
     success: "The learner explains purpose with 'to' plus a verb at least twice.",
     quiz: [
@@ -1238,7 +1244,7 @@ export const A2_U6_7: Authored[] = [
       {
         form: "I'd like to",
         claims: [
-          "'Like' can take either form, but 'would like' always takes 'to'.",
+          "When another verb follows, 'like' can take either form, but 'would like' takes a to-infinitive.",
           "After a preposition, the verb always takes -ing: good at cooking.",
         ],
         ex: ["I'd like to see that film.", "She's good at explaining things."],
@@ -1303,7 +1309,7 @@ export const A2_U6_7: Authored[] = [
     topic: "talking a decision through",
     objectives: [
       "Present both sides of a decision.",
-      "Say what would follow from each choice.",
+      "Say what will follow from each choice.",
     ],
     goal: "Weigh up a big decision out loud and reach a conclusion.",
     target: "weighing options and announcing a decision",
@@ -1323,7 +1329,7 @@ export const A2_U6_7: Authored[] = [
         form: "if I do that",
         claims: [
           "'If I do that' names the consequence of one option.",
-          "The result half usually takes will or would.",
+          "With 'if' plus the present tense, the result usually uses 'will' plus the base verb.",
         ],
         ex: ["If I do that, I'll have to move.", "If I stay, I'll save money."],
       },
@@ -1349,7 +1355,7 @@ export const A2_U6_7: Authored[] = [
       q: "You are thinking about moving to another city. Talk through both sides and say what you have decided.",
       must: ["on the other hand", "if I do that", "I've decided to"],
       criteria: "The answer presents two sides, names a consequence and announces a decision.",
-      example: "The job pays more. On the other hand, if I do that I'll be far from my family. I've decided to stay.",
+      example: "The job pays more. On the other hand, if I do that, I'll be far from my family. I've decided to stay.",
     },
     success: "The learner presents both sides and announces a clear decision.",
     quiz: [

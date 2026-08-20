@@ -256,7 +256,13 @@ export const coreOpenResponseBeatSchema = z.object({
     mustUse: z.array(englishText.min(2)).min(1).max(3),
     criteria: englishText,
   }),
-  exampleAnswer: englishText.max(140),
+  /**
+   * İpucu gövdesi. Sınır 140'tan 320'ye çıktı: C1'de becerinin KENDİSİ uzunluk
+   * olabiliyor ("uzun sırayı tutarlı taşımak"). 140 karakterlik bir örnek o dersi
+   * modelleyemiyor, yalnız işaretleri sıralıyordu. Şema genişleme olduğu için eski
+   * satırlar geçerli kalır; formatVersion bumpı gerekmez.
+   */
+  exampleAnswer: englishText.max(320),
   maxAttempts: z.number().int().min(1).max(3).default(2),
 });
 

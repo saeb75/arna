@@ -39,7 +39,7 @@ export const A2_U3_5: Authored[] = [
         form: "-er than",
         claims: [
           "Add -er to short describing words and put 'than' before the second thing.",
-          "After one vowel, the last letter doubles: big becomes bigger, hot becomes hotter.",
+          "For many one-syllable words ending consonant + vowel + consonant, double the final consonant: big becomes bigger, hot becomes hotter.",
         ],
         ex: ["This flat is bigger than the other one.", "The second one is cheaper than the first."],
       },
@@ -76,7 +76,7 @@ export const A2_U3_5: Authored[] = [
       criteria: "The answer compares two places with a comparative form and says how big the difference is.",
       example: "My old flat was bigger than this one, but this one is much better for getting to work.",
     },
-    success: "The learner compares two things with a comparative and 'than' at least twice.",
+    success: "The learner uses at least two comparative forms and uses 'than' correctly in a comparison.",
     quiz: [
       qmcq("Which sentence is correct?", [
         "This box is heavier than that one.",
@@ -130,7 +130,8 @@ export const A2_U3_5: Authored[] = [
       {
         form: "more ... than",
         claims: [
-          "Words of two or more syllables usually take 'more' instead of -er.",
+          "Many longer describing words take 'more' instead of -er.",
+          "Some two-syllable words still take -er, especially those ending in -y: happy becomes happier.",
           "Never use both together: 'more expensive', not 'more expensiver'.",
         ],
         ex: ["This city is more expensive than my hometown.", "The museum is more interesting than the castle."],
@@ -166,7 +167,7 @@ export const A2_U3_5: Authored[] = [
       q: "Compare two cities or towns you have visited. Use a longer describing word in your comparison.",
       must: ["more expensive than", "less crowded", "worse than"],
       criteria: "The answer compares two places using 'more', 'less' or an irregular comparative correctly.",
-      example: "The capital is more expensive than my town, and the traffic there is worse than anything I know.",
+      example: "The capital is more expensive than my town and it is less crowded in winter, but the traffic is worse than ours.",
     },
     success: "The learner uses 'more' or an irregular comparative correctly at least twice.",
     quiz: [
@@ -255,10 +256,10 @@ export const A2_U3_5: Authored[] = [
       say("this one / be / my favourite", ["This one is my favourite.", "This one's my favourite."]),
     ],
     open: {
-      q: "Think of three places you have eaten. Say which one is the best and why.",
+      q: "Think of three places where you have eaten. Say which one is the best and explain why.",
       must: ["it's the best", "that's the cheapest", "my favourite one"],
       criteria: "The answer names the top of a group with a superlative and gives a reason.",
-      example: "The small place near the station is my favourite one, because the food is fresh and it costs less.",
+      example: "The small place near the station is my favourite one. It's the best of the three because the food is fresh.",
     },
     success: "The learner uses a superlative correctly and gives a reason for the choice.",
     quiz: [
@@ -294,7 +295,7 @@ export const A2_U3_5: Authored[] = [
       sc("Ms. Reyes", "the examiner", "to check superlative forms",
         "The examiner asks you to choose the top of a group.",
         "Name it with a superlative and justify it.",
-        "Could you tell me about the best place you have eaten, and why?", "neutral"),
+        "Could you tell me about the best place you have eaten at, and why?", "neutral"),
     ],
   },
 
@@ -314,10 +315,10 @@ export const A2_U3_5: Authored[] = [
       {
         form: "I prefer",
         claims: [
-          "'I prefer' is followed by a noun or by a verb with -ing.",
-          "Add 'to' before the other option when you compare them directly.",
+          "'Prefer' can be followed by a noun, an -ing form or a to-infinitive.",
+          "When you compare two activities directly, use 'to': I prefer walking to driving.",
         ],
-        ex: ["I prefer the blue one.", "I prefer walking to driving."],
+        ex: ["I prefer the blue one.", "I prefer walking to driving.", "I prefer to travel by train."],
       },
       {
         form: "I like this one",
@@ -441,7 +442,7 @@ export const A2_U3_5: Authored[] = [
       q: "Think of a cheap option and an expensive one you know. Argue that they are closer than people think.",
       must: ["as good as", "not as expensive", "just as nice"],
       criteria: "The answer uses 'as ... as' or 'not as ... as' correctly to compare two options.",
-      example: "The supermarket coffee is almost as good as the cafe one, and it's not as expensive at all.",
+      example: "The supermarket coffee is almost as good as the cafe coffee, and it's not as expensive as people think.",
     },
     success: "The learner uses 'as ... as' or 'not as ... as' correctly at least twice.",
     quiz: [
@@ -529,9 +530,9 @@ export const A2_U3_5: Authored[] = [
       say("their kitchen / be / really tiny", ["Their kitchen is really tiny.", "Their kitchen's really tiny."]),
     ],
     open: {
-      q: "Describe the coldest or hottest day you remember. Use strong describing words.",
+      q: "Describe the coldest or hottest day you remember. Describe the weather and two things around you with strong words.",
       must: ["absolutely freezing", "it was huge", "really tiny"],
-      criteria: "The answer uses at least one strong describing word with a suitable intensifier.",
+      criteria: "The answer uses at least two strong describing words and at least one suitable intensifier.",
       example: "One January it was absolutely freezing, and the queue outside the station was huge.",
     },
     success: "The learner uses strong describing words naturally at least twice.",
@@ -619,8 +620,8 @@ export const A2_U3_5: Authored[] = [
     open: {
       q: "Describe how two people you know do something, at work or at home.",
       must: ["very carefully", "he speaks slowly", "quite well"],
-      criteria: "The answer describes how someone does something using adverbs correctly.",
-      example: "My colleague checks everything very carefully, and he speaks slowly so everyone understands.",
+      criteria: "The answer describes how two people do things using adverbs of manner correctly.",
+      example: "My colleague checks everything very carefully and he speaks slowly. My manager explains difficult ideas quite well.",
     },
     success: "The learner uses adverbs of manner correctly at least twice.",
     quiz: [
@@ -711,7 +712,7 @@ export const A2_U3_5: Authored[] = [
       q: "A friend has two job offers: one pays more, one is closer to home. Say which you would pick and why.",
       must: ["I'd rather", "it depends on", "in my opinion"],
       criteria: "The answer chooses between two options, gives a reason and names what the choice depends on.",
-      example: "In my opinion the closer one is better. I'd rather have the time than the money, but it depends on the salary.",
+      example: "In my opinion, the closer job is better. I'd rather save time than earn a little more, but it depends on the difference in salary.",
     },
     success: "The learner states a choice, gives a reason and names a condition.",
     quiz: [
@@ -845,11 +846,12 @@ export const A2_U3_5: Authored[] = [
     objectives: [
       "Use 'have to' and 'has to' for things that are necessary.",
       "Ask whether something is necessary.",
+      "Use 'had to' for something that was necessary in the past.",
     ],
     goal: "Explain the rules of your job or your home.",
     target: "have to and has to for necessity",
     correction: "Say the full 'have to' sentence and let the learner repeat it.",
-    summary: "You learned to say what is necessary with have to and has to.",
+    summary: "You learned to describe present necessity with have to and has to, ask questions about necessity, and use had to for the past.",
     minutes: 7,
     points: [
       {
@@ -885,10 +887,15 @@ export const A2_U3_5: Authored[] = [
         "She has to wears a uniform.",
       ], 0),
       fill("___ you have to start early tomorrow? (do)", ["Do"]),
-      say("we / have to / wait / an hour", ["We had to wait an hour.", "We have to wait an hour."]),
+      // "yesterday" ZORUNLU: zaman verilmeyince aynı kutucuk hem "have to" hem
+      // "had to" ile doğru oluyordu — ölçülen şey (geçmiş) hiç sınanmıyordu.
+      say("we / have to / wait / an hour / yesterday", [
+        "We had to wait an hour yesterday.",
+        "We had to wait for an hour yesterday.",
+      ]),
     ],
     open: {
-      q: "Describe two things you have to do in your job, your studies or at home.",
+      q: "Describe one thing you have to do and one thing another person has to do.",
       must: ["I have to", "she has to"],
       criteria: "The answer describes necessary actions using have to or has to correctly.",
       example: "I have to start at eight every day, and my sister has to work every other weekend.",
@@ -1075,7 +1082,7 @@ export const A2_U3_5: Authored[] = [
       q: "A friend is working too much and sleeping badly. Give them two pieces of advice.",
       must: ["you should", "you shouldn't", "maybe you should"],
       criteria: "The answer gives advice with should or shouldn't and sounds friendly rather than commanding.",
-      example: "You should talk to your manager about the hours, and maybe you should take a day off this week.",
+      example: "You should talk to your manager about the hours. You shouldn't answer emails at night, and maybe you should take a day off.",
     },
     success: "The learner gives at least two pieces of advice using should or shouldn't.",
     quiz: [
@@ -1226,7 +1233,7 @@ export const A2_U3_5: Authored[] = [
           "'I don't feel well' is the usual general way to say you are ill.",
           "'I feel sick' in British English usually means you might vomit.",
         ],
-        ex: ["I don't feel well today.", "I've felt tired all week."],
+        ex: ["I don't feel well today.", "I feel tired all the time."],
       },
       {
         form: "my head hurts",
@@ -1255,12 +1262,14 @@ export const A2_U3_5: Authored[] = [
       say("I / have / a bad cough", ["I have a bad cough.", "I've got a bad cough."]),
     ],
     open: {
-      q: "You feel ill and are at a clinic. Describe your symptoms and how long you have felt like this.",
+      q: "You feel ill and are at a clinic. Describe your symptoms and say when they started.",
       must: ["I don't feel well", "my head hurts"],
-      criteria: "The answer describes symptoms clearly and says how long they have lasted.",
-      example: "I don't feel well. My head hurts and I have had a sore throat since Monday.",
+      // Present perfect ("since Monday") ünite 5'te öğretiliyor — burada geçmiş
+      // zamanla "when" sorulur, sıra bozulmasın diye.
+      criteria: "The answer describes at least two symptoms clearly and says when they started.",
+      example: "I don't feel well. My head hurts, and my sore throat started on Monday.",
     },
-    success: "The learner describes at least two symptoms clearly.",
+    success: "The learner describes at least two symptoms and says when they started.",
     quiz: [
       qmcq("Which sentence is correct?", [
         "My back hurts when I sit for a long time.",
@@ -1439,12 +1448,12 @@ export const A2_U3_5: Authored[] = [
       say("I / have / be / to Italy / twice", ["I have been to Italy twice.", "I've been to Italy twice."]),
     ],
     open: {
-      q: "Ask me three questions about unusual things I might have done in my life.",
+      q: "Ask me two questions about unusual experiences. Then answer this question: Have you ever travelled abroad?",
       must: ["have you ever", "yes I have", "I have been to"],
-      criteria: "The answer asks experience questions with 'have you ever' and the correct verb form.",
-      example: "Have you ever been to Asia? Have you ever tried skiing? I have been to Spain, but never further.",
+      criteria: "The answer asks two correctly formed experience questions and gives a present perfect answer.",
+      example: "Have you ever been to Asia? Have you ever tried skiing? Yes, I have. I have been to Spain twice.",
     },
-    success: "The learner asks at least two correct 'have you ever' questions.",
+    success: "The learner asks two correct experience questions and gives one correct present perfect answer.",
     quiz: [
       qmcq("Which question is correct?", [
         "Have you ever seen a whale?",
@@ -1508,12 +1517,14 @@ export const A2_U3_5: Authored[] = [
         ex: ["She's never worked abroad.", "He's never seen the sea."],
       },
       {
-        form: "never in my life",
+        // Devrik "Never in my life have I..." doğru ama C1 tonunda; A2'de
+        // öğretilen biçim ifadenin cümle SONUNA eklenmesi.
+        form: "I've never ... in my life",
         claims: [
-          "'Never in my life' adds emphasis to a surprising admission.",
+          "'In my life' adds emphasis to an experience sentence, at the end after the experience.",
           "'I still haven't' says you expected to do it by now.",
         ],
-        ex: ["Never in my life have I broken a bone.", "I still haven't seen that film."],
+        ex: ["I've never broken a bone in my life.", "I still haven't seen that film."],
       },
     ],
     ex: [
@@ -1527,10 +1538,10 @@ export const A2_U3_5: Authored[] = [
       say("he / have / never / see / the sea", ["He has never seen the sea.", "He's never seen the sea."]),
     ],
     open: {
-      q: "Name two ordinary things you have never done, and say whether you would like to.",
-      must: ["I've never", "never in my life"],
-      criteria: "The answer says what the speaker has never done, using a single negative correctly.",
-      example: "I've never learned to swim, and never in my life have I been on a boat.",
+      q: "Name two ordinary things you have never done, and say whether you would like to do them.",
+      must: ["I've never", "in my life"],
+      criteria: "The answer describes two experiences with the present perfect and uses only one negative in each sentence.",
+      example: "I've never learned to swim. I've never been on a boat in my life, but I'd like to try.",
     },
     success: "The learner uses 'never' with the present perfect correctly at least twice.",
     quiz: [
@@ -1550,7 +1561,7 @@ export const A2_U3_5: Authored[] = [
       sc("Bruna", "a friend who is easily surprised", "to discover what you have never done",
         "Two friends are confessing ordinary things they have never done.",
         "Admit things you have never done.",
-        "I still cannot ride a bike. Please tell me you have a confession too?", "amused"),
+        "I still cannot ride a bike. What ordinary thing have you never done?", "amused"),
       sc("Anton", "a colleague planning a team activity", "to pick an activity nobody has done",
         "The team wants an activity that is new to everyone.",
         "Say what you have and have not done.",
@@ -1602,8 +1613,8 @@ export const A2_U3_5: Authored[] = [
       {
         form: "been in / been to",
         claims: [
-          "'Been to' points to the visit; 'been in' points to time spent inside a place.",
-          "Both take the same verb form.",
+          "'Been to' focuses on a completed visit to a place.",
+          "'Been in' focuses on staying in a place and usually comes with a length of time.",
         ],
         ex: ["I've been to the new office once.", "We've been in this building for two years."],
       },
@@ -1712,10 +1723,10 @@ export const A2_U3_5: Authored[] = [
     open: {
       q: "I just told you I came back from a long trip. Ask me three follow-up questions.",
       must: ["what was it like", "how long", "tell me more"],
-      criteria: "The answer asks open follow-up questions that invite a longer reply.",
+      criteria: "The answer asks three open follow-up questions that invite a longer reply.",
       example: "What was it like? How long were you there? Tell me more about the people you met.",
     },
-    success: "The learner asks at least two open follow-up questions.",
+    success: "The learner asks three open follow-up questions.",
     quiz: [
       qmcq("Which question invites a longer answer?", [
         "What was the weather like?",
@@ -1763,7 +1774,7 @@ export const A2_U3_5: Authored[] = [
     goal: "Report progress on a task you share with someone.",
     target: "present perfect with already and just",
     correction: "Repeat the sentence with the word in its natural position and let the learner try again.",
-    summary: "You learned to use already and just to say when something was finished.",
+    summary: "You learned to use already for something completed by now or sooner than expected, and just for something completed a short time ago.",
     minutes: 7,
     points: [
       {
@@ -1878,9 +1889,9 @@ export const A2_U3_5: Authored[] = [
         form: "I haven't ... yet",
         claims: [
           "The full negative is 'I haven't' plus the third form plus 'yet'.",
-          "'Already' does not fit here; 'yet' belongs with questions and negatives.",
+          "'Already' belongs in positive sentences, and in a question it shows surprise.",
         ],
-        ex: ["I haven't finished it yet.", "They haven't answered yet."],
+        ex: ["I haven't finished it yet.", "They haven't answered yet.", "Have you already finished?"],
       },
     ],
     ex: [
@@ -1895,11 +1906,13 @@ export const A2_U3_5: Authored[] = [
     ],
     open: {
       q: "Three things were due today. Ask about two of them and admit one you have not done.",
-      must: ["have you finished", "not yet", "I haven't yet"],
-      criteria: "The answer asks about unfinished tasks with 'yet' and admits one unfinished task.",
-      example: "Have you finished the summary yet? Has the client replied? I haven't sent mine yet, sorry.",
+      // "I haven't yet" bitişik olarak neredeyse hiç geçmiyor ("I haven't sent it
+      // yet") — kalıp listesi doğal cümlede eşleşecek biçimde kısaltıldı.
+      must: ["have you finished", "not yet", "I haven't"],
+      criteria: "The answer uses 'yet' in two questions and in one negative sentence.",
+      example: "Have you finished the summary yet? Has the client replied yet? I haven't sent mine yet, sorry.",
     },
-    success: "The learner uses 'yet' correctly in a question and in a negative sentence.",
+    success: "The learner uses 'yet' correctly in two questions and one negative sentence.",
     quiz: [
       qmcq("Which sentence is correct?", [
         "I haven't sent it yet.",
@@ -1965,10 +1978,10 @@ export const A2_U3_5: Authored[] = [
       {
         form: "that can't be true",
         claims: [
-          "'That can't be true' expresses strong doubt in a friendly way.",
-          "'Really?' and 'You're joking' do the same job more softly.",
+          "'That can't be true!' expresses strong surprise, but it can sound blunt without a playful tone.",
+          "'Really?' and 'You're joking!' express doubt more softly.",
         ],
-        ex: ["That can't be true!", "Really? I don't believe you."],
+        ex: ["That can't be true!", "Really? You're joking!"],
       },
     ],
     ex: [
@@ -1984,7 +1997,7 @@ export const A2_U3_5: Authored[] = [
       q: "Tell me three things about your life: two true and one false. Then ask me a question.",
       must: ["I've never", "have you ever"],
       criteria: "The answer shares experiences with the present perfect and asks an experience question.",
-      example: "I've been to four countries. I've met a famous singer. I've never learned to swim. Have you ever?",
+      example: "I've been to four countries. I've met a famous singer. I've never learned to swim. Have you ever met someone famous?",
     },
     success: "The learner shares experiences and asks at least one experience question.",
     quiz: [
