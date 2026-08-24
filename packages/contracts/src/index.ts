@@ -395,3 +395,4 @@ export * from "./lessonLayers.js";
 export * from "./checkpoint.js";
 export * from "./answerReview.js";
 export * from "./roleplay.js";
+export * from "./avatarProtocol.js";

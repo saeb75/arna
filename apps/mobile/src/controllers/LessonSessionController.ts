@@ -390,8 +390,12 @@ export class LessonSessionController {
 
   static async pressMic(): Promise<void> {
     if (!this.store().awaiting) return; // v1: söz kesme yok — konuşurken kilitli
+    // Bayrak BASIŞ ANINDA kurulur (iyimser): startRecording'in async hazırlığı
+    // ~200-400ms sürüyor; bayrak await'ten sonra kurulunca kısa basışta
+    // releaseMic bayrağı false görüp hiç göndermiyordu.
+    this.store().set({ recording: true });
     const ok = await VoiceService.startRecording();
-    if (ok) this.store().set({ recording: true });
+    if (!ok) this.store().set({ recording: false });
   }
 
   static async releaseMic(): Promise<void> {
