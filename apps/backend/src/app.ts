@@ -13,6 +13,7 @@ import lessonRoutes from "./modules/lesson/routes.js";
 import onboardingRoutes from "./modules/onboarding/routes.js";
 import curriculumRoutes from "./modules/curriculum/routes.js";
 import sessionRoutes from "./modules/session/routes.js";
+import roleplayRoutes from "./modules/roleplay/routes.js";
 
 export async function buildApp() {
   const app = Fastify({
@@ -52,6 +53,7 @@ export async function buildApp() {
   await app.register(curriculumRoutes, { prefix: "/v1" });
   await app.register(lessonRoutes, { prefix: "/v1" });
   await app.register(sessionRoutes, { prefix: "/v1" });
+  await app.register(roleplayRoutes, { prefix: "/v1" });
 
   return app;
 }

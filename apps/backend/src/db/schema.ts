@@ -343,6 +343,63 @@ export const lessonLocales = pgTable(
   ],
 );
 
+// ---------------------------------------------------------------------------
+// ROLEPLAY — bağımsız rol yapma sekmesi
+//
+// Derslerden AYRIŞAN yön: müfredat repo-kaynaklıdır, roleplay DB-kaynaklıdır.
+// Gerekçe içerik ağırlığı: hedef listesi yazmak pedagoji yazmaktan kat kat ucuz,
+// kapı KAYIT ANINDA çalışıyor ve revizyonlar değişmez. İki pilot repo dosyasından
+// tohumlanıyor (incelenebilirlik için) ama sonrası panelin.
+// ---------------------------------------------------------------------------
+
+/** KİMLİK satırı — slug kalıcıdır, içerik revizyonlarda yaşar. */
+export const roleplays = pgTable(
+  "roleplays",
+  {
+    /** Kalıcı slug: `rp-restaurant-order` */
+    id: text("id").primaryKey(),
+    category: text("category").notNull(),
+    /** YUMUŞAK: keşif ve sıralama. Kilitlemez. */
+    recommendedFrom: text("recommended_from").notNull(),
+    /** TEKNİK TABAN: altındaki kullanıcı senaryoyu BU seviyede oynar. */
+    supportedFrom: text("supported_from").notNull(),
+    status: text("status").notNull().default("active"), // active | retired
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("roleplays_browse_idx").on(t.status, t.category)],
+);
+
+/**
+ * İÇERİK — yayınlanınca DEĞİŞMEZ.
+ *
+ * `catalog_lessons` ↔ `lesson_cores` ilişkisinin aynısı ve aynı sebeple:
+ * "bozuk içeriği kim gördü" sorusu cevaplanabilsin diye oturum kesin revizyona
+ * pinlenir. Düzenleme yeni draft doğurur, eski yayın `retired` olur ama SİLİNMEZ.
+ */
+export const roleplayRevisions = pgTable(
+  "roleplay_revisions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    roleplayId: text("roleplay_id")
+      .notNull()
+      .references(() => roleplays.id, { onDelete: "cascade" }),
+    /** 1'den artan sürüm — aynı slug altında */
+    revision: integer("revision").notNull(),
+    specFormat: integer("spec_format").notNull(),
+    /** Üretimi/oynatmayı etkileyen alanların parmak izi */
+    specHash: text("spec_hash").notNull(),
+    status: text("status").notNull().default("draft"), // draft | published | retired
+    spec: jsonb("spec").notNull(), // RoleplaySpec (@arna/contracts)
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("roleplay_revisions_key_idx").on(t.roleplayId, t.revision),
+    index("roleplay_revisions_lookup_idx").on(t.roleplayId, t.status),
+  ],
+);
+
 export const sessions = pgTable(
   "sessions",
   {
@@ -359,12 +416,50 @@ export const sessions = pgTable(
     coreId: uuid("core_id").references(() => lessonCores.id, { onDelete: "set null" }),
     sceneSetId: uuid("scene_set_id").references(() => lessonSceneSets.id, { onDelete: "set null" }),
     localeId: uuid("locale_id").references(() => lessonLocales.id, { onDelete: "set null" }),
+    /**
+     * Oturumun TÜRÜ. NULLABLE, çünkü 28 eski oturumun dört bağlantı kolonu da
+     * null (322 transkript turu, 0 özet) — onlara tür atamak yanlış etiket olur.
+     * `NOT VALID` kısıt yalnız türü DOLU satırları denetler; eskiler karantinada
+     * kalır ve silinmez. Silme kararı veri saklama politikasıyla ayrıca verilir.
+     */
+    sessionKind: text("session_kind"), // lesson | roleplay
+    /** Roleplay oturumunun oynattığı KESİN revizyon — içeriğin tek pinlenme yeri */
+    roleplayRevisionId: uuid("roleplay_revision_id").references(() => roleplayRevisions.id, {
+      onDelete: "set null",
+    }),
     startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
     endedAt: timestamp("ended_at", { withTimezone: true }),
     state: jsonb("state"),
   },
   (t) => [index("sessions_user_idx").on(t.userId)],
 );
+
+/**
+ * DENEME — `sessions` ile BİRE BİR (`session_id` hem PK hem FK).
+ *
+ * REVİZYON KİMLİĞİ BURADA YOK: tek kaynak `sessions.roleplay_revision_id`.
+ * İki yerde tutulsa zamanla çelişirler ve hangisinin doğru olduğu bilinemez.
+ *
+ * `objective_hits` yalnız tamamlanan kimlikleri değil DENETİM İZİNİ saklar
+ * (tur, kanıt, dedektör sürümü) — bu veri olmadan yanlış tikleri incelemek ve
+ * doğruluk tablosu üretmek mümkün değil.
+ */
+export const roleplayAttempts = pgTable("roleplay_attempts", {
+  sessionId: uuid("session_id")
+    .primaryKey()
+    .references(() => sessions.id, { onDelete: "cascade" }),
+  /** Gerçekten oynanan seviye — kullanıcının seviyesinden yükseltilmiş olabilir */
+  playedLevel: text("played_level").notNull(),
+  /** Bu oturumda GÖSTERİLEN hedefler; senaryo sonradan değişse deneme okunabilir kalır */
+  activeObjectiveIds: jsonb("active_objective_ids").notNull(),
+  complicationId: text("complication_id"),
+  /** ObjectiveHit[] — { objectiveId, turnIndex, evidence, detectorVersion } */
+  objectiveHits: jsonb("objective_hits").notNull().default([]),
+  /** Seviye politikası değişince eski denemelerin hangi kurallarla oynandığı korunur */
+  levelPolicyVersion: integer("level_policy_version").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const transcriptTurns = pgTable(
   "transcript_turns",

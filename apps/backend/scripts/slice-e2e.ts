@@ -32,8 +32,12 @@ const check = (label: string, ok: boolean, detail = "") => {
 
 for (const u of [userTr, userEs, userEn]) await cleanupTestUser(u);
 
-await seedTestProfile({ userId: userTr, displayName: "Ayla", nativeLanguage: "tr", cefrLevel: "A1", track: "everyday" });
-await seedTestProfile({ userId: userEs, displayName: "Lucia", nativeLanguage: "es", cefrLevel: "A1", track: "everyday" });
+// tutorLanguage AÇIKÇA "native": fixture'ın varsayılanı "english" (diğer testler
+// beklenmedik dil-paketi çağrısı yapmasın diye) ve bu test tam da NATIVE modu
+// sınıyor. Varsayılana güvenildiği için 7 kontrol sessizce İngilizce modda
+// koşuyor ve kırılıyordu — paketler DB'de eksiksiz ve eşleşik olduğu hâlde.
+await seedTestProfile({ userId: userTr, displayName: "Ayla", nativeLanguage: "tr", cefrLevel: "A1", track: "everyday", tutorLanguage: "native" });
+await seedTestProfile({ userId: userEs, displayName: "Lucia", nativeLanguage: "es", cefrLevel: "A1", track: "everyday", tutorLanguage: "native" });
 await seedTestProfile({ userId: userEn, displayName: "Kerem", nativeLanguage: "tr", cefrLevel: "A1", track: "work" });
 // userEn: İngilizce daldırma modu
 await db.update(userProfiles).set({ tutorLanguage: "english" }).where(eq(userProfiles.userId, userEn));

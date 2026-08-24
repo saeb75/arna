@@ -5,6 +5,8 @@ import {
   normalizeUtterance,
   PRACTICE_MIN_MAX_TURNS,
   PRACTICE_MIN_TURNS_BEFORE_GOAL,
+  roleplaySpecSchema,
+  spokenRunsSchema,
   triageAnswer,
   type AnswerReview,
   type CoreBeat,
@@ -12,6 +14,7 @@ import {
   type LessonCore,
   type LessonPhase,
   type RichText,
+  type RoleplaySpec,
   type SceneVariant,
   type SessionScript,
   type Track,
@@ -26,6 +29,7 @@ import {
   lessonCores,
   lessonProgress,
   lessonSceneSets,
+  roleplayRevisions,
   sessions,
   transcriptTurns,
   userProfiles,
@@ -39,6 +43,7 @@ import { buildTutorPrompt } from "../lesson/tutorPrompt.js";
 import { extractSessionMemory } from "../memory/extract.js";
 import { buildMemoryBlock } from "../memory/retrieve.js";
 import { renderSessionScript } from "./script.js";
+import { roleplayDebrief, roleplayTurn, type RoleplayDebrief } from "../roleplay/service.js";
 
 export class SessionError extends Error {
   constructor(
@@ -61,10 +66,16 @@ export class SessionError extends Error {
  */
 async function getOwnedSession(userId: string, sessionId: string) {
   const [row] = await db
-    .select({ session: sessions, coreRow: lessonCores, sceneRow: lessonSceneSets })
+    .select({
+      session: sessions,
+      coreRow: lessonCores,
+      sceneRow: lessonSceneSets,
+      roleplayRevRow: roleplayRevisions,
+    })
     .from(sessions)
     .leftJoin(lessonCores, eq(sessions.coreId, lessonCores.id))
     .leftJoin(lessonSceneSets, eq(sessions.sceneSetId, lessonSceneSets.id))
+    .leftJoin(roleplayRevisions, eq(sessions.roleplayRevisionId, roleplayRevisions.id))
     .where(and(eq(sessions.id, sessionId), eq(sessions.userId, userId)))
     .limit(1);
   if (!row) return null;
@@ -73,7 +84,17 @@ async function getOwnedSession(userId: string, sessionId: string) {
   const core = (row.coreRow?.core as LessonCore | undefined) ?? null;
   const scenes = row.sceneRow?.scenes as Record<string, SceneVariant> | undefined;
   const scene = scenes?.[state?.track ?? "everyday"] ?? null;
-  return { session: row.session, core, scene, state };
+
+  // Roleplay oturumu KESİN revizyona pinli — spec oradan okunur. Şemadan
+  // geçmeyen saklı spec servis edilmez (queries.ts'teki son savunmanın aynısı).
+  let roleplaySpec: RoleplaySpec | null = null;
+  if (row.session.sessionKind === "roleplay" && row.roleplayRevRow) {
+    const parsed = roleplaySpecSchema.safeParse(row.roleplayRevRow.spec);
+    if (parsed.success) roleplaySpec = parsed.data;
+    else console.error(`[roleplay] ${sessionId}: pinli revizyonun spec'i şemadan geçmiyor`);
+  }
+
+  return { session: row.session, core, scene, state, roleplaySpec };
 }
 
 // ---------------------------------------------------------------------------
@@ -440,11 +461,12 @@ const attemptRule = [
 /**
  * Yanıt PARÇALARI: native modda geri bildirim L1, düzeltilen İngilizce cümle
  * ayrı "en" parçası. Akış kararları bu metne yine BAKMAZ.
+ *
+ * `spokenRunsSchema` süslü parantezli metni reddeder: selamlamada modelin yapıyı
+ * metnin içine yazdığı canlı hata (73 oturumun 24'ü) buradan da geçebilirdi.
+ * Ölçümde bu üç uçta sızıntı çıkmadı ama sınıf aynı, koruma da aynı.
  */
-const replyRunsSchema = z
-  .array(z.object({ lang: z.enum(["en", "l1"]), text: z.string().trim().min(1) }))
-  .min(1)
-  .max(6);
+const replyRunsSchema = spokenRunsSchema.max(6);
 
 /**
  * Alıştırma değerlendirmesi — deneme miydi + ASLINDA doğru muydu + hocanın yanıtı.
@@ -712,10 +734,30 @@ export async function chatTurn(
   sessionId: string,
   text: string,
   opts: ChatOptions = {},
-): Promise<{ text: string; runs?: RichText; segmentDone: boolean; beatDone?: boolean; isAttempt?: boolean }> {
+): Promise<{
+  text: string;
+  runs?: RichText;
+  segmentDone: boolean;
+  beatDone?: boolean;
+  isAttempt?: boolean;
+  /** Roleplay oturumlarında dolu — ders istemcisi bunları yok sayar (geriye uyumlu) */
+  progress?: { done: number; total: number };
+  newHits?: Array<{ objectiveId: string; evidence: string }>;
+}> {
   const owned = await getOwnedSession(userId, sessionId);
   if (!owned) throw new SessionError("not_found", "Oturum bulunamadı");
   if (owned.session.endedAt) throw new SessionError("session_ended", "Oturum kapatılmış");
+
+  // ROLEPLAY DALI — burada ayrılır, ders yolu tek satır değişmez. İstemcinin
+  // gönderdiği `phase` yok sayılır: oturum kendi türünü biliyor (session_kind).
+  // Ölçüm, prompt ve bitirme davranışı roleplay modülünde; segmentDone ORADA
+  // her zaman false (sözleşme md. 6 — sohbeti bitiren yalnız buton).
+  if (owned.session.sessionKind === "roleplay") {
+    if (!owned.roleplaySpec) {
+      throw new SessionError("not_found", "Roleplay oturumunun pinli revizyonu okunamadı");
+    }
+    return roleplayTurn(userId, sessionId, text, owned.roleplaySpec);
+  }
 
   const { core, scene, state } = owned;
   const [profile] = await db
@@ -1180,7 +1222,7 @@ export async function reviewAnswer(
 export async function endSession(
   userId: string,
   sessionId: string,
-): Promise<{ ok: true; turns: number }> {
+): Promise<{ ok: true; turns: number; debrief?: RoleplayDebrief | null }> {
   const owned = await getOwnedSession(userId, sessionId);
   if (!owned) throw new SessionError("not_found", "Oturum bulunamadı");
 
@@ -1220,6 +1262,14 @@ export async function endSession(
         );
       })
       .catch((err) => console.error(`[memory] çıkarım başarısız (${sessionId}):`, err));
+  }
+
+  // ROLEPLAY DEBRIEF: hedef özeti deterministik (deneme satırından, bedava);
+  // koçluk tek LLM çağrısı ve düşerse özet yine döner — "Bitir" asla bloke olmaz.
+  // Ders oturumunda alan hiç yok; ders istemcisi değişmeden çalışır.
+  if (owned.session.sessionKind === "roleplay" && owned.roleplaySpec) {
+    const debrief = await roleplayDebrief(userId, sessionId, owned.roleplaySpec);
+    return { ok: true, turns: turns.length, debrief };
   }
 
   return { ok: true, turns: turns.length };

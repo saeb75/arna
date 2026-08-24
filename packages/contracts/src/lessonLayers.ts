@@ -48,6 +48,35 @@ export type TextRun = z.infer<typeof textRunSchema>;
 export const richTextSchema = z.array(textRunSchema).min(1);
 export type RichText = z.infer<typeof richTextSchema>;
 
+/**
+ * MODELDEN kabul edilen parçalar — `textRunSchema`'dan AYRI, kasten.
+ *
+ * Canlı hata: selamlama prompt'u modele İngilizce terimi "kendi {"lang":"en"}
+ * parçası olarak cümlenin içine dokuyarak" yazmasını söylüyordu. Model birebir
+ * uydu ve YAPIYI metnin içine yazdı:
+ *
+ *   "Bugün dersimiz {'lang':'en','text':'am, is and are'} hakkında olacak."
+ *
+ * 73 oturumun 24'ünde oldu (%33). Şema geçirdi çünkü `text` yalnızca string; süslü
+ * parantez geçerli bir karakter. Ekranda çirkin durmakla da kalmıyor — TTS onu
+ * SESLİ OKUYOR.
+ *
+ * Denetim yalnızca `{` ve `}`: hiçbir dilde doğal konuşma süslü parantez
+ * içermez, yani yanlış pozitifi yok. Her yapı sızıntısı zorunlu olarak parantez
+ * taşır, o yüzden tırnak varyantlarını ayrı ayrı kovalamak gerekmez. Üstüne
+ * enterpolasyonu kalmamış `{name}` şablonunu da yakalar — ikinci bir gerçek
+ * hata sınıfı. Anahtar kelime listesi biriktirilmiyor.
+ *
+ * `textRunSchema`'ya konmadı: o şema elle yazılmış içerik için de geçerli (395
+ * çekirdek, 790 paket) ve okuma anında saklı satırları reddedebilirdi. Ayrı şema
+ * niyeti de okunur kılıyor: "modelden ne kabul ediyoruz", "parça nedir" değil.
+ */
+const spokenTextRunSchema = textRunSchema.refine((r) => !/[{}]/.test(r.text), {
+  message: "text alanı süslü parantez içeriyor — yapı sızıntısı ya da enterpole edilmemiş şablon",
+});
+
+export const spokenRunsSchema = z.array(spokenTextRunSchema).min(1);
+
 /** Tek İngilizce parçadan RichText — İngilizce tutor modu ve kestirmeler için. */
 export function en(text: string, emphasis?: boolean): TextRun {
   return emphasis ? { lang: "en", text, emphasis } : { lang: "en", text };

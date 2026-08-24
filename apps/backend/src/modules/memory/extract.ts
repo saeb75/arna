@@ -6,6 +6,7 @@ import {
   catalogLessons,
   lessonCores,
   memories,
+  roleplayRevisions,
   sessionSummaries,
   sessions,
   transcriptTurns,
@@ -66,17 +67,31 @@ export async function extractSessionMemory(sessionId: string): Promise<Extractio
       session: sessions,
       coreRow: lessonCores,
       catalogTitle: catalogLessons.title,
+      roleplayRevRow: roleplayRevisions,
     })
     .from(sessions)
     .leftJoin(lessonCores, eq(sessions.coreId, lessonCores.id))
     .leftJoin(catalogLessons, eq(sessions.catalogLessonId, catalogLessons.id))
+    .leftJoin(roleplayRevisions, eq(sessions.roleplayRevisionId, roleplayRevisions.id))
     .where(eq(sessions.id, sessionId))
     .limit(1);
 
   if (!row) throw new Error(`Oturum bulunamadı: ${sessionId}`);
   const core = row.coreRow?.core as LessonCore | null;
-  if (!core) return { status: "no_lesson", factsAdded: 0, factsSkippedAsDuplicate: 0, continuityHook: "" };
-  const lessonTitle = row.catalogTitle ?? core.topic;
+
+  // ROLEPLAY: hafıza burada da çıkarılır — öğrenci kendinden bahsetti, sistemin
+  // değeri tam bu. Başlık pinli revizyonun spec'inden (kanonik İngilizce);
+  // transkript çıkarımının geri kalanı DERSLE AYNI yoldan akar.
+  let roleplayTitle: string | null = null;
+  if (row.session.sessionKind === "roleplay" && row.roleplayRevRow) {
+    const spec = row.roleplayRevRow.spec as { title?: unknown } | null;
+    if (typeof spec?.title === "string") roleplayTitle = spec.title;
+  }
+
+  if (!core && !roleplayTitle) {
+    return { status: "no_lesson", factsAdded: 0, factsSkippedAsDuplicate: 0, continuityHook: "" };
+  }
+  const lessonTitle = roleplayTitle ?? row.catalogTitle ?? core?.topic ?? "conversation";
 
   const userId = row.session.userId;
 
@@ -109,7 +124,7 @@ export async function extractSessionMemory(sessionId: string): Promise<Extractio
   const { system, user } = buildMemoryExtractPrompt({
     nativeLanguage: nativeLanguageOf(profile),
     lessonTitle,
-    lessonFocus: core.focus,
+    lessonFocus: core?.focus ?? "a role-play conversation",
     existingFacts: existing.map((e) => e.text),
     transcript: turns.slice(-MAX_TRANSCRIPT_TURNS).map((t) => ({
       role: t.role,

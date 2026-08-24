@@ -25,7 +25,7 @@ export const EN_CHROME: ChromeBundle = {
   ack: { yes: [], no: [], proceed: [] },
   surrender: [], // İngilizce pes ifadeleri lessonFlow.SURRENDER_EN'de — çekirdek küme her dilde geçerli
   script: {
-    greeting: "Hello {name}! Today we're going to learn about {topic}. Are you ready to start?",
+    greeting: "Hello {name}! {callback}Today we're going to learn about {topic}. Are you ready to start?",
     teachIntro: "Let me explain today's point.",
     askQuestions: "Before we practise — do you have any questions?",
     exercisesAnnounce: "Great. Now let's try a few quick questions.",

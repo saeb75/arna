@@ -47,6 +47,14 @@ export function buildLocalePrompt(ctx: LocaleGenContext): { system: string; user
     `The app renders the English from the master copy. Never write English sentences or the form's`,
     `text inside your ${lang} runs — not even translated back. Never write brace characters or any`,
     `placeholder syntax inside text; a reference is ONLY ever its own array item. Weave references`,
+    // BU CÜMLE BİLİNÇLİ OLARAK DURUYOR. Selamlama prompt'unda benzer bir "önce
+    // X, sonra Y, sonra devam" reçetesi modeli üçüncü parçayı DOLDURMAYA zorlayıp
+    // saçmalık ürettirdi. Burada aynı hata olmuyor çünkü referans metin parçası
+    // DEĞİL, kendi `kind`'i olan ayrı bir dizi öğesi — ve şemada İngilizce metin
+    // alanı hiç yok. 790 paket tarandı: sonu asılı 0, bitişik tekrar 0. Üstelik
+    // `LESSON_LOCALE_VERSION` paket ARAMA ANAHTARININ parçası (layers.ts:148),
+    // yani bu satırı "düzeltip" sürümü bumplamak 790 paketi bayatlatır — ölçüm
+    // kusur göstermiyorken ödenecek gerçek bir para. Değiştirme.
     `naturally into ${lang} word order (e.g. ${lang} text, then the form ref, then ${lang} text continuing the sentence).`,
     ``,
     `Output STRICT JSON only:`,

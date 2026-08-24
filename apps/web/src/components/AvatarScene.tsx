@@ -40,6 +40,8 @@ type SceneProps = {
   getTime: () => number | null;
   // Sesin o anki RMS enerjisi; ses çalmıyorsa null
   getLevel: () => number | null;
+  // true olduğunda avatar bir kez el kaldırıp selam verir (ders açılışı)
+  greet?: boolean;
 };
 
 /** Farklı frekansların toplamı — tek sinüs gibi periyodik görünmeyen yumuşak gezinme (±1) */
@@ -239,6 +241,134 @@ function applyFlatArmRest(scene: THREE.Object3D) {
   }
 }
 
+// --- Selamlama: ders başında el kaldırıp sallama --------------------------
+// Modelde animasyon YOK (fatman.glb T-pose dosyası; idle.fbx Mixamo adlarıyla
+// geldiği için bu rig'in tek kemiğine bile denk gelmiyor). Hareket bu yüzden
+// kolun MUTLAK hedef yönleri zaman içinde harmanlanarak kurulur: her kare kol
+// dinlenme pozundan sıfırlanıp yeniden kurulduğu için birikme imkânsız
+// (three.js mixer'ının sabit değeri yazmayı atlaması bu yola dokunamaz).
+const GREET_RAISE_S = 0.5;
+const GREET_WAVE_S = 1.45;
+const GREET_DROP_S = 0.6;
+const GREET_TOTAL_S = GREET_RAISE_S + GREET_WAVE_S + GREET_DROP_S;
+const GREET_HZ = 2.5;
+const GREET_SWING = 0.3; // elin iki yana yatma genliği (rad)
+const GREET_SIDE = -1; // avatarın SAĞ kolu (ekranda solda)
+
+// Kalkmış kolun hedefleri. Kadraj kafayı gösterdiği için el KAFANIN YANINDA
+// bitmeli: dirsek dışa-öne açılır, önkol yukarı-İÇE döner (dışa açık önkol eli
+// kadrajın kenarına atıyor, yarısı ekran dışında kalıyordu). Omuz ±0.28 / üst
+// kol 0.29 / önkol 0.23 m ölçülerinde el ≈ (±0.33, 1.60, 0.20)'e oturuyor.
+const greetArmDir = (sx: number) => new THREE.Vector3(sx * 0.66, -0.25, 0.71).normalize();
+const greetForeDir = (sx: number) => new THREE.Vector3(sx * -0.45, 0.86, 0.24).normalize();
+
+type ArmChain = {
+  sx: number;
+  bones: THREE.Object3D[]; // [omuz, üst kol, dirsek, el]
+  rest: Array<{ pos: THREE.Vector3; quat: THREE.Quaternion }>;
+  // Burulmayı ölçmek için başparmak (yoksa adım atlanır)
+  thumb: THREE.Object3D | null;
+};
+
+/** Kol zincirlerini dinlenme pozuyla yakalar — applyRestPose'DAN SONRA çağrılmalı */
+function collectArms(scene: THREE.Object3D): ArmChain[] {
+  const out: ArmChain[] = [];
+  for (const [side, sx] of [
+    ["l", 1],
+    ["r", -1],
+  ] as const) {
+    const found = [
+      scene.getObjectByName(`c_arm_twist_offset${side}`),
+      scene.getObjectByName(`arm_stretch${side}`),
+      scene.getObjectByName(`forearm_stretch${side}`),
+      scene.getObjectByName(`hand${side}`),
+    ];
+    if (found.some((b) => !b || !b.parent)) continue;
+    const bones = found as THREE.Object3D[];
+    out.push({
+      sx,
+      bones,
+      rest: bones.map((b) => ({ pos: b.position.clone(), quat: b.quaternion.clone() })),
+      thumb: scene.getObjectByName(`c_thumb3${side}`) ?? scene.getObjectByName(`thumb1${side}`) ?? null,
+    });
+  }
+  return out;
+}
+
+function restoreArm(arm: ArmChain) {
+  arm.bones.forEach((b, i) => {
+    b.position.copy(arm.rest[i].pos);
+    b.quaternion.copy(arm.rest[i].quat);
+  });
+}
+
+/**
+ * Selamlamanın tek karesi. `t` hareketin başından beri geçen süre; `false`
+ * dönerse hareket bitmiştir ve kol dinlenme pozunda bırakılmıştır.
+ */
+function applyGreetWave(arm: ArmChain, root: THREE.Object3D, t: number): boolean {
+  restoreArm(arm);
+  root.updateMatrixWorld(true);
+  if (t >= GREET_TOTAL_S) return false;
+
+  const sx = arm.sx;
+  const [shoulder, , elbow, hand] = arm.bones;
+  // kalkma → sallama → inme zarfı
+  const w =
+    t < GREET_RAISE_S
+      ? smoothstep(0, 1, t / GREET_RAISE_S)
+      : t < GREET_RAISE_S + GREET_WAVE_S
+        ? 1
+        : 1 - smoothstep(0, 1, (t - GREET_RAISE_S - GREET_WAVE_S) / GREET_DROP_S);
+
+  aimSegment(
+    arm.bones,
+    shoulder,
+    elbow,
+    limbDir(sx, ARM_ABDUCT, ARM_FORWARD).lerp(greetArmDir(sx), w).normalize(),
+  );
+  root.updateMatrixWorld(true);
+  aimSegment(
+    [elbow, hand],
+    elbow,
+    hand,
+    limbDir(sx, FOREARM_ABDUCT, FOREARM_FORWARD).lerp(greetForeDir(sx), w).normalize(),
+  );
+  root.updateMatrixWorld(true);
+
+  // Avuç kameraya döner: dinlenmede avuç uyluğa bakıyor, kalkan kolda o hâliyle
+  // el yandan (bıçak gibi) görünüyordu. Önkol kendi ekseninde burulur
+  // (supinasyon) — el eksen üzerinde olduğundan konumu değişmez.
+  // Hedef ölçüsü BAŞPARMAK: kalkmış el avuç kameraya bakarken başparmak gövdeye
+  // (kafaya) doğru bakar. Avuç normali cross-product işareti aynalanan elde ters
+  // döndüğü için elin ARKASINI kameraya çeviriyordu.
+  if (arm.thumb && w > 0.001) {
+    const axis = worldPos(hand).sub(worldPos(elbow)).normalize();
+    const have = worldPos(arm.thumb).sub(worldPos(hand)).projectOnPlane(axis).normalize();
+    const want = new THREE.Vector3(-sx, 0, 0.25).projectOnPlane(axis).normalize();
+    if (have.lengthSq() > 0.1 && want.lengthSq() > 0.1) {
+      let roll = Math.acos(THREE.MathUtils.clamp(have.dot(want), -1, 1));
+      if (new THREE.Vector3().crossVectors(have, want).dot(axis) < 0) roll = -roll;
+      rotateWorld([elbow, hand], worldPos(elbow), new THREE.Quaternion().setFromAxisAngle(axis, roll * w));
+      root.updateMatrixWorld(true);
+    }
+  }
+
+  // Sallama: el (ve üçte biri kadar önkol) kameraya bakan eksende iki yana yatar.
+  // Zarf kolun kalkışına gecikmeli girer, inmeye başlamadan çıkar.
+  const waveIn = smoothstep(GREET_RAISE_S * 0.55, GREET_RAISE_S + 0.2, t);
+  const waveOut = 1 - smoothstep(GREET_RAISE_S + GREET_WAVE_S - 0.3, GREET_RAISE_S + GREET_WAVE_S, t);
+  const swing = Math.sin(t * GREET_HZ * Math.PI * 2) * GREET_SWING * waveIn * waveOut;
+  if (swing !== 0) {
+    const axis = new THREE.Vector3(0, 0, 1);
+    rotateWorld([elbow, hand], worldPos(elbow), new THREE.Quaternion().setFromAxisAngle(axis, swing * 0.35));
+    root.updateMatrixWorld(true);
+    rotateWorld([hand], worldPos(hand), new THREE.Quaternion().setFromAxisAngle(axis, swing));
+    root.updateMatrixWorld(true);
+  }
+  return true;
+}
+
 const BONE_NAMES = ["Head", "Neck", "Spine", "Spine1", "Spine2", "Hips", "LeftShoulder", "RightShoulder"] as const;
 type BoneName = (typeof BONE_NAMES)[number];
 
@@ -328,6 +458,7 @@ function Avatar({
   timeline,
   getTime,
   getLevel,
+  greet,
   onHead,
 }: {
   url: string;
@@ -336,6 +467,7 @@ function Avatar({
   timeline: Timeline | null;
   getTime: () => number | null;
   getLevel: () => number | null;
+  greet?: boolean;
   onHead: (pos: THREE.Vector3) => void;
 }) {
   const { scene, animations } = useGLTF(url, DRACO_PATH);
@@ -509,6 +641,38 @@ function Avatar({
     }
     return found;
   }, [scene, animations, ownPose, face]);
+
+  // Kol zincirleri dinlenme poz(u) bake edildikten SONRA yakalanır (bones memo'su
+  // yapıyor); selamlama her kare bu poza sıfırlanıp yeniden kurulur.
+  const arms = useMemo(() => {
+    void bones;
+    return collectArms(scene);
+  }, [scene, bones]);
+  const greetArm = useMemo(() => arms.find((a) => a.sx === GREET_SIDE) ?? null, [arms]);
+
+
+  // Selam ders açılışında YALNIZCA BİR KEZ oynar: `greet` her konuşmada
+  // true/false salınıyor, tetikleyici prop'un düşmesinden bağımsız olmalı —
+  // yoksa hoca her cümlede el sallar, üstelik prop düşünce hareket ortada kesilir.
+  const greetT = useRef<number | null>(null);
+  const greeted = useRef(false);
+  const greetAsked = useRef(false);
+  useEffect(() => {
+    if (greet) greetAsked.current = true;
+    // İstek mandallanır: 26 MB'lık model ilk cümleden SONRA hazır olabiliyor,
+    // o durumda selam ilk konuşmayı kaçırıp dersin ortasında patlıyordu.
+    if (!greetAsked.current || !greetArm || greeted.current) return;
+    greeted.current = true;
+    greetT.current = 0;
+  }, [greet, greetArm]);
+  // Sahne sökülürken kol dinlenme pozunda bırakılır (sahne useGLTF önbelleğinde kalıyor)
+  useEffect(() => {
+    if (!greetArm) return;
+    return () => {
+      greetT.current = null;
+      restoreArm(greetArm);
+    };
+  }, [greetArm]);
 
   // Klip hazırlanırken duruş uygulanmış olmalı — bones useMemo'su onu yapıyor.
   // Kendi pozu olan modelin iskeleti Mixamo klibiyle uyumsuzdur; atlanır.
@@ -684,6 +848,12 @@ function Avatar({
         b.bone.rotation.copy(b.rot);
         b.bone.position.copy(b.pos);
       }
+    }
+
+    // ---- Selamlama: kol zinciri diğer katmanlardan bağımsız (BONE_NAMES'te yok)
+    if (greetT.current != null && greetArm) {
+      greetT.current += dt;
+      if (!applyGreetWave(greetArm, scene, greetT.current)) greetT.current = null;
     }
 
     // Konuşma/sessizlik arasında sert geçiş yapılmaz: tüm hareket genlikleri bu
@@ -1017,19 +1187,22 @@ function StudioEnvironment() {
 // Yüklenen avatarın kafa konumuna göre kamerayı kadrajlar. Kamera SABİTTİR:
 // kullanıcı döndüremez/yakınlaştıramaz (orbit kontrolleri bilerek yok).
 // Kafa ile kamera arası mesafe (m). Küçült → yakınlaş, büyüt → uzaklaş.
-const FRAMING_DISTANCE = 1.15;
+// 3:4 dikey kutuda göğüsten yukarı. fov 28° ile görünen dikey yükseklik
+// ≈ 0,499 × mesafe → 2,25 m ≈ 1,12 m; 3:4 kutuda yatayda ±0,42 m.
+// Mesafe KOLLARIN kavuştuğu bekleme duruşuna göre seçildi: o poz ~0,85 m
+// genişlik istiyor, daha yakın kadrajda (1,7 m denendi) dirsekler kenardan
+// taşıyor ve selamlarken el yarısı ekran dışında kalıyor.
+const FRAMING_DISTANCE = 2.25;
+// Kadraj merkezi kafanın bu kadar ALTI: kafanın üstünde boşluk kalsın, alt
+// kenar kemerin hemen üstünde kesilsin (y ≈ 0,87–1,99).
+const FRAMING_DROP = 0.16;
 
 function HeadFraming({ head }: { head: THREE.Vector3 | null }) {
   const camera = useThree((s) => s.camera);
   useEffect(() => {
     if (head == null) return;
-    // Kadraj mesafesi. fov 28° ile görünen dikey yükseklik ≈ 0.499 × mesafe:
-    //   1.70m → ~0.85m (göğüs/omuz planı)
-    //   1.15m → ~0.57m (baş/omuz planı — konuşan yüz için tercih edilen)
-    // Aşağı ofsetler mesafeyle birlikte küçülür, yoksa yakın planda saçın üstü
-    // kadrajdan taşar.
-    camera.position.set(head.x, head.y - 0.03, head.z + FRAMING_DISTANCE);
-    camera.lookAt(head.x, head.y - 0.05, head.z);
+    camera.position.set(head.x, head.y - FRAMING_DROP, head.z + FRAMING_DISTANCE);
+    camera.lookAt(head.x, head.y - FRAMING_DROP, head.z);
   }, [head, camera]);
   return null;
 }
@@ -1041,6 +1214,7 @@ export default function AvatarScene({
   timeline,
   getTime,
   getLevel,
+  greet,
 }: SceneProps) {
   const [head, setHead] = useState<THREE.Vector3 | null>(null);
 
@@ -1086,6 +1260,7 @@ export default function AvatarScene({
             timeline={timeline}
             getTime={getTime}
             getLevel={getLevel}
+            greet={greet}
             onHead={setHead}
           />
         </Suspense>

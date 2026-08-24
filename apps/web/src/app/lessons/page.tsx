@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, ApiError } from "@/lib/api";
+import { SectionTabs } from "@/components/SectionTabs";
 import { supabase } from "@/lib/supabase";
 import { LEVEL_LABELS, LEVEL_NAMES, TRACK_LABELS } from "@/lib/labels";
 
@@ -82,7 +83,10 @@ export default function LessonsPage() {
 
   return (
     <main className="mx-auto max-w-2xl p-4 pb-16">
-      <header className="flex items-center justify-between py-6">
+      <div className="pt-4">
+        <SectionTabs />
+      </div>
+      <header className="flex items-center justify-between py-2 pb-6">
         <div>
           <h1 className="text-2xl font-bold">Derslerin</h1>
           <p className="text-sm text-muted-foreground">

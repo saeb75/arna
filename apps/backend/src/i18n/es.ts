@@ -19,7 +19,7 @@ export const ES_CHROME: ChromeBundle = {
   },
   surrender: ["no sé", "no se", "ni idea", "no estoy seguro", "no estoy segura", "paso", "me rindo"],
   script: {
-    greeting: "¡Hola {name}! Hoy vamos a aprender {topic}. ¿Empezamos?",
+    greeting: "¡Hola {name}! {callback}Hoy vamos a aprender {topic}. ¿Empezamos?",
     teachIntro: "Deja que te lo explique brevemente.",
     askQuestions: "Antes de practicar — ¿tienes alguna pregunta?",
     exercisesAnnounce: "Muy bien. Ahora vamos con unas preguntas rápidas.",

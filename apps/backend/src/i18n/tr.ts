@@ -23,7 +23,7 @@ export const TR_CHROME: ChromeBundle = {
   },
   surrender: ["bilmiyorum", "bilmem", "fikrim yok", "emin değilim", "emin degilim", "geç", "gec", "pas", "boş ver", "bos ver"],
   script: {
-    greeting: "Merhaba {name}! Bugün seninle {topic} konusunu öğreneceğiz. Başlamaya hazır mısın?",
+    greeting: "Merhaba {name}! {callback}Bugün seninle {topic} konusunu öğreneceğiz. Başlamaya hazır mısın?",
     teachIntro: "Şimdi konuyu kısaca açıklayayım.",
     askQuestions: "Alıştırmalara geçmeden — sormak istediğin bir şey var mı?",
     exercisesAnnounce: "Harika. Şimdi birkaç kısa soruyla pekiştirelim.",

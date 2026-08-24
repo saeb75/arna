@@ -226,6 +226,9 @@ export function useVoiceSession(sessionId: string | null) {
       beatDone: boolean;
       /** Alıştırma/açık uçlu adımda: öğrencinin sözü cevap denemesi miydi? */
       isAttempt: boolean;
+      /** Roleplay oturumlarında dolu — ders sayfası bunları yok sayar */
+      progress?: { done: number; total: number };
+      newHits?: Array<{ objectiveId: string; evidence: string }>;
     } | null> => {
       const sid = sessionRef.current;
       if (!sid) return null;

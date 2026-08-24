@@ -4,9 +4,9 @@ import { z } from "zod";
 // Ortak sabitler
 // ---------------------------------------------------------------------------
 
-export const CEFR_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
-export const cefrLevelSchema = z.enum(CEFR_LEVELS);
-export type CefrLevel = z.infer<typeof cefrLevelSchema>;
+// Yaprak modülden gelir — `roleplay.ts` de okuyor ve döngü oluşmasın diye ayrıldı
+export { CEFR_LEVELS, cefrLevelSchema, type CefrLevel } from "./levels.js";
+import { CEFR_LEVELS, cefrLevelSchema } from "./levels.js";
 
 /**
  * Ders tipi. Sabit müfredat kataloğunun ritmi buna dayanır: `grammar` yapı
@@ -394,3 +394,4 @@ export * from "./lessonFlow.js";
 export * from "./lessonLayers.js";
 export * from "./checkpoint.js";
 export * from "./answerReview.js";
+export * from "./roleplay.js";

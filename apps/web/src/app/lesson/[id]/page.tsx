@@ -682,18 +682,43 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
    */
   const inputLocked = status === "thinking" || status === "transcribing" || inputGrace;
 
+  /**
+   * Aktif MCQ şıkları — cevap beklenirken tıklanabilir buton olarak gösterilir.
+   * SEBEP: tek harf ("C") STT için en kötü girdi sınıfı — Whisper "chat"/"see"
+   * duyuyordu. Buton yalnızca HASSAS BİR GİRDİ AYGITI: tıklamak şık metnini
+   * `handleUserText`e vermek demek; `matchesAnswer` metin eşitliğiyle yakalar,
+   * yanlış şık mevcut judge yolundan hak işleyerek akar. Akış kuralı değişmez.
+   * Mikrofon/klavye açık kalır — "the first one" diyeni judge zaten kabul ediyor.
+   */
+  const activeBeatView = lesson?.lecture.beats[beatIndex];
+  const mcqOptions =
+    awaiting === "exercise" &&
+    activeBeatView?.kind === "exercise" &&
+    activeBeatView.answerSpec.kind === "choice" &&
+    activeBeatView.options?.length
+      ? activeBeatView.options
+      : null;
+
   return (
     <main className="flex h-dvh flex-col bg-background">
-      {/* Avatar + faz göstergesi */}
-      <div className="relative h-[36dvh] shrink-0 bg-gradient-to-b from-indigo-950 to-neutral-900">
-        <AvatarScene
-          avatarUrl="/fatman.glb"
-          animationUrl="/idle.fbx"
-          animate={false}
-          timeline={timeline}
-          getTime={getTime}
-          getLevel={getLevel}
-        />
+      {/* Avatar + faz göstergesi. Avatar ORTADA, 3:4 dikey kutuda: karakter
+          göğüsten yukarı kadrajlanıyor (tam genişlik şeridinde yüz küçük
+          kalıyor, kollar da kenarlardan taşıyordu). Faz göstergesi ve kapatma
+          düğmesi kutunun DIŞINDA, şeridin köşelerinde kalır. */}
+      <div className="relative flex shrink-0 justify-center bg-gradient-to-b from-indigo-950 to-neutral-900 py-3">
+        <div className="aspect-[3/4] h-[38dvh] overflow-hidden rounded-2xl ring-1 ring-white/10">
+          <AvatarScene
+            avatarUrl="/fatman.glb"
+            animationUrl="/idle.fbx"
+            animate={false}
+            timeline={timeline}
+            getTime={getTime}
+            getLevel={getLevel}
+            /* Hoca ilk cümlesine başladığında bir kez el kaldırıp selam verir
+               (AvatarScene tek seferliği kendi içinde tutuyor). */
+            greet={status === "speaking"}
+          />
+        </div>
         <button
           onClick={() => setFinishOpen(true)}
           aria-label="Dersi kapat"
@@ -762,6 +787,26 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
       {/* Alt çubuk: Type · Mic · Inspire */}
       <div className="shrink-0 border-t bg-card px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
         <div className="mx-auto max-w-2xl">
+          {/* MCQ şıkları: cevap beklenirken tıklanabilir — sesle tek harf söyleme
+              derdini kökten kaldırır. Dikey yığın (mobil), harf rozetli. */}
+          {mcqOptions && (
+            <div className="mb-3 flex flex-col gap-2">
+              {mcqOptions.map((opt, i) => (
+                <Button
+                  key={i}
+                  variant="outline"
+                  disabled={inputLocked}
+                  onClick={() => void handleUserText(opt)}
+                  className="h-auto min-h-11 w-full justify-start gap-3 whitespace-normal py-2.5 text-left"
+                >
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                    {OPTION_LETTERS[i]?.toUpperCase()}
+                  </span>
+                  <span dir="auto">{opt}</span>
+                </Button>
+              ))}
+            </div>
+          )}
           {/* Kapanışta dersi bitiren TEK şey bu buton — hiçbir sayaç kapatmaz.
               Sohbet açık kalır; öğrenci istediği kadar soru sorabilir. */}
           {phase === "wrapup" && (
