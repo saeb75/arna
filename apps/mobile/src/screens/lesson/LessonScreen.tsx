@@ -1,0 +1,143 @@
+import { useEffect, useRef, useState } from "react";
+import { FlatList, KeyboardAvoidingView, Platform, Pressable, Text, View } from "react-native";
+import { router } from "expo-router";
+import { Button } from "../../components/ui/Button";
+import { Input } from "../../components/ui/Input";
+import { MessageBubble } from "../../components/shared/MessageBubble";
+import { LessonSessionController } from "../../controllers/LessonSessionController";
+import { useLessonSessionStore } from "../../stores/useLessonSessionStore";
+import { FinishButton } from "./FinishButton";
+import { HintCard } from "./HintCard";
+import { OptionButtons } from "./OptionButtons";
+import { SpeakingIndicator } from "./SpeakingIndicator";
+
+/**
+ * DERS EKRANI — yalnız store'dan okur, yalnız controller çağırır (CLAUDE.md).
+ * Akış makinesi LessonSessionController'da; burada tek bir karar bile yok.
+ */
+export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
+  const {
+    lesson, loadError, started, phase, beatIndex, awaiting,
+    messages, hint, speaking, recording, busy,
+  } = useLessonSessionStore();
+  const [typed, setTyped] = useState("");
+  const listRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    void LessonSessionController.open(catalogLessonId);
+    return () => LessonSessionController.leave(); // çıkışta sesi sustur
+  }, [catalogLessonId]);
+
+  useEffect(() => {
+    // Yeni balon yerleştikten sonra dibe in (web'deki rAF dersinin karşılığı)
+    const t = setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
+    return () => clearTimeout(t);
+  }, [messages.length]);
+
+  if (loadError) {
+    return (
+      <View className="flex-1 items-center justify-center gap-3 bg-background px-6">
+        <Text className="text-center text-sm text-red-400">Ders yüklenemedi ({loadError})</Text>
+        <Pressable onPress={() => router.back()}>
+          <Text className="text-primary">← Geri</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  if (!lesson) {
+    return (
+      <View className="flex-1 items-center justify-center bg-background">
+        <Text className="text-muted">Ders hazırlanıyor…</Text>
+      </View>
+    );
+  }
+
+  // Başlamadan önce: başlık + hedefler + başlat (web'deki unlock kapısı karşılığı)
+  if (!started) {
+    return (
+      <View className="flex-1 justify-center gap-4 bg-background px-6">
+        <Text className="text-2xl font-bold text-white">{lesson.title}</Text>
+        <Text className="text-sm text-muted">{lesson.theme}</Text>
+        <Button title="Derse başla" onPress={() => LessonSessionController.start()} />
+        <Button title="Geri" variant="outline" onPress={() => router.back()} />
+      </View>
+    );
+  }
+
+  const beat = lesson.lecture.beats[beatIndex];
+  const mcqOptions =
+    awaiting === "exercise" && beat?.kind === "exercise" && beat.answerSpec.kind === "choice" && beat.options?.length
+      ? beat.options
+      : null;
+  const inputLocked = !awaiting || busy || speaking;
+
+  return (
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1 bg-background">
+      <View className="flex-row items-center justify-between px-4 pt-14">
+        <Pressable onPress={() => void LessonSessionController.finish()} hitSlop={12}>
+          <Text className="text-lg text-muted">✕</Text>
+        </Pressable>
+        <Text className="text-sm font-medium text-white" numberOfLines={1}>{lesson.title}</Text>
+        <Pressable onPress={() => LessonSessionController.showHint()} hitSlop={12}>
+          <Text className="text-lg">💡</Text>
+        </Pressable>
+      </View>
+
+      <SpeakingIndicator speaking={speaking} />
+
+      <FlatList
+        ref={listRef}
+        data={messages}
+        keyExtractor={(m) => m.id}
+        className="flex-1"
+        contentContainerClassName="gap-2 px-4 pb-3"
+        renderItem={({ item }) => (
+          <MessageBubble role={item.role} text={item.text} runs={item.runs} points={item.points} />
+        )}
+      />
+
+      {hint && <HintCard hint={hint} label={lesson.ui.labels.hint} />}
+      {mcqOptions && (
+        <OptionButtons
+          options={mcqOptions}
+          disabled={inputLocked}
+          onSelect={(opt) => LessonSessionController.submitOption(opt)}
+        />
+      )}
+      {phase === "wrapup" && (
+        <View className="px-4 pb-2">
+          <FinishButton onFinish={() => void LessonSessionController.finish()} />
+        </View>
+      )}
+
+      <View className="flex-row items-center gap-2 border-t border-muted/20 px-4 pb-8 pt-3">
+        <View className="flex-1">
+          <Input
+            value={typed}
+            editable={!inputLocked}
+            placeholder={awaiting ? "Cevabını yaz…" : "Emma konuşuyor…"}
+            onChangeText={setTyped}
+            onSubmitEditing={() => {
+              const t = typed.trim();
+              if (!t) return;
+              setTyped("");
+              void LessonSessionController.handleUserText(t);
+            }}
+            returnKeyType="send"
+          />
+        </View>
+        <Pressable
+          disabled={inputLocked}
+          onPressIn={() => void LessonSessionController.pressMic()}
+          onPressOut={() => void LessonSessionController.releaseMic()}
+          className={`size-14 items-center justify-center rounded-full ${
+            recording ? "bg-red-600" : inputLocked ? "bg-card opacity-40" : "bg-primary"
+          }`}
+        >
+          <Text className="text-xl">🎙</Text>
+        </Pressable>
+      </View>
+    </KeyboardAvoidingView>
+  );
+}

@@ -202,7 +202,7 @@ export default async function sessionRoutes(app: FastifyInstance) {
       if (buffer.length < 1000) return reply.code(400).send({ error: "audio_too_short" });
 
       try {
-        return await stt(request.userId, params.data.sessionId, buffer, file.mimetype);
+        return await stt(request.userId, params.data.sessionId, buffer, file.mimetype, file.filename);
       } catch (err) {
         return sendError(reply, err);
       }

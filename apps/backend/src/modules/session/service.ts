@@ -1067,23 +1067,44 @@ export async function tts(
 const EXT_BY_MIME: Record<string, string> = {
   "audio/webm": "webm",
   "audio/mp4": "mp4",
+  "audio/m4a": "mp4",
+  "audio/x-m4a": "mp4",
+  "audio/aac": "mp4",
   "audio/mpeg": "mp3",
   "audio/wav": "wav",
   "audio/x-wav": "wav",
   "audio/ogg": "ogg",
 };
 
+/**
+ * OpenAI formatı DOSYA ADINDAN çıkarır; yanlış uzantı = "corrupted or
+ * unsupported". İstemci mimetype'ı güvenilmez: RN multipart'ı content-type'ı
+ * düşürebiliyor (canlıda ölçüldü — mobil m4a "webm" sayılıp 502 attı). Sıra:
+ * mime haritası → yüklenen dosya adının uzantısı → içerik imzası → webm.
+ */
+function audioExt(mimetype: string, filename: string | undefined, buffer: Buffer): string {
+  const byMime = EXT_BY_MIME[mimetype.split(";")[0]!.trim().toLowerCase()];
+  if (byMime) return byMime;
+  const byName = /\.(webm|mp4|m4a|mp3|wav|ogg)$/i.exec(filename ?? "")?.[1]?.toLowerCase();
+  if (byName) return byName === "m4a" ? "mp4" : byName;
+  if (buffer.length > 12 && buffer.subarray(4, 8).toString("ascii") === "ftyp") return "mp4";
+  if (buffer.subarray(0, 4).toString("ascii") === "OggS") return "ogg";
+  if (buffer.subarray(0, 4).toString("ascii") === "RIFF") return "wav";
+  if (buffer.length > 4 && buffer.readUInt32BE(0) === 0x1a45dfa3) return "webm";
+  return "webm";
+}
+
 export async function stt(
   userId: string,
   sessionId: string,
   buffer: Buffer,
   mimetype: string,
+  filename?: string,
 ): Promise<{ text: string }> {
   const owned = await getOwnedSession(userId, sessionId);
   if (!owned) throw new SessionError("not_found", "Oturum bulunamadı");
 
-  // OpenAI formatı dosya adından çıkarır — iOS Safari mp4 düzeltmesi (eski repodan)
-  const ext = EXT_BY_MIME[mimetype.split(";")[0]!.trim()] ?? "webm";
+  const ext = audioExt(mimetype, filename, buffer);
 
   // Dil ipucu: kısa konuşmalarda otomatik algılama şaşabiliyor (Türkçe → Çince gibi).
   // Öğrencinin ana dili profilden gelir — hiçbir dile sabitlenmez.
@@ -1102,7 +1123,10 @@ export async function stt(
     });
     return { text: result.text };
   } catch (err) {
-    throw new SessionError("stt_failed", `STT hatası: ${String(err).slice(0, 200)}`);
+    throw new SessionError(
+      "stt_failed",
+      `STT hatası (mime=${mimetype}, ad=${filename ?? "-"}, ext=${ext}): ${String(err).slice(0, 200)}`,
+    );
   }
 }
 
