@@ -6,7 +6,7 @@ Praktika benzeri, 3B avatarlı, kalıcı hafızalı, kişiselleştirilmiş müfr
 
 - **Mimari tasarım dokümanı (tek doğruluk kaynağı):** `docs/Speakly-Mimari-Dokumani.pdf` (37 sayfa) · Artifact: https://claude.ai/code/artifact/8adfc878-fb2d-4142-b256-c113b3ee0844
 - **Araştırma raporları:** `docs/research/` (rakip analizi, memory sistemleri, müfredat, ses pipeline'ı, backend, kişiselleştirme, eski kod analizi + tamlık denetimi)
-- **Eski prototip repo:** `/Users/saebjafari/Desktop/speakly` — avatar kodu buradan taşınacak: `src/components/AvatarScene.tsx` (koru, ~1.020 satır, sağlam), `src/lib/viseme.ts` (Timeline sözleşmesi koru), `src/lib/alignment.ts`, `src/lib/arkitVisemes.ts`, `public/fatman.glb` (ana avatar, satın alınmış, ARKit-52) ve `public/draco/`.
+- **Avatar taşındı ve `apps/web`'de yaşıyor:** `src/components/AvatarScene.tsx` (koru, ~1.280 satır, sağlam), `src/lib/viseme.ts` (Timeline sözleşmesi koru), `src/lib/alignment.ts`, `src/lib/arkitVisemes.ts`, `public/fatman.glb` (ana avatar, satın alınmış, ARKit-52) ve `public/draco/`. Mobil, avatarı WebView ile `/embed/avatar` sayfasından tüketir (köprü protokolü: `packages/contracts/src/avatarProtocol.ts`). Eski prototip repo (`/Users/saebjafari/Desktop/speakly`) artık yalnız arşiv.
 
 ## Monorepo yapısı
 

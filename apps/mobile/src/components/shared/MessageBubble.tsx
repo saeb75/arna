@@ -14,18 +14,25 @@ interface MessageBubbleProps {
   points?: RichText[];
 }
 
+/** Ardışık run'lar bitişik yazılmasın: önceki boşlukla bitmiyor VE yenisi boşlukla başlamıyorsa araya boşluk gir ("başlayalım.Today" canlı hatası). */
+function needsSpace(prev: string | undefined, cur: string): boolean {
+  if (!prev) return false;
+  return !/\s$/.test(prev) && !/^\s/.test(cur);
+}
+
 function Runs({ runs }: { runs: RichText }) {
   return (
     <Text className="text-base leading-6 text-white">
-      {runs.map((r, i) =>
-        r.lang === "en" ? (
+      {runs.map((r, i) => {
+        const sep = needsSpace(runs[i - 1]?.text, r.text) ? " " : "";
+        return r.lang === "en" ? (
           <Text key={i} className={r.emphasis ? "font-bold text-indigo-300" : "font-semibold text-indigo-200"}>
-            {r.text}
+            {sep + r.text}
           </Text>
         ) : (
-          <Text key={i}>{r.text}</Text>
-        ),
-      )}
+          <Text key={i}>{sep + r.text}</Text>
+        );
+      })}
     </Text>
   );
 }

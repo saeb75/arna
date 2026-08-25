@@ -6,10 +6,10 @@ import { Input } from "../../components/ui/Input";
 import { MessageBubble } from "../../components/shared/MessageBubble";
 import { LessonSessionController } from "../../controllers/LessonSessionController";
 import { useLessonSessionStore } from "../../stores/useLessonSessionStore";
+import { AvatarStage } from "./AvatarStage";
 import { FinishButton } from "./FinishButton";
 import { HintCard } from "./HintCard";
 import { OptionButtons } from "./OptionButtons";
-import { SpeakingIndicator } from "./SpeakingIndicator";
 
 /**
  * DERS EKRANI — yalnız store'dan okur, yalnız controller çağırır (CLAUDE.md).
@@ -84,7 +84,7 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
         </Pressable>
       </View>
 
-      <SpeakingIndicator speaking={speaking} />
+      <AvatarStage speaking={speaking} />
 
       <FlatList
         ref={listRef}

@@ -224,8 +224,17 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
   `settle()` deseni: onended + onerror + timeout tek noktada).
 - **MCQ cevabı butonla** — web'de canlı hatadan öğrenildi: tek harf STT için en
   kötü girdi. Şıklar tıklanabilir; mikrofon/klavye açık kalır.
-- **Avatar ilk aşamada WebView** ile (kök CLAUDE.md kararı); native Three.js
-  entegrasyonu ayrı faz.
+- **Avatar WebView ile** (kök CLAUDE.md kararı; native Three.js ayrı faz —
+  expo-gl'de draco/postprocessing/52-morph desteği güvenilmez). Kurulum:
+  `EXPO_PUBLIC_AVATAR_URL` → apps/web `/embed/avatar`; boşsa avatar kapalı,
+  SpeakingIndicator'a dönülür. Ses, avatar aktifken WebView İÇİNDE çalar
+  (dudak senkronu ses+timeline'ın aynı JS bağlamında olmasını gerektirir).
+  Köprünün sahibi `lib/avatarBridge.ts` + rota seçimi `lib/voice.ts`;
+  protokol tipleri `@arna/contracts` `avatarProtocol.ts`. Ekranlar yalnız
+  `AvatarStage` render eder (köprünün fiziksel ucu — attach/onMessage).
+  settle/watchdog sahipliği VoiceService'ten ÇIKMAZ: WebView ölürse 4sn
+  start-watchdog aynı klipleri expo-audio'yla çalar, ders asla kilitlenmez.
+  JWT WebView'a ASLA girmez — TTS'i RN çeker, yalnız klip baytları köprüden geçer.
 - Sistem prompt'u, LLM anahtarı, akıl yürütme İSTEMCİDE YAŞAMAZ — mobil yalnız
   `/v1` uçlarını çağırır.
 

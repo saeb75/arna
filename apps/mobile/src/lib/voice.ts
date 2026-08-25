@@ -1,7 +1,8 @@
 import { AudioModule, createAudioPlayer, setAudioModeAsync, RecordingPresets, type AudioPlayer } from "expo-audio";
 import * as FileSystem from "expo-file-system/legacy";
-import type { RichText } from "@arna/contracts";
+import type { AvatarClip, RichText } from "@arna/contracts";
 import { api } from "../api";
+import { AvatarBridge } from "./avatarBridge";
 
 /**
  * SES SERVİSİ — cihaz G/Ç katmanı. Ekranlar BUNA DOKUNAMAZ; yalnız controller
@@ -67,12 +68,12 @@ export const VoiceService = {
       onEnd();
     };
 
-    let clips: Array<{ audioBase64: string }> = [];
+    let clips: AvatarClip[] = [];
     try {
       const res = await api.post(`/v1/sessions/${sessionId}/tts`, {
         runs: runs.map((r) => ({ lang: r.lang, text: r.text })),
       });
-      clips = (res.data as { clips: Array<{ audioBase64: string }> }).clips ?? [];
+      clips = (res.data as { clips: AvatarClip[] }).clips ?? [];
     } catch {
       // TTS düştü — metin ekranda, akış İLERLEMELİ (ders kilidi kök hatası)
       settle();
@@ -85,6 +86,7 @@ export const VoiceService = {
 
     // Toplam kabaca süre bilinmiyor; watchdog klip sayısına göre cömert:
     // klip başına 30sn + 5sn. Takılan oynatıcı dersi asla kilitleyemez.
+    // Bu dış watchdog HER İKİ rota için de nihai emniyettir (avatar dahil).
     watchdog = setTimeout(settle, clips.length * 30_000 + 5_000);
 
     const playClip = async (index: number): Promise<void> => {
@@ -119,6 +121,38 @@ export const VoiceService = {
         settle(); // tek klip bile çalınamazsa akış ilerler
       }
     };
+
+    // ROTA SEÇİMİ (her speak anında): avatar köprüsü hazırsa ses WebView
+    // içinde çalar (dudak senkronu ses+timeline aynı bağlamda olmalı — mimari
+    // karar, bkz. contracts/avatarProtocol.ts). Köprü yoksa/ölürse expo-audio.
+    if (AvatarBridge.isReady()) {
+      // Start-watchdog: 4sn içinde `started` gelmezse sayfa takılmış demektir —
+      // toparla (reload) ve AYNI klipleri expo-audio'yla çal. Klipler zaten
+      // elimizde, fallback bedava; konuşma asla sessizce yutulmaz.
+      const startWatchdog = setTimeout(() => {
+        console.warn("[voice] avatar 4sn'de started vermedi — expo-audio'ya düşülüyor");
+        AvatarBridge.recover();
+        if (gen === generation) void playClip(0);
+        else settle();
+      }, 4_000);
+      AvatarBridge.speak(gen, clips, {
+        onStarted: () => clearTimeout(startWatchdog),
+        onEnded: () => {
+          clearTimeout(startWatchdog);
+          settle();
+        },
+        onError: (code) => {
+          clearTimeout(startWatchdog);
+          if (gen !== generation) {
+            settle(); // bayat konuşma — expo-audio yolundaki gen davranışıyla aynı
+            return;
+          }
+          console.warn("[voice] avatar hatası:", code, "— expo-audio'ya düşülüyor");
+          void playClip(0);
+        },
+      });
+      return;
+    }
     void playClip(0);
   },
 
@@ -130,6 +164,11 @@ export const VoiceService = {
       /* zaten kaldırılmış olabilir */
     }
     currentPlayer = null;
+    try {
+      AvatarBridge.stop(); // WebView'da çalan varsa sustur (köprü yoksa no-op)
+    } catch {
+      /* köprü bağlı değildi */
+    }
   },
 
   async startRecording(): Promise<boolean> {

@@ -309,9 +309,14 @@ for (const s of ["Hey!", "merhaba", "how are you", "İlişkiler çoğulduğu anl
   expectTrue(`"${s}" pes etme DEĞİL`, !isSurrender(s));
 }
 
-// CANLI HATA: "Yok, bu kadar yeterli." tam-dize eşleşmesine takılıp LLM'e gitti,
+// CANLI HATA 1: "Yok, bu kadar yeterli." tam-dize eşleşmesine takılıp LLM'e gitti,
 // hoca soru penceresinde boş turlar döndü. classifyAck ≤4 kelimede kelime-sınırlı
-// İÇERME de yapar; birden fazla SINIF eşleşirse belirsizdir (LLM karar verir).
+// İÇERME de yapar.
+// CANLI HATA 2 (25 Ağu 2026): "Merhaba, evet, hazırım." — "evet"(yes) +
+// "hazırım"(proceed) iki sınıfa birden düşünce eski kural null diyordu; cevap
+// LLM'e gitti, hoca DERSİ BAŞTAN TANITTI (çifte selamlama). yes+proceed çelişki
+// DEĞİL, en doğal onaydır → proceed kazanır. "no" içeren çoklu eşleşme
+// belirsiz kalır (LLM karar verir).
 console.log("— classifyAck (içerme + çelişki koruması) —");
 {
   const sets = {
@@ -326,7 +331,10 @@ console.log("— classifyAck (içerme + çelişki koruması) —");
     ["Evet, bir sorum var!", "yes"], // "evet" + "var" aynı sınıf — çelişki değil
     ["yes", "yes"],
     ["Tamam, hazırım!", "proceed"],
-    ["evet tamam", null], // yes + proceed çelişkisi → LLM karar versin
+    ["Merhaba, evet, hazırım.", "proceed"], // CANLI HATA 2 — selamlamalı onay
+    ["yes, I'm ready", "proceed"], // aynı hatanın İngilizcesi
+    ["evet tamam", "proceed"], // yes+proceed = olumlu onay, çelişki değil (revize)
+    ["yok tamam", null], // no+proceed GERÇEK çelişki → LLM karar versin
     ["Bu konuyu hiç anlamadım açıkçası ve tekrar ister misin", null], // >4 kelime
   ];
   for (const [text, want] of cases) {

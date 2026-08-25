@@ -117,7 +117,13 @@ export function classifyAck(text: string, sets: AckSets): AckKind | null {
   if (hit(sets.no)) matches.push("no");
   if (hit(sets.yes)) matches.push("yes");
   if (hit(sets.proceed)) matches.push("proceed");
-  return matches.length === 1 ? matches[0]! : null;
+  if (matches.length === 1) return matches[0]!;
+  // "Evet, hazırım" / "yes, I'm ready": onay + ilerleme birlikte çelişki DEĞİL,
+  // en doğal onaydır — proceed kazanır. (Canlı hata 25 Ağu 2026: null'a düşünce
+  // cevap LLM'e gitti ve hoca dersi baştan tanıttı — çifte selamlama.)
+  // "no" içeren her çoklu eşleşme gerçek belirsizliktir → null (LLM karar verir).
+  if (matches.length === 2 && matches.includes("yes") && matches.includes("proceed")) return "proceed";
+  return null;
 }
 
 /** Akışın hangi girdiyi beklediği. */

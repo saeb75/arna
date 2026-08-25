@@ -507,6 +507,32 @@ function judgeLanguageRule(tutorLanguage: "native" | "english", l1Name: string):
 }
 
 /**
+ * Yeniden-sor dalında doğru cevabın sızıp sızmadığını kelime sınırıyla arar.
+ * Bu bir AKIŞ kararı değildir (attempt/beatDone'a dokunmaz) — içerik
+ * redaksiyonudur: canlıda model "cevabı henüz söyleme" kuralına uymayıp
+ * cevabı verdikten sonra soruyu yeniden sordu (saçma akış, 25 Ağu 2026).
+ */
+function leaksAnswer(replyPlain: string, answers: readonly string[]): boolean {
+  const norm = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/[’‘]/g, "'")
+      .replace(/[^\p{L}\p{N}' ]/gu, " ")
+      // Kesme yalnız harf ARASINDA kalır ("i'm"); tırnak görevindeki kesme
+      // boşluğa döner — yoksa "'yes i am'" kelime sınırını bozup sızıntıyı gizler
+      .replace(/'/g, (q, i: number, str: string) =>
+        /\p{L}/u.test(str[i - 1] ?? "") && /\p{L}/u.test(str[i + 1] ?? "") ? "'" : " ",
+      )
+      .replace(/\s+/g, " ")
+      .trim();
+  const hay = ` ${norm(replyPlain)} `;
+  return answers.some((a) => {
+    const n = norm(a);
+    return n.length >= 2 && hay.includes(` ${n} `);
+  });
+}
+
+/**
  * Deterministik eşleyicinin TUTTURAMADIĞI alıştırma girdisini değerlendirir.
  * Birebir eşleşen doğrular buraya HİÇ gelmez — istemci onları LLM'siz kutlar.
  * Buraya düşen cevap yine de doğru olabilir (yazım sürçmesi, listede olmayan
@@ -589,7 +615,13 @@ async function judgeExercise(
       // çıkarken cevap her hâlükârda verilir — bayrağı istemci hesaplar.
       opts.lastExchange || attempt >= 1
         ? `This is the LAST time you can respond on this question. Kindly GIVE the correct answer in a full ENGLISH sentence (its own "en" run), whatever they wrote, and add one word of encouragement. Do NOT ask the question again.`
-        : `Reply in 1-2 short sentences: encourage, remind them of today's target, then ASK THE SAME QUESTION again. Do NOT reveal the answer yet. Do not repeat your previous wording word for word — say it a different way.`,
+        : [
+            `Reply in 1-2 short sentences: encourage, give a small HINT that points at today's target,`,
+            `then ASK THE SAME QUESTION again — worded differently than before.`,
+            `CRITICAL: the student gets another real try, so your reply must NOT contain the correct`,
+            `answer in ANY form — not the sentence, not the option letter, not a quote of it.`,
+            `Revealing the answer and then asking again is absurd; such a reply is WRONG.`,
+          ].join("\n"),
       ``,
       `Reply with STRICT JSON: {"isAttempt": <true|false>, "ok": <true|false>, "reply": [{"lang":"l1"|"en","text":"..."}]}`,
       `Plain speech only: no markdown, no emojis, no stage directions.`,
@@ -598,15 +630,55 @@ async function judgeExercise(
       .join("\n"),
     user: `The student said: "${text}"`,
     schema: exerciseVerdictSchema,
-    promptVersion: "exercise-check.v4",
+    promptVersion: "exercise-check.v5",
     userId,
     sessionId,
     maxTokens: 250,
     temperature: 0.2,
   });
+
+  // Sızıntı guard'ı — yalnız yeniden-sor dalında (prompt'taki dal koşulunun
+  // aynası). Yapısal karar (ok/isAttempt) İLK karardan gelir ve DEĞİŞMEZ;
+  // yeniden üretim yalnız metni tazeler. Mutlu yolda sıfır ek çağrı.
+  const revealAllowed = surrendered || opts.lastExchange || attempt >= 1;
+  const closesWithSuccess = verdict.ok && verdict.isAttempt && !surrendered;
+  let reply = verdict.reply;
+  if (!revealAllowed && !closesWithSuccess && leaksAnswer(runsToPlain(reply), accepted)) {
+    console.warn(`[judge] cevap sızıntısı yakalandı (${sessionId}) — metin bir kez yeniden üretiliyor`);
+    try {
+      const retry = await completeJson({
+        purpose: "chat",
+        system: [
+          `Your previous draft revealed the correct answer — that is FORBIDDEN on this turn, the`,
+          `student still has a try left. Rewrite the reply: encourage, give a hint about today's`,
+          `target, re-ask the question. The reply must NOT contain the correct answer or its letter.`,
+          ``,
+          `Original task follows for context:`,
+          `The question item: "${beat.item}"`,
+          `Today's target: ${ctx.core.focus}`,
+          judgeLanguageRule(ctx.tutorLanguage, ctx.l1Name),
+          `Reply with STRICT JSON: {"isAttempt": <true|false>, "ok": <true|false>, "reply": [{"lang":"l1"|"en","text":"..."}]}`,
+        ].join("\n"),
+        user: `The student said: "${text}"`,
+        schema: exerciseVerdictSchema,
+        promptVersion: "exercise-check.v5",
+        userId,
+        sessionId,
+        maxTokens: 250,
+        temperature: 0.2,
+      });
+      reply = retry.reply;
+    } catch {
+      /* yeniden üretim düşerse aşağıdaki deterministik geri düşüş devreye girer */
+    }
+    if (leaksAnswer(runsToPlain(reply), accepted)) {
+      console.warn(`[judge] ikinci taslak da sızdırdı (${sessionId}) — deterministik yeniden-sorma`);
+      reply = [{ lang: "en" as const, text: `Let's try once more: ${beat.item}` }];
+    }
+  }
   const latencyMs = Date.now() - t0;
 
-  const plain = runsToPlain(verdict.reply);
+  const plain = runsToPlain(reply);
   await db.insert(transcriptTurns).values([
     { sessionId, role: "user", text, phase },
     { sessionId, role: "assistant", text: plain, phase, latencyMs },
@@ -617,7 +689,7 @@ async function judgeExercise(
   // prompt ne derse desin (prompta güvenilmez, karar yapısal kalır).
   return {
     text: plain,
-    runs: verdict.reply,
+    runs: reply,
     segmentDone: false,
     beatDone: verdict.ok && verdict.isAttempt && !surrendered,
     isAttempt: verdict.isAttempt || surrendered,
