@@ -6,11 +6,16 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Arna paleti — web'deki koyu zemin/birincil renklerle hizalı başlangıç
-        primary: "#6366f1",
+        // Arna paleti — ana ekran tasarımının menekşesi MARKA rengidir; login ve
+        // ders ekranı da aynı moru kullanır (iki mor yan yana yaşamasın).
+        primary: "#8b5cf6",
         background: "#0b0b10",
         card: "#16161d",
         muted: "#9ca3af",
+        // Ders yolu yüzeyleri: pil/kart/sekme barı, başlanmamış düğüm, tamamlandı rozeti
+        surface: "#1c1c1e",
+        nodeIdle: "#2c2c2e",
+        success: "#22c55e",
       },
     },
   },

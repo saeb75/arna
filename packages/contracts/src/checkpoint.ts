@@ -110,3 +110,29 @@ export function gradeCheckpointItem(item: CheckpointItem, answer: CheckpointAnsw
   if (answer.kind !== "choice") return false;
   return answer.index === item.correctIndex;
 }
+
+// ---------------------------------------------------------------------------
+// CAN ve GEÇME — testin sınav yanı
+// ---------------------------------------------------------------------------
+
+/** Her yanlış bir can yakar; canlar bitince test orada düşer. */
+export const CHECKPOINT_LIVES = 3;
+
+/** Ekranda gösterilen kalan can — ayrı sayaç TUTULMAZ, yanlış sayısından türer. */
+export function livesLeft(wrongCount: number): number {
+  return Math.max(0, CHECKPOINT_LIVES - wrongCount);
+}
+
+/**
+ * GEÇMEK = canları tüketmeden bitirmek. Ayrı bir yüzde eşiği YOKTUR: eşik zaten
+ * canların içinde (3 can = en fazla 2 yanlış). İki kural yan yana yaşasaydı er
+ * ya da geç çelişirlerdi — canları tüketmeden bitirip yine de "kaldın" diyen bir
+ * ekran çıkardı.
+ *
+ * Saf ve paylaşımlı: rozet kararı istemcide ve sunucuda AYNI fonksiyondan çıkar.
+ * Canlar bitip test yarıda kaldığında da doğru çalışır — cevaplanmamış maddeler
+ * yanlış sayılır, çünkü `total` madde sayısıdır, cevaplanan sayısı değil.
+ */
+export function checkpointPassed(score: number, total: number): boolean {
+  return total - score < CHECKPOINT_LIVES;
+}

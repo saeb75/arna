@@ -67,7 +67,7 @@ export function AvatarStage({ speaking }: { speaking: boolean }) {
         />
         {!sceneReady && (
           <View className="absolute inset-0 items-center justify-center bg-card">
-            <ActivityIndicator color="#6366f1" />
+            <ActivityIndicator color="#8b5cf6" />
             <Text className="mt-2 text-xs text-muted">Emma hazırlanıyor…</Text>
           </View>
         )}

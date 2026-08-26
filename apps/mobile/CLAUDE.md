@@ -154,8 +154,13 @@ apps/mobile/src/
 │   ├── _layout.tsx             # kök layout: global.css + oturum geri yükleme
 │   ├── index.tsx               # auth kapısı: session varsa /lessons, yoksa /login
 │   ├── login.tsx
-│   ├── lessons.tsx
-│   ├── lesson/[id].tsx
+│   ├── (tabs)/                 # SEKME KABUĞU — grup, URL'e segment EKLEMEZ
+│   │   ├── _layout.tsx         #   auth kapısı + <Tabs tabBar={<TabBar/>}>
+│   │   ├── lessons.tsx         #   → /lessons (ders yolu, ana ekran)
+│   │   ├── practice.tsx        #   → /practice
+│   │   └── profile.tsx         #   → /profile
+│   ├── lesson/[id].tsx         # sekme DIŞINDA: tam ekran, bar görünmez
+│   ├── checkpoint/[level]/[unit].tsx   # ünite testi — sekme dışında
 │   └── roleplay/[slug].tsx
 ├── api/index.ts                # axios instance (baseURL + JWT interceptor)
 ├── controllers/                # AuthController, CurriculumController, LessonController…
@@ -176,6 +181,17 @@ web'in Next sürümü) ZARARSIZ — yalnız kullanılmayan expo-web hedefini etk
 mobil kendi `node_modules/react`'ini çözüyor (doğrulandı). Metro, SDK 57'de
 workspace'i otomatik algılar; `@arna/contracts` ek ayarsız çözülür (export
 testiyle doğrulandı).
+
+**Sekme kabuğu:** üç sekme `(tabs)` grubunda yaşar; grup parantezli olduğu için
+`/lessons` gibi URL'ler DEĞİŞMEZ. Auth kapısı artık her rotada tekrarlanmaz, tek
+yerde — `(tabs)/_layout.tsx`. Barın tamamı `components/shared/TabBar.tsx`'te;
+layout dosyası stil taşımaz (ince rota kuralı). Tam ekran akışlar (ders, ünite
+testi) grubun DIŞINDA durur, böylece bar onları bölemez. Bar içeriğin üstünde
+yüzdüğü için sekme ekranları alt boşluk bırakır.
+
+**Güvenli alan (`useSafeAreaInsets`) ve yüzde genişlik gibi ÇALIŞMA ZAMANI
+değerleri** NativeWind sınıfıyla ifade edilemez; bunlar `style={{…}}` ile ve
+gerekçe yorumuyla yazılır — `StyleSheet.create` yasağının istisnası budur.
 
 **Bileşen yerleştirme kuralı:** tek ekranda kullanılıyorsa `screens/<ekran>/`,
 iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıysa

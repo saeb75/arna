@@ -1,7 +1,21 @@
-import type { CefrLevel, CurriculumResponse, LessonKind, LessonStatus, Track } from "@arna/contracts";
+import {
+  checkpointPassed,
+  type CefrLevel,
+  type CurriculumResponse,
+  type LessonKind,
+  type LessonStatus,
+  type Track,
+  type UnitCheckpointSummary,
+} from "@arna/contracts";
 import { and, asc, eq, not, like, type Column } from "drizzle-orm";
 import { db } from "../../db/client.js";
-import { catalogLessons, catalogUnits, lessonProgress, userProfiles } from "../../db/schema.js";
+import {
+  catalogLessons,
+  catalogUnits,
+  lessonProgress,
+  unitCheckpoints,
+  userProfiles,
+} from "../../db/schema.js";
 import { CURRICULUM } from "../../curriculum/index.js";
 
 /**
@@ -85,12 +99,38 @@ export async function getCurriculumForUser(userId: string): Promise<CurriculumRe
     byUnit.set(r.unitIndex, list);
   }
 
+  // Ünite testi geçmişi. Kullanıcı başına birkaç satır olduğu için hepsi tek
+  // sorguyla gelir; ÖZET SQL'de değil JS'te çıkarılır ki geçme kararı
+  // contracts'taki `checkpointPassed`ten geçsin — kural tek yerde yaşasın.
+  const attempts = await db
+    .select({
+      unitIndex: unitCheckpoints.unitIndex,
+      score: unitCheckpoints.score,
+      total: unitCheckpoints.total,
+    })
+    .from(unitCheckpoints)
+    .where(and(eq(unitCheckpoints.userId, userId), eq(unitCheckpoints.level, level)));
+
+  const checkpointByUnit = new Map<number, UnitCheckpointSummary>();
+  for (const a of attempts) {
+    const prev = checkpointByUnit.get(a.unitIndex);
+    // "En iyi deneme" oran üzerinden — madde havuzu küçüldüğünde total değişebiliyor.
+    // BAŞARISIZ BİR DENEME KAZANILMIŞ ROZETİ GERİ ALMAZ: passed birikimlidir.
+    const better = !prev || a.score / a.total > prev.bestScore / prev.total;
+    checkpointByUnit.set(a.unitIndex, {
+      passed: (prev?.passed ?? false) || checkpointPassed(a.score, a.total),
+      bestScore: better ? a.score : prev.bestScore,
+      total: better ? a.total : prev.total,
+    });
+  }
+
   const units = unitRows
     .map((u) => ({
       index: u.unitIndex,
       title: u.title,
       goal: u.goal,
       lessons: byUnit.get(u.unitIndex) ?? [],
+      checkpoint: checkpointByUnit.get(u.unitIndex) ?? null,
     }))
     .filter((u) => u.lessons.length > 0);
 

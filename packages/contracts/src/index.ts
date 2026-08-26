@@ -364,12 +364,26 @@ export const curriculumLessonSchema = z.object({
 });
 export type CurriculumLesson = z.infer<typeof curriculumLessonSchema>;
 
+/**
+ * Ünite testinin geçmişi — hiç girilmediyse null. "Tamamlandı" rozeti buradan
+ * hesaplanır. Alan ZORUNLU, değeri nullable: opsiyonel bırakılsaydı sunucu
+ * göndermeyi unuttuğunda şema susar ve rozet sessizce kaybolurdu.
+ */
+export const unitCheckpointSummarySchema = z.object({
+  /** En iyi denemede canlar tüketilmeden bitirildi mi (bkz. checkpointPassed) */
+  passed: z.boolean(),
+  bestScore: z.number().int().min(0),
+  total: z.number().int().min(1),
+});
+export type UnitCheckpointSummary = z.infer<typeof unitCheckpointSummarySchema>;
+
 export const curriculumUnitSchema = z.object({
   index: z.number().int().min(1),
   title: z.string().min(1),
   /** Ünite sonunda öğrencinin yapabilecek olduğu şey (can-do) */
   goal: z.string().min(1),
   lessons: z.array(curriculumLessonSchema).min(1),
+  checkpoint: unitCheckpointSummarySchema.nullable(),
 });
 export type CurriculumUnit = z.infer<typeof curriculumUnitSchema>;
 

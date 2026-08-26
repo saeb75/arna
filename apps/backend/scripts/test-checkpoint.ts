@@ -6,10 +6,13 @@
  *  Çalıştırma: apps/backend içinde `npx tsx scripts/test-checkpoint.ts` */
 import {
   CHECKPOINT_ITEM_COUNT,
+  CHECKPOINT_LIVES,
   ORDER_MAX_WORDS,
   ORDER_MIN_WORDS,
+  checkpointPassed,
   checkpointSchema,
   gradeCheckpointItem,
+  livesLeft,
   type CheckpointItem,
 } from "@arna/contracts";
 import { and, eq, inArray, like, not } from "drizzle-orm";
@@ -255,6 +258,34 @@ try {
   await db.delete(lessonCores).where(eq(lessonCores.catalogLessonId, fixture.id));
   await db.delete(catalogLessons).where(eq(catalogLessons.id, fixture.id));
 }
+
+// ---------------------------------------------------------------------------
+// CAN ve GEÇME KURALI — saf doğruluk tablosu (DB yok, LLM yok, anlık koşar).
+// Kural değişmeden ÖNCE buraya vaka eklenir; `test-flow-rules.ts` deseni.
+// ---------------------------------------------------------------------------
+console.log("\n=== CAN ve GEÇME ===");
+
+check(`can sayısı ${CHECKPOINT_LIVES}`, CHECKPOINT_LIVES === 3, `${CHECKPOINT_LIVES}`);
+
+// Geçme eşiği AYRI değil: canların içinde. 8 maddede en fazla 2 yanlış.
+check("8/8 geçer", checkpointPassed(8, 8));
+check("7/8 geçer (1 yanlış)", checkpointPassed(7, 8));
+check("6/8 geçer (2 yanlış, son can)", checkpointPassed(6, 8));
+check("5/8 KALIR (3 yanlış = canlar bitti)", !checkpointPassed(5, 8));
+check("0/8 kalır", !checkpointPassed(0, 8));
+
+// Canlar bitip test yarıda kalınca yazılan erken skor da kalmalı: cevaplanmayan
+// maddeler yanlış sayılır, çünkü `total` madde sayısıdır — cevaplanan sayısı değil.
+check("yarıda kalan 2/8 kalır", !checkpointPassed(2, 8));
+
+// Havuz küçükse canlar tüketilemez; kural yine de tutarlı davranmalı
+check("2/2 geçer", checkpointPassed(2, 2));
+check("0/2 geçer (2 yanlış canları bitirmez)", checkpointPassed(0, 2));
+
+check("livesLeft(0) = 3", livesLeft(0) === 3, `${livesLeft(0)}`);
+check("livesLeft(2) = 1", livesLeft(2) === 1, `${livesLeft(2)}`);
+check("livesLeft(3) = 0", livesLeft(3) === 0, `${livesLeft(3)}`);
+check("livesLeft negatife inmez", livesLeft(9) === 0, `${livesLeft(9)}`);
 
 await sql.end();
 console.log(`\n${fail === 0 ? "✅ hepsi geçti" : `❌ ${fail} başarısız`}`);
