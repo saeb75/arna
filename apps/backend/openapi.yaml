@@ -15,7 +15,7 @@ info:
   contact:
     name: Arna
 servers:
-  - url: http://localhost:4000
+  - url: http://localhost:6566
     description: Yerel geliştirme
 tags:
   - name: Sistem

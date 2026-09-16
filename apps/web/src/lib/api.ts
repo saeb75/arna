@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:6566";
 
 /**
  * Öğrencinin ana dili (BCP-47). Arayüz şu an tek dilli (Türkçe) olduğu için

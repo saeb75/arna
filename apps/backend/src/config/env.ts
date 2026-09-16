@@ -12,7 +12,7 @@ loadDotenv({ override: true });
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  PORT: z.coerce.number().int().positive().default(4000),
+  PORT: z.coerce.number().int().positive().default(6566),
 
   // Supabase — DATABASE_URL Supavisor pooler adresidir (port 6543, transaction mode)
   DATABASE_URL: z.string().url(),
@@ -26,7 +26,7 @@ const envSchema = z.object({
   ELEVENLABS_VOICE_ID: z.string().optional(),
 
   /** Virgülle ayrılmış izinli origin listesi */
-  CORS_ORIGINS: z.string().default("http://localhost:3000"),
+  CORS_ORIGINS: z.string().default("http://localhost:6567"),
 });
 
 // .env'de "DEGISKEN=" (boş) bırakılan değerler tanımsız sayılır
