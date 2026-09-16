@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -6,14 +6,17 @@ import { CurriculumController } from "../../controllers/CurriculumController";
 import { useCurriculumStore } from "../../stores/useCurriculumStore";
 import {
   buildPathRows,
-  currentPlacement,
+  indexAtOffset,
   initialRowIndex,
+  rowContexts,
   rowHeight,
   rowOffsets,
+  type PathContext,
   type PathRow,
 } from "../../lib/lessonPath";
 import { ContinueCard } from "./ContinueCard";
 import { LessonsHeader } from "./LessonsHeader";
+import { LevelBanner } from "./LevelBanner";
 import { PathNode } from "./PathNode";
 import { UnitPill } from "./UnitPill";
 
@@ -49,10 +52,17 @@ export function LessonsScreen() {
   );
 
   const rows = useMemo<PathRow[]>(() => (curriculum ? buildPathRows(curriculum) : []), [curriculum]);
-  const placement = useMemo(() => (curriculum ? currentPlacement(curriculum) : null), [curriculum]);
 
   /** Satır yükseklikleri sabit → ölçüm beklemeden kaldığı düğüme kaydırabiliyoruz */
   const offsets = useMemo(() => rowOffsets(rows), [rows]);
+  /** Satır → o an geçerli seviye/ünite (başlık kartı kaydırmayı bununla izler) */
+  const contexts = useMemo(() => rowContexts(rows), [rows]);
+
+  const listRef = useRef<FlatList<PathRow>>(null);
+  // Sunumsal yerel durum (store kuralını bozmaz): kartta görünen bağlam.
+  // rowContexts ardışık satırlarda AYNI nesneyi paylaşır → referans kıyası
+  // yeter, kaydırma başına gereksiz render yok.
+  const [scrollCtx, setScrollCtx] = useState<PathContext | null>(null);
 
   if (error) {
     return (
@@ -76,11 +86,14 @@ export function LessonsScreen() {
     );
   }
 
-  const headerH = placement ? HEADER_H_WITH_CARD : HEADER_H_BARE;
+  const startIndex = initialRowIndex(rows, curriculum.level);
+  const ctx = scrollCtx ?? contexts[startIndex] ?? null;
+  const headerH = ctx ? HEADER_H_WITH_CARD : HEADER_H_BARE;
 
   return (
     <View className="flex-1 bg-background">
       <FlatList
+        ref={listRef}
         data={rows}
         keyExtractor={(row) => row.key}
         showsVerticalScrollIndicator={false}
@@ -95,11 +108,26 @@ export function LessonsScreen() {
           offset: offsets[index] ?? 0,
           index,
         })}
-        initialScrollIndex={initialRowIndex(rows)}
+        initialScrollIndex={startIndex}
         // getItemLayout sabit yüksekliklerle çalışıyor; yine de listeyi kilitleme
         onScrollToIndexFailed={() => {}}
+        // Başlık kartı kaydırmayı izler: paddingTop === başlık yüksekliği
+        // olduğundan başlığın hemen altındaki satır, satır-uzayında tam
+        // contentOffset.y konumundadır — ölçüm yok, ikili arama yeter.
+        scrollEventThrottle={32}
+        onScroll={(e) => {
+          const i = indexAtOffset(offsets, e.nativeEvent.contentOffset.y);
+          const next = contexts[i];
+          if (next) setScrollCtx((prev) => (prev === next ? prev : next));
+        }}
+        // ~510 satırlık altı-seviye listesi derin initialScrollIndex ile açılıyor —
+        // pencereyi dar tut ki açılışta yol boyu her düğüm render edilmesin
+        initialNumToRender={16}
+        windowSize={11}
         renderItem={({ item }) =>
-          item.kind === "unit" ? (
+          item.kind === "level" ? (
+            <LevelBanner level={item.level} label={item.label} state={item.state} />
+          ) : item.kind === "unit" ? (
             <UnitPill title={item.title} />
           ) : item.kind === "lesson" ? (
             <PathNode
@@ -127,12 +155,13 @@ export function LessonsScreen() {
         style={{ paddingTop: insets.top }}
       >
         <LessonsHeader streak={0} />
-        {placement && (
+        {ctx && (
           <ContinueCard
-            level={curriculum.level}
-            unitTitle={placement.unitTitle}
-            lessonTitle={placement.lesson.title}
-            onPress={() => router.push(`/lesson/${placement.lesson.id}`)}
+            topLine={`${ctx.level} · ${ctx.label}`}
+            title={ctx.unitTitle || ctx.label}
+            // Dokunuş: kaldığın derse geri kaydır — uzak seviyeye gezinmişken
+            // tek dokunuşla dönüş. Ders yine düğümünden açılır.
+            onPress={() => listRef.current?.scrollToIndex({ index: startIndex, animated: true })}
           />
         )}
       </View>

@@ -1,5 +1,12 @@
 import { create } from "zustand";
-import type { LessonContentV7, LessonPhase, RichText, SessionScript } from "@arna/contracts";
+import type {
+  LessonContentV7,
+  LessonPhase,
+  RichText,
+  SessionPosition,
+  SessionScript,
+  TranscriptTurn,
+} from "@arna/contracts";
 
 /**
  * Ders oturumu durumu — web sayfasındaki useState+useRef yığınının store karşılığı.
@@ -21,11 +28,25 @@ export interface LessonMessage {
 
 export type SessionPhase = LessonPhase | "done";
 
+/** GET /v1/lessons/:id/resume yanıtındaki sürdürülebilir oturum paketi */
+export interface LessonResume {
+  sessionId: string;
+  startedAt: string;
+  position: SessionPosition;
+  script: SessionScript;
+  lesson: LessonContentV7;
+  transcript: TranscriptTurn[];
+}
+
 interface LessonSessionState {
   sessionId: string | null;
+  /** Ekranın açtığı katalog dersi — start() oturumu bununla kurar */
+  catalogLessonId: string | null;
   lesson: LessonContentV7 | null;
   script: SessionScript | null;
   loadError: string | null;
+  /** Açık oturum varsa devam paketi — kart "Devam et / Baştan başla" gösterir */
+  resume: LessonResume | null;
 
   started: boolean;
   phase: SessionPhase;
@@ -36,8 +57,29 @@ interface LessonSessionState {
 
   speaking: boolean;
   recording: boolean;
-  /** Sunucu düşünürken girişler kilitli */
+  /** Sunucu düşünürken girişler kilitli — TEK kilit sebebi bu */
   busy: boolean;
+  /**
+   * İLERİ SARMA (web'deki `fastForward`): söz kesildi — hoca metni akmaya devam
+   * eder ama TTS'e HİÇ gidilmez. Akış bir bekleme noktasına varınca kapanır;
+   * tek sahibi `arrive()`.
+   */
+  fastForward: boolean;
+  /**
+   * Hoca konuşurken gelen öğrenci sözü: akış `awaiting`'e varana kadar burada
+   * bekler, sonra normal yoluna teslim edilir.
+   */
+  pendingInput: string | null;
+  /**
+   * Yeni hoca balonu düştükten sonraki kısa kilit (INPUT_GRACE_MS): kullanıcı
+   * okumaya fırsat bulmadan yanlışlıkla sözü kesmesin. Kilit YALNIZCA bu aralıkta.
+   */
+  grace: boolean;
+  /**
+   * Ekrandan çıkıldı: yürüyen zincir buradan sonra hiçbir şey yazmaz. İleri sarma
+   * ağ beklemediği için saniyeler süren bir hayalet zincir bırakabilirdi.
+   */
+  stopped: boolean;
 
   // sayaçlar — web'deki ref'lerin karşılığı
   beatExchanges: number;
@@ -53,9 +95,11 @@ interface LessonSessionState {
 
 const initial = {
   sessionId: null,
+  catalogLessonId: null as string | null,
   lesson: null,
   script: null,
   loadError: null,
+  resume: null as LessonResume | null,
   started: false,
   phase: "lecture" as SessionPhase,
   beatIndex: 0,
@@ -65,6 +109,10 @@ const initial = {
   speaking: false,
   recording: false,
   busy: false,
+  fastForward: false,
+  pendingInput: null as string | null,
+  grace: false,
+  stopped: false,
   beatExchanges: 0,
   invites: 0,
   attempt: 0,

@@ -10,10 +10,10 @@ import { AvatarBridge } from "./avatarBridge";
  * verisi bir "veri akışı" değil G/Ç'dir, controller'a taşımak sadece dolaylılık
  * eklerdi.
  *
- * KÖK KURAL — `onEnd` TAM BİR KEZ: `awaiting === null` iken mikrofon ve klavye
- * kapalı olduğundan kaybolan her callback dersi kilitler. `settle()` bu yüzden
- * didJustFinish + hata + watchdog'u tek noktada birleştirir (web'deki desenin
- * aynısı).
+ * KÖK KURAL — `onEnd` TAM BİR KEZ: ders akışı bu callback'in içinde ilerlediği
+ * için kaybolan her callback dersi kilitler, iki kez çalışan her callback bir
+ * beat atlatır. `settle()` bu yüzden didJustFinish + hata + watchdog + söz kesmeyi
+ * (`cutIn`) tek noktada birleştirir (web'deki desenin aynısı).
  */
 
 let currentPlayer: AudioPlayer | null = null;
@@ -33,6 +33,18 @@ const STT_RECORDING = {
 };
 /** Geç gelen eski TTS yanıtı akışı ilerletemesin diye nesil sayacı */
 let generation = 0;
+/**
+ * Yürüyen konuşmanın iki tutamağı — SÖZ KESME (`skipSpeaking`) bunun üzerinden çalışır.
+ *
+ * `settle`: kapanışı ÇALIŞTIR (onEnd → akış ilerler).
+ * `abandon`: kapanışı ve TÜM zamanlayıcılarını söndür, onEnd'i hiç çağırma.
+ *
+ * İkisi ayrı olmak zorunda: `stopPlayback` sesi susturur ama settle'ı çağıramaz
+ * (ekrandan çıkışta ders ilerlemesin), buna karşılık zamanlayıcıları da sahipsiz
+ * bırakamaz — bırakınca 30sn/klip watchdog'u ve 4sn avatar start-watchdog'u ölü
+ * konuşma adına ateşlenip bir SONRAKİ konuşmayı bozuyordu.
+ */
+let current: { settle: () => void; abandon: () => void } | null = null;
 
 export const VoiceService = {
   async init(): Promise<void> {
@@ -61,12 +73,20 @@ export const VoiceService = {
 
     let settled = false;
     let watchdog: ReturnType<typeof setTimeout> | null = null;
-    const settle = () => {
-      if (settled) return;
+    let startWatchdog: ReturnType<typeof setTimeout> | null = null;
+    /** Bu konuşmayı kapat ve zamanlayıcılarını söndür — onEnd ÇAĞRILMAZ. */
+    const abandon = () => {
       settled = true;
       if (watchdog) clearTimeout(watchdog);
+      if (startWatchdog) clearTimeout(startWatchdog);
+    };
+    const settle = () => {
+      if (settled) return;
+      abandon();
+      if (current?.settle === settle) current = null;
       onEnd();
     };
+    current = { settle, abandon }; // söz kesilirse skipSpeaking bunu HEMEN çalıştırır
 
     let clips: AvatarClip[] = [];
     try {
@@ -100,18 +120,33 @@ export const VoiceService = {
         await FileSystem.writeAsStringAsync(path, clip.audioBase64, {
           encoding: FileSystem.EncodingType.Base64,
         });
+        // Nesil kontrolü AWAIT'TEN SONRA da şart: yazma 50-200ms sürüyor ve o
+        // aralıkta söz kesilirse kesilen cümle YEPYENİ bir oynatıcıyla çalmaya
+        // başlıyor — stopPlayback'in arkasından, susturulamaz hâlde.
+        if (gen !== generation) {
+          settle();
+          return;
+        }
         const player = createAudioPlayer({ uri: path });
         currentPlayer = player;
         let clipDone = false; // didJustFinish birden çok status'ta raporlanabilir
         player.addListener("playbackStatusUpdate", (status) => {
           if (gen !== generation) {
-            player.remove();
+            try {
+              player.remove();
+            } catch {
+              /* stopPlayback zaten kaldırmış olabilir (söz kesme) */
+            }
             settle();
             return;
           }
           if (status.didJustFinish && !clipDone) {
             clipDone = true;
-            player.remove();
+            try {
+              player.remove();
+            } catch {
+              /* zaten kaldırılmış */
+            }
             if (index + 1 < clips.length) void playClip(index + 1);
             else settle();
           }
@@ -129,7 +164,13 @@ export const VoiceService = {
       // Start-watchdog: 4sn içinde `started` gelmezse sayfa takılmış demektir —
       // toparla (reload) ve AYNI klipleri expo-audio'yla çal. Klipler zaten
       // elimizde, fallback bedava; konuşma asla sessizce yutulmaz.
-      const startWatchdog = setTimeout(() => {
+      startWatchdog = setTimeout(() => {
+        // Bayat nesil: bu konuşma kesilmiş. recover() burada SONRAKİ konuşmanın
+        // köprüsünü sıfırlar ve cevabı baştan çaldırırdı (öğrenci cevabı iki kez duyar).
+        if (gen !== generation) {
+          settle();
+          return;
+        }
         console.warn("[voice] avatar 4sn'de started vermedi — expo-audio'ya düşülüyor");
         AvatarBridge.recover();
         if (gen === generation) void playClip(0);
@@ -158,7 +199,11 @@ export const VoiceService = {
 
   stopPlayback(): void {
     generation++; // yoldaki TTS yanıtlarını ve dinleyicileri geçersiz kıl
+    const pending = current;
+    current = null;
+    pending?.abandon(); // onEnd ÇAĞRILMAZ: ekrandan çıkışta ders ilerlemesin
     try {
+      currentPlayer?.pause(); // remove() tek başına hoparlörü anında susturmuyor
       currentPlayer?.remove();
     } catch {
       /* zaten kaldırılmış olabilir */
@@ -169,6 +214,22 @@ export const VoiceService = {
     } catch {
       /* köprü bağlı değildi */
     }
+  },
+
+  /**
+   * SÖZ KESME (web'deki `skipSpeaking` karşılığı): sesi kes ve bekleyen `onEnd`'i
+   * HEMEN çalıştır.
+   *
+   * Akış `onEnd` zincirinde yaşadığı için kesme kapanışı YUTMAMALI; yutulursa ders
+   * kilitlenir (web'de tam olarak bu yüzden konuşma sırasında girdi kapalıydı).
+   * `settled` bayrağı "TAM BİR kez" kuralını korur: yolda kalan /tts yanıtı, avatar
+   * `onEnded`'i ve watchdog'lar aynı bayrağa çarpıp no-op olur.
+   */
+  skipSpeaking(): void {
+    const pending = current;
+    current = null; // stopPlayback bunu artık abandon EDEMEZ — settle bizde
+    this.stopPlayback();
+    pending?.settle();
   },
 
   async startRecording(): Promise<boolean> {
@@ -193,6 +254,9 @@ export const VoiceService = {
         return true;
       } catch (err) {
         console.warn("[voice] kayıt başlatılamadı:", err);
+        // Kayıt modu AÇIK kalmasın: iOS çıkışı alıcıya yönlendirir ve dersin
+        // geri kalanı kısık duyulur (bkz. init() yorumu).
+        await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false }).catch(() => {});
         return false;
       }
     })();
@@ -210,7 +274,11 @@ export const VoiceService = {
     }
     const recorder = currentRecorder;
     currentRecorder = null;
-    if (!recorder) return null;
+    if (!recorder) {
+      // Kayıt hiç kurulamadı ama mod açılmış olabilir — geri al (bkz. init()).
+      await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false }).catch(() => {});
+      return null;
+    }
     try {
       await recorder.stop();
       // Kayıt modundan HEMEN çık — açık kalırsa sonraki TTS alıcıdan kısık çalar

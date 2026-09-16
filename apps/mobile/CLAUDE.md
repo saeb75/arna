@@ -238,8 +238,38 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
 - **Ders/roleplay bitişi:** bitiren YALNIZ butondur — hiçbir sayaç/etiket akışı
   kapatamaz. `speak(text, onEnd)` — `onEnd` TAM BİR kez çalışmalı (web'deki
   `settle()` deseni: onended + onerror + timeout tek noktada).
+- **Ders devamı (resume):** pozisyon + script/deterministik transkript satırları
+  her geçişte `POST /sessions/:id/sync` ile fire-and-forget sunucuya yazılır
+  (hata SESSİZCE yutulur — ders asla bloke olmaz). Devam AYNI oturumda sürer
+  (`GET /lessons/:id/resume`); yeni oturum açmak practice hitTurns'ü ve LLM
+  bağlamını sıfırlar. Oturum ekran mount'unda DEĞİL, başlat butonunda açılır.
+  Sunucuya giden chat/judge çiftleri ASLA logTurn'la loglanmaz (çift kayıt).
+  **✕ ÇIKIŞTIR** (`exit()`: ses sus + geri; oturum AÇIK kalır) — dersi bitiren
+  YALNIZ wrapup'taki "Dersi Bitir" (`finish()`). ✕'i finish'e bağlamak devam
+  sistemini komple boşa düşürür (canlı hata, 16 Eyl 2026).
 - **MCQ cevabı butonla** — web'de canlı hatadan öğrenildi: tek harf STT için en
   kötü girdi. Şıklar tıklanabilir; mikrofon/klavye açık kalır.
+- **SÖZ KESME (barge-in):** hoca konuşurken girdi ASLA kilitlenmez. Mikrofona
+  basmak ya da yazılanı göndermek sesi anında keser (`VoiceService.skipSpeaking`:
+  sesi durdurur ve bekleyen `onEnd`'i ZORLA çalıştırır — akış o zincirde yaşadığı
+  için kesme kapanışı yutarsa ders kilitlenir). Sonra `fastForward` devreye girer:
+  balonlar, transkript ve imleç aynen akar, yalnız TTS atlanır; akış cevabın
+  beklendiği ilk noktaya varınca (`arrive`) ileri sarma kapanır ve kuyruktaki söz
+  (`pendingInput`) oraya teslim edilir. Beat makinesi kesmeyi HİÇ görmez —
+  `lessonFlow.ts` kararları ve sunucu sözleşmesi değişmez.
+  · `awaiting`in tek yazarı `arrive()`: ileri sarmayı girdiye değil BEKLEME
+    NOKTASINA bağlamak şart (öğrenci mikrofona basıp hiç konuşmayabilir; STT boş
+    dönünce ders sonuna kadar sessiz oynardı).
+  · Kuyruk `skipSpeaking`den ÖNCE kurulur — kesme kapanışı senkron koştuğu için
+    sonra kurulan kuyruk aynı karede kaçırılır.
+  · Mikrofon BASILIYKEN teslim yok (hocanın cevabı kayda konuşur, STT onu
+    öğrencinin sözü sanar) — `releaseMic` devralır. Basılı butonun `disabled`
+    olması da yasak: RN `onPressOut`u düşürür, kayıt sahipsiz kalır.
+  · Girdi kilidi TEK ifade: `busy || grace`. `grace`, her yeni hoca balonundan
+    sonraki 500ms (`INPUT_GRACE_MS`) — kullanıcı okumadan yanlışlıkla kesmesin.
+  · Ekrandan çıkışta (`leave`/`exit`/`finish`) `stopped` kurulur: ileri sarma ağ
+    beklemediği için zincir aksi hâlde ekran kapandıktan sonra saniyelerce balon
+    ve imleç yazmaya devam ederdi.
 - **Avatar WebView ile** (kök CLAUDE.md kararı; native Three.js ayrı faz —
   expo-gl'de draco/postprocessing/52-morph desteği güvenilmez). Kurulum:
   `EXPO_PUBLIC_AVATAR_URL` → apps/web `/embed/avatar`; boşsa avatar kapalı,

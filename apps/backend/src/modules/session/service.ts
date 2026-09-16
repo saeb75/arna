@@ -6,6 +6,7 @@ import {
   PRACTICE_MIN_MAX_TURNS,
   PRACTICE_MIN_TURNS_BEFORE_GOAL,
   roleplaySpecSchema,
+  sessionPositionSchema,
   spokenRunsSchema,
   triageAnswer,
   type AnswerReview,
@@ -16,10 +17,13 @@ import {
   type RichText,
   type RoleplaySpec,
   type SceneVariant,
+  type SessionPosition,
   type SessionScript,
+  type SessionSyncBody,
   type Track,
+  type TranscriptTurn,
 } from "@arna/contracts";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { toFile } from "openai";
 import { z } from "zod";
 import { db } from "../../db/client.js";
@@ -114,11 +118,26 @@ export async function openSession(userId: string, catalogLessonId: string) {
     throw err;
   }
 
+  // Aynı dersin önceki açık oturumları TERK EDİLMİŞ sayılır: kapat (ilerlemeye
+  // dokunmadan) ki yetim açık oturum birikmesin ve devam araması tek satır bulsun.
+  // "Devam et" bu fonksiyona hiç gelmez — istemci resume ucuyla AYNI oturumu sürdürür.
+  await db
+    .update(sessions)
+    .set({ endedAt: new Date() })
+    .where(
+      and(
+        eq(sessions.userId, userId),
+        eq(sessions.catalogLessonId, catalogLessonId),
+        isNull(sessions.endedAt),
+      ),
+    );
+
   const [session] = await db
     .insert(sessions)
     .values({
       userId,
       catalogLessonId,
+      sessionKind: "lesson",
       coreId: resolved.coreId,
       sceneSetId: resolved.sceneSetId,
       localeId: resolved.localeId,
@@ -185,6 +204,117 @@ export async function openSession(userId: string, catalogLessonId: string) {
     .where(eq(sessions.id, sessionId));
 
   return { sessionId, script, lesson: content };
+}
+
+// ---------------------------------------------------------------------------
+// Devam (resume) — ders AYNI oturumda kaldığı yerden sürer
+// ---------------------------------------------------------------------------
+
+export interface ResumePayload {
+  sessionId: string;
+  startedAt: string;
+  position: SessionPosition;
+  script: SessionScript;
+  lesson: LessonContentV7;
+  transcript: TranscriptTurn[];
+}
+
+/**
+ * Bu derste sürdürülebilir açık oturum var mı? Varsa istemcinin store'unu
+ * doldurmaya yetecek HER ŞEYİ döndürür. Devam yalnız pinli çekirdek/sahne HÂLÂ
+ * yayındaki çözümle aynıysa sunulur: permüte tohumu core satır kimliğine bağlı
+ * olduğundan içerik birebir aynıdır (beat id'leri ve şık dizilimi dahil).
+ * Çekirdek yeniden yayınlandıysa güvenli devam yok → null (tek seçenek "Baştan").
+ */
+export async function resumeLesson(
+  userId: string,
+  catalogLessonId: string,
+): Promise<{ resume: ResumePayload | null }> {
+  const [open] = await db
+    .select()
+    .from(sessions)
+    .where(
+      and(
+        eq(sessions.userId, userId),
+        eq(sessions.catalogLessonId, catalogLessonId),
+        isNull(sessions.endedAt),
+      ),
+    )
+    .orderBy(desc(sessions.startedAt))
+    .limit(1);
+  if (!open) return { resume: null };
+
+  const state = (open.state ?? {}) as SessionState;
+  const pos = sessionPositionSchema.safeParse(open.position);
+  // Pozisyon hiç sync'lenmemiş (ders karttan öteye gitmemiş) ya da bozuksa
+  // sürdürülecek nokta yok — temiz başlangıç daha doğru.
+  if (!state.script || !pos.success) return { resume: null };
+
+  let resolved;
+  try {
+    resolved = await resolveLesson(userId, catalogLessonId);
+  } catch {
+    return { resume: null };
+  }
+  if (resolved.coreId !== open.coreId || resolved.sceneSetId !== open.sceneSetId) {
+    return { resume: null };
+  }
+
+  const rows = await db
+    .select()
+    .from(transcriptTurns)
+    .where(eq(transcriptTurns.sessionId, open.id))
+    .orderBy(asc(transcriptTurns.id));
+
+  return {
+    resume: {
+      sessionId: open.id,
+      startedAt: open.startedAt.toISOString(),
+      position: pos.data,
+      script: state.script,
+      lesson: resolved.content,
+      transcript: rows.map((r) => ({
+        id: r.id,
+        role: r.role as "user" | "assistant",
+        text: r.text,
+        runs: (r.runs as RichText | null) ?? null,
+        phase: r.phase,
+        source: (r.source as "chat" | "script") ?? "chat",
+      })),
+    },
+  };
+}
+
+/**
+ * İstemcinin fire-and-forget senkronu: pozisyon imleci + sunucuya ULAŞMAYAN
+ * transkript satırları (script replikleri, istemcide çözülen öğrenci girdileri).
+ * Pozisyon AYRI kolona yazılır — `state` spread'leriyle yarışmaz.
+ */
+export async function syncSession(
+  userId: string,
+  sessionId: string,
+  body: SessionSyncBody,
+): Promise<{ ok: true }> {
+  const owned = await getOwnedSession(userId, sessionId);
+  if (!owned) throw new SessionError("not_found", "Oturum bulunamadı");
+  if (owned.session.endedAt) throw new SessionError("session_ended", "Oturum kapandı");
+
+  if (body.position) {
+    await db.update(sessions).set({ position: body.position }).where(eq(sessions.id, sessionId));
+  }
+  if (body.turns?.length) {
+    await db.insert(transcriptTurns).values(
+      body.turns.map((t) => ({
+        sessionId,
+        role: t.role,
+        text: t.text,
+        runs: t.runs ?? null,
+        phase: t.phase,
+        source: "script",
+      })),
+    );
+  }
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -681,7 +811,7 @@ async function judgeExercise(
   const plain = runsToPlain(reply);
   await db.insert(transcriptTurns).values([
     { sessionId, role: "user", text, phase },
-    { sessionId, role: "assistant", text: plain, phase, latencyMs },
+    { sessionId, role: "assistant", text: plain, runs: reply, phase, latencyMs },
   ]);
 
   // "Bilmiyorum" modelin insafına bırakılmaz — pes etmek de bir cevaptır.
@@ -778,7 +908,7 @@ async function judgeOpenResponse(
   const plain = runsToPlain(verdict.feedback);
   await db.insert(transcriptTurns).values([
     { sessionId, role: "user", text, phase },
-    { sessionId, role: "assistant", text: plain, phase, latencyMs },
+    { sessionId, role: "assistant", text: plain, runs: verdict.feedback, phase, latencyMs },
   ]);
 
   const isAttempt = verdict.isAttempt || surrendered;
@@ -995,7 +1125,7 @@ export async function chatTurn(
 
   await db.insert(transcriptTurns).values([
     { sessionId, role: "user", text, phase },
-    { sessionId, role: "assistant", text: reply, phase, latencyMs },
+    { sessionId, role: "assistant", text: reply, runs, phase, latencyMs },
   ]);
 
   return { text: reply, runs, segmentDone };
@@ -1318,6 +1448,12 @@ export async function reviewAnswer(
 export async function endSession(
   userId: string,
   sessionId: string,
+  /**
+   * abandoned = "Baştan başla" / yarıda bırakma: oturum kapanır, hafıza çıkarımı
+   * yine koşar ama ders TAMAMLANMIŞ SAYILMAZ (lesson_progress'e dokunulmaz).
+   * Varsayılan completed — mevcut "Dersi Bitir" davranışı birebir korunur.
+   */
+  outcome: "completed" | "abandoned" = "completed",
 ): Promise<{ ok: true; turns: number; debrief?: RoleplayDebrief | null }> {
   const owned = await getOwnedSession(userId, sessionId);
   if (!owned) throw new SessionError("not_found", "Oturum bulunamadı");
@@ -1329,7 +1465,7 @@ export async function endSession(
 
     // İlerleme MÜFREDAT YUVASI üzerinden işaretlenir, oynatılan içerik sürümünden
     // değil: içerik yeniden üretilse de "bu dersi bitirdim" bilgisi ayakta kalır.
-    if (owned.session.catalogLessonId) {
+    if (owned.session.catalogLessonId && outcome === "completed") {
       await db
         .update(lessonProgress)
         .set({ status: "completed", completedAt: new Date(), updatedAt: new Date() })

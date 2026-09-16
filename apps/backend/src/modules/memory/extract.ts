@@ -1,5 +1,5 @@
 import type { LessonCore } from "@arna/contracts";
-import { and, asc, cosineDistance, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, asc, cosineDistance, desc, eq, isNotNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../db/client.js";
 import {
@@ -95,14 +95,21 @@ export async function extractSessionMemory(sessionId: string): Promise<Extractio
 
   const userId = row.session.userId;
 
+  // Script'li HOCA replikleri pencereden dışlanır (selamlama/anlatım/alıştırma
+  // metni — resume dilimiyle artık transkripte yazılıyorlar ama çıkarıma katkıları
+  // yok, 60-turluk pencereyi şişirirler). Öğrencinin script-kaynaklı satırları
+  // (istemcide çözülen doğru cevaplar, ack'ler) DAHİL: hep doğru cevaplayan
+  // öğrenci artık hafızasız kalmıyor.
   const turns = await db
     .select({ role: transcriptTurns.role, text: transcriptTurns.text })
     .from(transcriptTurns)
-    .where(eq(transcriptTurns.sessionId, sessionId))
+    .where(
+      and(
+        eq(transcriptTurns.sessionId, sessionId),
+        or(eq(transcriptTurns.role, "user"), eq(transcriptTurns.source, "chat")),
+      ),
+    )
     .orderBy(asc(transcriptTurns.id));
-
-  // Not: script'li hoca replikleri transkripte yazılmıyor (Faz 6.3) — çıkarım zaten
-  // öğrencinin söylediklerine bakıyor, ders başlığı bağlamı yeterli.
   const userTurns = turns.filter((t) => t.role === "user");
   if (userTurns.length < MIN_USER_TURNS) {
     return { status: "skipped_short", factsAdded: 0, factsSkippedAsDuplicate: 0, continuityHook: "" };

@@ -2,15 +2,20 @@ import { Pressable, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 interface ContinueCardProps {
-  /** Üst satır bağlamı: "A1 · Hello and Introductions" */
-  level: string;
-  unitTitle: string;
-  lessonTitle: string;
+  /** Üst ince satır: "B1 · Intermediate" — kaydırmayı izleyen bağlam */
+  topLine: string;
+  /** Kalın satır: o an bakılan ünitenin adı */
+  title: string;
+  /** Dokunuş: kaldığın derse geri kaydırır (uzaklaşınca tek dokunuşla dönüş) */
   onPress: () => void;
 }
 
-/** Kaldığı yerden devam kartı — ekranın tek birincil eylemi. */
-export function ContinueCard({ level, unitTitle, lessonTitle, onPress }: ContinueCardProps) {
+/**
+ * Bağlam kartı — liste kaydırıldıkça o an bakılan SEVİYE + ÜNİTEYİ gösterir
+ * (Duolingo'nun yapışkan ünite başlığı deseni). Sabit "kaldığın ders" bilgisi
+ * değildir; kaldığın yere dönüş, dokunuşun işidir.
+ */
+export function ContinueCard({ topLine, title, onPress }: ContinueCardProps) {
   return (
     <Pressable
       onPress={onPress}
@@ -18,10 +23,10 @@ export function ContinueCard({ level, unitTitle, lessonTitle, onPress }: Continu
     >
       <View className="flex-1">
         <Text className="text-[13px] text-muted" numberOfLines={1}>
-          {level} · {unitTitle}
+          {topLine}
         </Text>
         <Text className="mt-0.5 text-[17px] font-bold text-white" numberOfLines={1}>
-          {lessonTitle}
+          {title}
         </Text>
       </View>
       <MaterialCommunityIcons name="chevron-right" size={26} color="#9ca3af" />

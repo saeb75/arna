@@ -279,7 +279,9 @@ export default function RoleplayPage({ params }: { params: Promise<{ slug: strin
   return (
     <main className="flex h-dvh flex-col">
       <div className="relative flex shrink-0 justify-center bg-gradient-to-b from-indigo-950 to-neutral-900 py-3">
-        <div className="aspect-[3/4] h-[32dvh] overflow-hidden rounded-2xl ring-1 ring-white/10">
+        {/* 4:3 YATAY — ders sayfasıyla aynı: göğüs kadrajının yatay alanı
+            kutunun oranından gelir (bkz. AvatarScene FRAMING_DISTANCE) */}
+        <div className="aspect-[4/3] h-[30dvh] max-w-full overflow-hidden rounded-2xl ring-1 ring-white/10">
           <AvatarScene
             avatarUrl="/fatman.glb"
             animationUrl="/idle.fbx"

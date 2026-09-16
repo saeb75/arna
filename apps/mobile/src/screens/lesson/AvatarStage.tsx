@@ -32,8 +32,12 @@ export function AvatarStage({ speaking }: { speaking: boolean }) {
   if (!url || failed) return <SpeakingIndicator speaking={speaking} />;
 
   return (
-    <View className="items-center py-2">
-      <View className="aspect-[3/4] h-[34vh] overflow-hidden rounded-2xl bg-card">
+    <View className="items-center px-4 py-2">
+      {/* 4:3 YATAY, genişlik sürücü: kadraj göğüsten yukarıda ve yatay alan
+          kutunun oranından geliyor (bkz. AvatarScene FRAMING_DISTANCE) — dikey
+          kutuda selam eli kenardan taşıyor. Yükseklikle sürmek (h-[34vh])
+          4:3'te ekran genişliğini aşardı. */}
+      <View className="aspect-[4/3] w-full overflow-hidden rounded-2xl bg-card">
         <WebView
           ref={webviewRef}
           source={{ uri: url }}

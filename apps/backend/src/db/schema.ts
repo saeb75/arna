@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   bigserial,
   index,
@@ -430,8 +431,21 @@ export const sessions = pgTable(
     startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
     endedAt: timestamp("ended_at", { withTimezone: true }),
     state: jsonb("state"),
+    /**
+     * Devam (resume) imleci — istemcinin fire-and-forget sync'lediği pozisyon
+     * anlık görüntüsü (SessionPosition, contracts). AYRI kolon çünkü `state`
+     * güncellemeleri bayat state'i spread'liyor; pozisyon yüksek frekanslı
+     * yazılır ve state'le yarışmamalı.
+     */
+    position: jsonb("position"),
   },
-  (t) => [index("sessions_user_idx").on(t.userId)],
+  (t) => [
+    index("sessions_user_idx").on(t.userId),
+    // Açık oturum araması: "bu derste devam edilecek oturum var mı?"
+    index("sessions_open_lookup_idx")
+      .on(t.userId, t.catalogLessonId)
+      .where(sql`ended_at IS NULL`),
+  ],
 );
 
 /**
@@ -472,6 +486,15 @@ export const transcriptTurns = pgTable(
     text: text("text").notNull(),
     /** lecture | practice — LLM'e yalnızca AYNI fazın geçmişi gönderilir (faz sızıntısı önlenir) */
     phase: text("phase"),
+    /**
+     * chat = sunucu LLM yolu (mevcut davranış) · script = istemcinin logladığı
+     * script/deterministik satır (selamlama, anlatım, alıştırma metni, ack,
+     * birebir doğru cevap). Admin görünümü sohbetin TAMAMINI bununla kurar;
+     * hafıza çıkarımı script+assistant satırlarını pencereden dışlar.
+     */
+    source: text("source").notNull().default("chat"),
+    /** Dil etiketli parçalar (RichText) — düz `text` eski satırlar için kalır */
+    runs: jsonb("runs"),
     latencyMs: integer("latency_ms"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },

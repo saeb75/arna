@@ -1,6 +1,8 @@
 import {
+  CEFR_LEVELS,
   checkpointPassed,
   type CefrLevel,
+  type CurriculumLevel,
   type CurriculumResponse,
   type LessonKind,
   type LessonStatus,
@@ -35,7 +37,11 @@ export class CurriculumError extends Error {
 }
 
 /**
- * Kullanıcının müfredat görünümü: SABİT katalog + kendi ilerlemesi, ünitelere gruplu.
+ * Kullanıcının müfredat görünümü: SABİT katalog + kendi ilerlemesi, TÜM
+ * seviyeler CEFR sırasında (`levels`), ünitelere gruplu. Üst düzey
+ * `level/label/units/totals` PROFİL seviyesinin dilimini yansıtmaya devam eder
+ * (web ve eski tüketiciler için birebir eski davranış) — mobil tek uzun yolu
+ * `levels`ten kurar ve profil seviyesine odaklanır.
  *
  * Katalog herkeste aynıdır; kullanıcıya özel olan tek şey `lesson_progress`
  * satırlarıdır ve o tablo SEYREKTİR — satırı olmayan ders "not_started" sayılır.
@@ -50,11 +56,13 @@ export async function getCurriculumForUser(userId: string): Promise<CurriculumRe
     .limit(1);
   if (!profile) throw new CurriculumError("no_profile");
 
-  const level = profile.cefrLevel as CefrLevel;
+  const profileLevel = profile.cefrLevel as CefrLevel;
 
+  // Tek indeksli tarama (~395 satır): catalog_lessons_level_pos_idx (level, position)
   const rows = await db
     .select({
       id: catalogLessons.id,
+      level: catalogLessons.level,
       position: catalogLessons.position,
       unitIndex: catalogLessons.unitIndex,
       kind: catalogLessons.kind,
@@ -70,23 +78,29 @@ export async function getCurriculumForUser(userId: string): Promise<CurriculumRe
         eq(lessonProgress.userId, userId),
       ),
     )
-    .where(and(eq(catalogLessons.level, level), eq(catalogLessons.status, "active"), notFixture(catalogLessons.id)))
-    .orderBy(asc(catalogLessons.position));
+    .where(and(eq(catalogLessons.status, "active"), notFixture(catalogLessons.id)))
+    .orderBy(asc(catalogLessons.level), asc(catalogLessons.position));
 
   const unitRows = await db
     .select()
     .from(catalogUnits)
-    .where(and(eq(catalogUnits.level, level), eq(catalogUnits.status, "active"), notFixture(catalogUnits.id)))
-    .orderBy(asc(catalogUnits.unitIndex));
+    .where(and(eq(catalogUnits.status, "active"), notFixture(catalogUnits.id)))
+    .orderBy(asc(catalogUnits.level), asc(catalogUnits.unitIndex));
 
-  const byUnit = new Map<number, CurriculumResponse["units"][number]["lessons"]>();
-  let completed = 0;
+  // unitIndex seviye İÇİ tekildir (A1 ü3 ≠ B1 ü3) — tüm haritalar seviyeyle anahtarlanır
+  const unitKey = (level: string, unitIndex: number) => `${level}-${unitIndex}`;
+
+  const byUnit = new Map<string, CurriculumResponse["units"][number]["lessons"]>();
+  const completedByLevel = new Map<string, number>();
+  const lessonsByLevel = new Map<string, number>();
   for (const r of rows) {
     const status: LessonStatus =
       r.status === "completed" ? "completed" : r.status === "in_progress" ? "in_progress" : "not_started";
-    if (status === "completed") completed++;
+    if (status === "completed") completedByLevel.set(r.level, (completedByLevel.get(r.level) ?? 0) + 1);
+    lessonsByLevel.set(r.level, (lessonsByLevel.get(r.level) ?? 0) + 1);
 
-    const list = byUnit.get(r.unitIndex) ?? [];
+    const key = unitKey(r.level, r.unitIndex);
+    const list = byUnit.get(key) ?? [];
     list.push({
       id: r.id,
       position: r.position,
@@ -96,7 +110,7 @@ export async function getCurriculumForUser(userId: string): Promise<CurriculumRe
       focus: r.focus,
       status,
     });
-    byUnit.set(r.unitIndex, list);
+    byUnit.set(key, list);
   }
 
   // Ünite testi geçmişi. Kullanıcı başına birkaç satır olduğu için hepsi tek
@@ -104,41 +118,58 @@ export async function getCurriculumForUser(userId: string): Promise<CurriculumRe
   // contracts'taki `checkpointPassed`ten geçsin — kural tek yerde yaşasın.
   const attempts = await db
     .select({
+      level: unitCheckpoints.level,
       unitIndex: unitCheckpoints.unitIndex,
       score: unitCheckpoints.score,
       total: unitCheckpoints.total,
     })
     .from(unitCheckpoints)
-    .where(and(eq(unitCheckpoints.userId, userId), eq(unitCheckpoints.level, level)));
+    .where(eq(unitCheckpoints.userId, userId));
 
-  const checkpointByUnit = new Map<number, UnitCheckpointSummary>();
+  const checkpointByUnit = new Map<string, UnitCheckpointSummary>();
   for (const a of attempts) {
-    const prev = checkpointByUnit.get(a.unitIndex);
+    const key = unitKey(a.level, a.unitIndex);
+    const prev = checkpointByUnit.get(key);
     // "En iyi deneme" oran üzerinden — madde havuzu küçüldüğünde total değişebiliyor.
     // BAŞARISIZ BİR DENEME KAZANILMIŞ ROZETİ GERİ ALMAZ: passed birikimlidir.
     const better = !prev || a.score / a.total > prev.bestScore / prev.total;
-    checkpointByUnit.set(a.unitIndex, {
+    checkpointByUnit.set(key, {
       passed: (prev?.passed ?? false) || checkpointPassed(a.score, a.total),
       bestScore: better ? a.score : prev.bestScore,
       total: better ? a.total : prev.total,
     });
   }
 
-  const units = unitRows
-    .map((u) => ({
-      index: u.unitIndex,
-      title: u.title,
-      goal: u.goal,
-      lessons: byUnit.get(u.unitIndex) ?? [],
-      checkpoint: checkpointByUnit.get(u.unitIndex) ?? null,
-    }))
-    .filter((u) => u.lessons.length > 0);
+  const levels: CurriculumLevel[] = CEFR_LEVELS.map((level) => {
+    const units = unitRows
+      .filter((u) => u.level === level)
+      .map((u) => ({
+        index: u.unitIndex,
+        title: u.title,
+        goal: u.goal,
+        lessons: byUnit.get(unitKey(level, u.unitIndex)) ?? [],
+        checkpoint: checkpointByUnit.get(unitKey(level, u.unitIndex)) ?? null,
+      }))
+      .filter((u) => u.lessons.length > 0);
+    return {
+      level,
+      label: CURRICULUM[level]?.label ?? level,
+      units,
+      totals: {
+        lessons: lessonsByLevel.get(level) ?? 0,
+        completed: completedByLevel.get(level) ?? 0,
+      },
+    };
+  }).filter((l) => l.units.length > 0);
+
+  const own = levels.find((l) => l.level === profileLevel);
 
   return {
-    level,
-    label: CURRICULUM[level]?.label ?? level,
+    level: profileLevel,
+    label: CURRICULUM[profileLevel]?.label ?? profileLevel,
     track: profile.track as Track,
-    units,
-    totals: { lessons: rows.length, completed },
+    units: own?.units ?? [],
+    totals: own?.totals ?? { lessons: 0, completed: 0 },
+    levels,
   };
 }

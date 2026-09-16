@@ -701,12 +701,12 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
 
   return (
     <main className="flex h-dvh flex-col bg-background">
-      {/* Avatar + faz göstergesi. Avatar ORTADA, 3:4 dikey kutuda: karakter
-          göğüsten yukarı kadrajlanıyor (tam genişlik şeridinde yüz küçük
-          kalıyor, kollar da kenarlardan taşıyordu). Faz göstergesi ve kapatma
-          düğmesi kutunun DIŞINDA, şeridin köşelerinde kalır. */}
+      {/* Avatar + faz göstergesi. Avatar ORTADA, 4:3 YATAY kutuda: karakter
+          göğüsten yukarı kadrajlanıyor (dikey kutuda bu kadrajda selam eli ve
+          omuzlar kenardan taşıyor — bkz. AvatarScene FRAMING_DISTANCE). Faz
+          göstergesi ve kapatma düğmesi kutunun DIŞINDA, şeridin köşelerinde. */}
       <div className="relative flex shrink-0 justify-center bg-gradient-to-b from-indigo-950 to-neutral-900 py-3">
-        <div className="aspect-[3/4] h-[38dvh] overflow-hidden rounded-2xl ring-1 ring-white/10">
+        <div className="aspect-[4/3] h-[34dvh] max-w-full overflow-hidden rounded-2xl ring-1 ring-white/10">
           <AvatarScene
             avatarUrl="/fatman.glb"
             animationUrl="/idle.fbx"

@@ -18,7 +18,7 @@ import { OptionButtons } from "./OptionButtons";
 export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
   const {
     lesson, loadError, started, phase, beatIndex, awaiting,
-    messages, hint, speaking, recording, busy,
+    messages, hint, speaking, recording, busy, grace, resume,
   } = useLessonSessionStore();
   const [typed, setTyped] = useState("");
   const listRef = useRef<FlatList>(null);
@@ -53,13 +53,34 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
     );
   }
 
-  // Başlamadan önce: başlık + hedefler + başlat (web'deki unlock kapısı karşılığı)
+  // Başlamadan önce: başlık + tema + başlat (web'deki unlock kapısı karşılığı).
+  // Açık oturum varsa iki yol: aynı oturumda devam ya da terk edip baştan.
   if (!started) {
     return (
       <View className="flex-1 justify-center gap-4 bg-background px-6">
         <Text className="text-2xl font-bold text-white">{lesson.title}</Text>
         <Text className="text-sm text-muted">{lesson.theme}</Text>
-        <Button title="Derse başla" onPress={() => LessonSessionController.start()} />
+        {resume ? (
+          <>
+            <Button
+              title="Kaldığın yerden devam et"
+              disabled={busy}
+              onPress={() => LessonSessionController.resume()}
+            />
+            <Button
+              title="Baştan başla"
+              variant="outline"
+              disabled={busy}
+              onPress={() => void LessonSessionController.restart()}
+            />
+          </>
+        ) : (
+          <Button
+            title="Derse başla"
+            disabled={busy}
+            onPress={() => void LessonSessionController.start()}
+          />
+        )}
         <Button title="Geri" variant="outline" onPress={() => router.back()} />
       </View>
     );
@@ -70,12 +91,20 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
     awaiting === "exercise" && beat?.kind === "exercise" && beat.answerSpec.kind === "choice" && beat.options?.length
       ? beat.options
       : null;
-  const inputLocked = !awaiting || busy || speaking;
+  /**
+   * GİRDİ KİLİDİ — TEK kaynak.
+   *
+   * Konuşma sırasında girdi AÇIK: mikrofona basmak ya da göndermek sözü keser
+   * (bkz. LessonSessionController.bargeIn). Kapalı kaldığı iki durum da "ortada
+   * okunacak/cevaplanacak bir şey yok" demek: sunucu düşünüyor (busy) ya da metin
+   * yeni düştü ve kullanıcıya okuması için yarım saniye tanınıyor (grace).
+   */
+  const inputLocked = busy || grace;
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1 bg-background">
       <View className="flex-row items-center justify-between px-4 pt-14">
-        <Pressable onPress={() => void LessonSessionController.finish()} hitSlop={12}>
+        <Pressable onPress={() => LessonSessionController.confirmExit()} hitSlop={12}>
           <Text className="text-lg text-muted">✕</Text>
         </Pressable>
         <Text className="text-sm font-medium text-white" numberOfLines={1}>{lesson.title}</Text>
@@ -116,7 +145,9 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
           <Input
             value={typed}
             editable={!inputLocked}
-            placeholder={awaiting ? "Cevabını yaz…" : "Emma konuşuyor…"}
+            placeholder={
+              inputLocked ? "Emma yazıyor…" : awaiting ? "Cevabını yaz…" : "Yaz ve gönder — Emma susar"
+            }
             onChangeText={setTyped}
             onSubmitEditing={() => {
               const t = typed.trim();
@@ -128,7 +159,10 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
           />
         </View>
         <Pressable
-          disabled={inputLocked}
+          // Kayıt SÜRERKEN asla kilitlenmez: parmak basılıyken `disabled` true
+          // olursa RN onPressOut'u düşürebilir ve kayıt sahipsiz kalır (mikrofon
+          // açık, cevap hiç gönderilmez). Basılan buton her zaman bırakılabilmeli.
+          disabled={inputLocked && !recording}
           onPressIn={() => void LessonSessionController.pressMic()}
           onPressOut={() => void LessonSessionController.releaseMic()}
           className={`size-14 items-center justify-center rounded-full ${

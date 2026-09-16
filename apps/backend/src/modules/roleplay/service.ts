@@ -288,7 +288,7 @@ export async function roleplayTurn(
   const reply = out.reply.map((r) => r.text).join(" ");
   await db.insert(transcriptTurns).values([
     { sessionId, role: "user", text, phase: ROLEPLAY_PHASE },
-    { sessionId, role: "assistant", text: reply, phase: ROLEPLAY_PHASE, latencyMs },
+    { sessionId, role: "assistant", text: reply, runs: out.reply, phase: ROLEPLAY_PHASE, latencyMs },
   ]);
 
   const allHitIds = [...alreadyHitIds, ...verdict.accepted.map((a) => a.objectiveId)];

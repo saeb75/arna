@@ -387,16 +387,31 @@ export const curriculumUnitSchema = z.object({
 });
 export type CurriculumUnit = z.infer<typeof curriculumUnitSchema>;
 
+const curriculumTotalsSchema = z.object({
+  lessons: z.number().int().min(0),
+  completed: z.number().int().min(0),
+});
+
+/** Tek seviyenin müfredat dilimi — tüm-seviye görünümünün yapı taşı */
+export const curriculumLevelSchema = z.object({
+  level: cefrLevelSchema,
+  label: z.string().min(1),
+  units: z.array(curriculumUnitSchema),
+  totals: curriculumTotalsSchema,
+});
+export type CurriculumLevel = z.infer<typeof curriculumLevelSchema>;
+
 export const curriculumResponseSchema = z.object({
+  /** PROFİL seviyesi — istemcinin odak/sınıflandırma çıpası; gezinme bunu DEĞİŞTİRMEZ */
   level: cefrLevelSchema,
   /** Basamağın görünen adı: Beginner, Pre-Intermediate, … */
   label: z.string().min(1),
   track: trackSchema,
+  /** Profil seviyesinin üniteleri — `levels` gelmeden önceki tüketiciler (web) için aynen korunur */
   units: z.array(curriculumUnitSchema),
-  totals: z.object({
-    lessons: z.number().int().min(0),
-    completed: z.number().int().min(0),
-  }),
+  totals: curriculumTotalsSchema,
+  /** TÜM seviyeler CEFR sırasında (A1→C2) — mobil tek uzun yolu bundan kurar */
+  levels: z.array(curriculumLevelSchema),
 });
 export type CurriculumResponse = z.infer<typeof curriculumResponseSchema>;
 
@@ -410,3 +425,4 @@ export * from "./checkpoint.js";
 export * from "./answerReview.js";
 export * from "./roleplay.js";
 export * from "./avatarProtocol.js";
+export * from "./sessionResume.js";

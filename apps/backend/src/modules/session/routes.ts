@@ -1,13 +1,15 @@
-import { catalogLessonIdSchema } from "@arna/contracts";
+import { catalogLessonIdSchema, sessionSyncBodySchema } from "@arna/contracts";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
   chatTurn,
   endSession,
   openSession,
+  resumeLesson,
   reviewAnswer,
   SessionError,
   stt,
+  syncSession,
   translate,
   tts,
 } from "./service.js";
@@ -80,6 +82,45 @@ export default async function sessionRoutes(app: FastifyInstance) {
       if (!params.success) return reply.code(400).send({ error: "invalid_input" });
       try {
         return reply.code(201).send(await openSession(request.userId, params.data.catalogLessonId));
+      } catch (err) {
+        return sendError(reply, err);
+      }
+    },
+  );
+
+  // Devam sorgusu: bu derste sürdürülebilir açık oturum var mı?
+  // Yoksa/güvenli değilse { resume: null } — istemci temiz başlangıç kartı gösterir.
+  app.get(
+    "/lessons/:catalogLessonId/resume",
+    {
+      preHandler: app.requireAuth,
+      config: { rateLimit: { max: 120, timeWindow: "1 hour", keyGenerator: byUser } },
+    },
+    async (request, reply) => {
+      const params = lessonParams.safeParse(request.params);
+      if (!params.success) return reply.code(400).send({ error: "invalid_input" });
+      try {
+        return await resumeLesson(request.userId, params.data.catalogLessonId);
+      } catch (err) {
+        return sendError(reply, err);
+      }
+    },
+  );
+
+  // Fire-and-forget istemci senkronu: pozisyon imleci + script/deterministik
+  // transkript satırları. İstemci hatayı sessizce yutar — ders asla bloke olmaz.
+  app.post(
+    "/sessions/:sessionId/sync",
+    {
+      preHandler: app.requireAuth,
+      config: { rateLimit: { max: 600, timeWindow: "1 hour", keyGenerator: byUser } },
+    },
+    async (request, reply) => {
+      const params = sessionParams.safeParse(request.params);
+      const body = sessionSyncBodySchema.safeParse(request.body);
+      if (!params.success || !body.success) return reply.code(400).send({ error: "invalid_input" });
+      try {
+        return await syncSession(request.userId, params.data.sessionId, body.data);
       } catch (err) {
         return sendError(reply, err);
       }
@@ -214,9 +255,13 @@ export default async function sessionRoutes(app: FastifyInstance) {
     { preHandler: app.requireAuth },
     async (request, reply) => {
       const params = sessionParams.safeParse(request.params);
-      if (!params.success) return reply.code(400).send({ error: "invalid_input" });
+      // outcome=abandoned: "Baştan başla" / yarıda bırakma — ders TAMAMLANMAZ
+      const body = z
+        .object({ outcome: z.enum(["completed", "abandoned"]).optional() })
+        .safeParse(request.body ?? {});
+      if (!params.success || !body.success) return reply.code(400).send({ error: "invalid_input" });
       try {
-        return await endSession(request.userId, params.data.sessionId);
+        return await endSession(request.userId, params.data.sessionId, body.data.outcome ?? "completed");
       } catch (err) {
         return sendError(reply, err);
       }

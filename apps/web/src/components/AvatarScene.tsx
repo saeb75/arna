@@ -1186,16 +1186,25 @@ function StudioEnvironment() {
 
 // Yüklenen avatarın kafa konumuna göre kamerayı kadrajlar. Kamera SABİTTİR:
 // kullanıcı döndüremez/yakınlaştıramaz (orbit kontrolleri bilerek yok).
-// Kafa ile kamera arası mesafe (m). Küçült → yakınlaş, büyüt → uzaklaş.
-// 3:4 dikey kutuda göğüsten yukarı. fov 28° ile görünen dikey yükseklik
-// ≈ 0,499 × mesafe → 2,25 m ≈ 1,12 m; 3:4 kutuda yatayda ±0,42 m.
-// Mesafe KOLLARIN kavuştuğu bekleme duruşuna göre seçildi: o poz ~0,85 m
-// genişlik istiyor, daha yakın kadrajda (1,7 m denendi) dirsekler kenardan
-// taşıyor ve selamlarken el yarısı ekran dışında kalıyor.
-const FRAMING_DISTANCE = 2.25;
-// Kadraj merkezi kafanın bu kadar ALTI: kafanın üstünde boşluk kalsın, alt
-// kenar kemerin hemen üstünde kesilsin (y ≈ 0,87–1,99).
-const FRAMING_DROP = 0.16;
+//
+// KADRAJ GÖĞÜSTEN YUKARI. Fat Man'in ölçülen kemik y'leri (fatman.glb, bind
+// poz): kafa tepesi 1,875 · kafa 1,593 · boyun 1,475 · omuz 1,428 · göğüs
+// 1,281 · üst karın 1,088 · bel 0,900.
+//   görünen dikey yükseklik = 2 × mesafe × tan(fov/2) = 0,499 × mesafe
+//   1,36 m → 0,68 m; merkez kafa kemiği → görünen aralık 1,25 – 1,93
+// Yani alt kenar göğüs çizgisinin hemen altında, üstte ~6 cm hava, gözler
+// (1,70) kadrajın üst üçte birinde.
+//
+// YATAY genişlik mesafeden DEĞİL, KUTUNUN ORANINDAN gelir. Kutular 4:3
+// YATAY (AvatarStage/ders sayfası) → ±0,45 m. Bu oran kadrajın şartı: daha
+// önce kutu 3:4 dikeyken bu mesafe denenmiş ve ±0,26 m'de dirsekler kenardan
+// taşmış, selamlarken el (x ≈ 0,33) yarısı ekran dışında kalmıştı. Kutuyu
+// dikeye çeviren biri bu sabitleri de geri almalı.
+const FRAMING_DISTANCE = 1.36;
+// Kadraj merkezinin kafa kemiğinden SAPMASI (aşağı +). Göğüs kadrajında
+// merkez kafanın tam hizası: 0. Sabit duruyor çünkü başka bir avatarın
+// duruşu (kafayı öne eğen poz) yeniden ayar isteyebilir.
+const FRAMING_DROP = 0;
 
 function HeadFraming({ head }: { head: THREE.Vector3 | null }) {
   const camera = useThree((s) => s.camera);
@@ -1223,8 +1232,10 @@ export default function AvatarScene({
 
   return (
     <LoadBoundary resetKey={avatarUrl}>
+      {/* Başlangıç kamerası ölçüm gelene kadar geçerli — HeadFraming'in Fat Man
+          için hesapladığı yere yakın dursun ki ilk karede sıçrama olmasın */}
       <Canvas
-        camera={{ position: [0, 1.58, 0.85], fov: 28 }}
+        camera={{ position: [0, 1.59, 1.36], fov: 28 }}
         dpr={2}
         shadows
         gl={{ antialias: false, powerPreference: "high-performance" }}
