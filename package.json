@@ -10,7 +10,8 @@
     "dev:backend": "npm run dev --workspace apps/backend",
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "dev:web": "npm run dev --workspace apps/web"
+    "dev:web": "npm run dev --workspace apps/web",
+    "postinstall": "npm run build --workspace packages/contracts"
   },
   "engines": {
     "node": ">=20"

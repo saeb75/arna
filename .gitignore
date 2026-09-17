@@ -109,3 +109,6 @@ apps/backend/tmp/
 
 # --- Claude Code (kişisel ayarlar) ---
 .claude/settings.local.json
+
+# --- Nested repo devre disi (EAS monorepo tespiti icin) ---
+apps/mobile/.git.disabled/
