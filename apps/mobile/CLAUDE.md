@@ -1,4 +1,4 @@
-# Arna Mobil — Mimari Sözleşme
+# GlotMate Mobil — Mimari Sözleşme
 
 Asıl ürün istemcisi. Bu dosya bağlayıcıdır: her ekran, her özellik, her oturum
 buradaki desene uyar. Desen tartışılacaksa önce bu dosya güncellenir, sonra kod.
@@ -14,7 +14,7 @@ buradaki desene uyar. Desen tartışılacaksa önce bu dosya güncellenir, sonra
 | Zustand | 5.x | domain başına store |
 | Axios | 1.x | tek instance, `src/api/index.ts` |
 | @supabase/supabase-js | 2.x | + `@react-native-async-storage/async-storage` (oturum kalıcılığı) |
-| @arna/contracts | workspace | tüm response tipleri ve zod şemaları BURADAN |
+| @glotmate/contracts | workspace | tüm response tipleri ve zod şemaları BURADAN |
 
 Kurulum kuralı: Expo'ya bağlı her paket **`npx expo install`** ile eklenir —
 sürüm uyumunu Expo çözer, elle sürüm sabitlenmez. Expo dışı paketler (zustand,
@@ -23,7 +23,7 @@ axios) normal `npm i` ile en son stabil.
 ## Katmanlı akış — HER özellik için, istisnasız
 
 ```
-Screen  →  Controller (class)  →  axios instance  →  validate (@arna/contracts)
+Screen  →  Controller (class)  →  axios instance  →  validate (@glotmate/contracts)
    ↑                                                            │
    └────────────────  Zustand store  ◄──────────────────────────┘
 ```
@@ -65,7 +65,7 @@ api.interceptors.request.use(async (config) => {
 
 ```ts
 // src/controllers/LessonController.ts
-import { lessonContentV7Schema, type LessonContentV7 } from "@arna/contracts";
+import { lessonContentV7Schema, type LessonContentV7 } from "@glotmate/contracts";
 import { z } from "zod";
 import { api } from "../api";
 import { useLessonStore } from "../stores/useLessonStore";
@@ -94,7 +94,7 @@ export class LessonController {
 ```ts
 // src/stores/useLessonStore.ts
 import { create } from "zustand";
-import type { LessonContentV7 } from "@arna/contracts";
+import type { LessonContentV7 } from "@glotmate/contracts";
 
 interface LessonState {
   lesson: LessonContentV7 | null;
@@ -137,7 +137,7 @@ export default function LessonRoute() {
 }
 ```
 
-## Doğrulama = @arna/contracts (elle şema yazmak yasak)
+## Doğrulama = @glotmate/contracts (elle şema yazmak yasak)
 
 Monorepo'nun asıl avantajı: backend'in ürettiği ve web'in tükettiği zod şemaları
 zaten `packages/contracts`'ta. Mobil controller'lar response İÇERİĞİNİ oradan
@@ -179,7 +179,7 @@ apps/mobile/src/
 **Monorepo notu:** `expo-doctor`'ın react-dom kopya uyarısı (mobil 19.2.x ↔ kökte
 web'in Next sürümü) ZARARSIZ — yalnız kullanılmayan expo-web hedefini etkiler;
 mobil kendi `node_modules/react`'ini çözüyor (doğrulandı). Metro, SDK 57'de
-workspace'i otomatik algılar; `@arna/contracts` ek ayarsız çözülür (export
+workspace'i otomatik algılar; `@glotmate/contracts` ek ayarsız çözülür (export
 testiyle doğrulandı).
 
 **Sekme kabuğu:** üç sekme `(tabs)` grubunda yaşar; grup parantezli olduğu için
@@ -276,7 +276,7 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
   SpeakingIndicator'a dönülür. Ses, avatar aktifken WebView İÇİNDE çalar
   (dudak senkronu ses+timeline'ın aynı JS bağlamında olmasını gerektirir).
   Köprünün sahibi `lib/avatarBridge.ts` + rota seçimi `lib/voice.ts`;
-  protokol tipleri `@arna/contracts` `avatarProtocol.ts`. Ekranlar yalnız
+  protokol tipleri `@glotmate/contracts` `avatarProtocol.ts`. Ekranlar yalnız
   `AvatarStage` render eder (köprünün fiziksel ucu — attach/onMessage).
   settle/watchdog sahipliği VoiceService'ten ÇIKMAZ: WebView ölürse 4sn
   start-watchdog aynı klipleri expo-audio'yla çalar, ders asla kilitlenmez.

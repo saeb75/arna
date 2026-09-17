@@ -1,4 +1,4 @@
-import { CONTENT_FORMAT, lessonContentSchema, type LessonContent, type LessonKind } from "@arna/contracts";
+import { CONTENT_FORMAT, lessonContentSchema, type LessonContent, type LessonKind } from "@glotmate/contracts";
 import { and, asc, eq, gt } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { catalogLessons, lessonContents, userProfiles } from "../../db/schema.js";

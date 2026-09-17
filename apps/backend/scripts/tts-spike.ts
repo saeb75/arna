@@ -12,7 +12,7 @@ import { writeFileSync } from "node:fs";
 import { eq, and } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
 import { lessonCores, lessonLocales } from "../src/db/schema.js";
-import type { LessonCore, LessonLocalePack } from "@arna/contracts";
+import type { LessonCore, LessonLocalePack } from "@glotmate/contracts";
 
 const VOICE = process.env.ELEVENLABS_VOICE_ID!;
 const KEY = process.env.ELEVENLABS_API_KEY!;

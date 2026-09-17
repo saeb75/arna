@@ -6,7 +6,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Arna paleti — ana ekran tasarımının menekşesi MARKA rengidir; login ve
+        // GlotMate paleti — ana ekran tasarımının menekşesi MARKA rengidir; login ve
         // ders ekranı da aynı moru kullanır (iki mor yan yana yaşamasın).
         primary: "#8b5cf6",
         background: "#0b0b10",

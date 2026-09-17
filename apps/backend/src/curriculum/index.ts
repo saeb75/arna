@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { CefrLevel } from "@arna/contracts";
+import type { CefrLevel } from "@glotmate/contracts";
 import { A1 } from "./a1.js";
 import { A2 } from "./a2.js";
 import { B1 } from "./b1.js";

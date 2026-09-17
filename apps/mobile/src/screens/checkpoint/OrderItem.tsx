@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from "react-native";
-import type { CheckpointItem } from "@arna/contracts";
+import type { CheckpointItem } from "@glotmate/contracts";
 
 interface OrderItemProps {
   item: Extract<CheckpointItem, { kind: "order" }>;

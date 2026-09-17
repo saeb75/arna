@@ -16,7 +16,7 @@
  * paket yeniden üretilecek; korumanın amacı buydu.
  */
 import { eq } from "drizzle-orm";
-import { SCENE_FORMAT } from "@arna/contracts";
+import { SCENE_FORMAT } from "@glotmate/contracts";
 import { db, sql } from "../src/db/client.js";
 import { catalogLessons, lessonCores, lessonLocales, lessonSceneSets } from "../src/db/schema.js";
 import { localeSourceHash } from "../src/modules/lesson/layers.js";

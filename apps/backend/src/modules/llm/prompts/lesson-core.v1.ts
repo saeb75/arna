@@ -1,4 +1,4 @@
-import { CORE_FORMAT, type LessonKind } from "@arna/contracts";
+import { CORE_FORMAT, type LessonKind } from "@glotmate/contracts";
 
 export const LESSON_CORE_VERSION = "lesson-core.v1";
 

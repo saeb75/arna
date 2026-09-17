@@ -11,7 +11,7 @@
  *  Çalıştırma: apps/backend içinde `npx tsx scripts/test-answer-review.ts`
  *              LLM'siz yalnız A için: `npx tsx scripts/test-answer-review.ts --no-llm` */
 import "dotenv/config";
-import { answerReviewModelSchema, triageAnswer, type AnswerReviewKind } from "@arna/contracts";
+import { answerReviewModelSchema, triageAnswer, type AnswerReviewKind } from "@glotmate/contracts";
 import { completeJson } from "../src/modules/llm/index.js";
 import { ANSWER_REVIEW_VERSION, buildAnswerReviewPrompt } from "../src/modules/llm/prompts/answer-review.v1.js";
 

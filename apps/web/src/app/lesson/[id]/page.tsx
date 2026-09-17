@@ -27,7 +27,7 @@ import {
   type RichText,
   type SessionScript,
   type ViewBeat,
-} from "@arna/contracts";
+} from "@glotmate/contracts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -463,7 +463,7 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
 
       if (!beat) return;
 
-      // AKIŞ KARARI BURADA VERİLMEZ — saf makineden gelir (@arna/contracts).
+      // AKIŞ KARARI BURADA VERİLMEZ — saf makineden gelir (@glotmate/contracts).
       // Kararın girdileri: öğrencinin sözü, sayaçlar, beat alanları. Hocanın
       // cevabının METNİ asla girdi değildir (üç canlı hatanın sebebi buydu).
       const before = decideOnStudentInput(beat, {

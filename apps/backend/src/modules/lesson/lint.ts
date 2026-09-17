@@ -1,4 +1,4 @@
-import type { LessonContent } from "@arna/contracts";
+import type { LessonContent } from "@glotmate/contracts";
 
 export interface LintReport {
   errors: string[];

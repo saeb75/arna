@@ -8,7 +8,7 @@
  *    3. gerçek külliyatta doğru indeks artık dağılıyor mu
  *
  *  Çalıştırma: apps/backend içinde `npx tsx scripts/test-choices.ts` */
-import { permuteChoices, type LessonCore } from "@arna/contracts";
+import { permuteChoices, type LessonCore } from "@glotmate/contracts";
 import { sql } from "../src/db/client.js";
 
 let fail = 0;

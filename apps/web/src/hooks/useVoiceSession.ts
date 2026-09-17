@@ -7,7 +7,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { triageAnswer, type AnswerReview } from "@arna/contracts";
+import { triageAnswer, type AnswerReview } from "@glotmate/contracts";
 import { api } from "@/lib/api";
 import { alignmentToLine, type ElevenAlignment } from "@/lib/alignment";
 import { buildTimeline, type Timeline } from "@/lib/viseme";

@@ -1,5 +1,5 @@
 import { Text, View } from "react-native";
-import type { RichText } from "@arna/contracts";
+import type { RichText } from "@glotmate/contracts";
 
 /** İpucu kartı — amber tonlu, RichText parçalı (web'deki hintShown karşılığı). */
 export function HintCard({ hint, label }: { hint: RichText; label: string }) {

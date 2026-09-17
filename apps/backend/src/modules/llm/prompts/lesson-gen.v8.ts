@@ -1,4 +1,4 @@
-import { CONTENT_FORMAT, type LessonKind } from "@arna/contracts";
+import { CONTENT_FORMAT, type LessonKind } from "@glotmate/contracts";
 import { languageName } from "../../../lib/language.js";
 
 export const LESSON_GEN_VERSION = "lesson-gen.v8";

@@ -3,7 +3,7 @@ import {
   atLeastLevel,
   MIN_ACTIVE_OBJECTIVES,
   type RoleplaySpec,
-} from "@arna/contracts";
+} from "@glotmate/contracts";
 import { isEnglishText } from "../lesson/lint.js";
 
 /**

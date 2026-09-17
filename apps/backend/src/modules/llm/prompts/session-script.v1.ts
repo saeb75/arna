@@ -1,4 +1,4 @@
-import type { LessonContent } from "@arna/contracts";
+import type { LessonContent } from "@glotmate/contracts";
 import { languageName } from "../../../lib/language.js";
 
 export const SESSION_SCRIPT_VERSION = "session-script.v1";

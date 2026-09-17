@@ -1,5 +1,5 @@
 {
-  "name": "@arna/web",
+  "name": "@glotmate/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@arna/contracts": "*",
+    "@glotmate/contracts": "*",
     "@base-ui/react": "^1.7.0",
     "@react-three/drei": "^10.7.8",
     "@react-three/fiber": "^9.7.0",

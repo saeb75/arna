@@ -8,7 +8,7 @@ import {
   type LessonStatus,
   type Track,
   type UnitCheckpointSummary,
-} from "@arna/contracts";
+} from "@glotmate/contracts";
 import { and, asc, eq, not, like, type Column } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import {

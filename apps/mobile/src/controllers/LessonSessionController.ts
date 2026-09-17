@@ -10,7 +10,7 @@ import {
   type RichText,
   type SessionPosition,
   type SessionScript,
-} from "@arna/contracts";
+} from "@glotmate/contracts";
 import { Alert } from "react-native";
 import { router } from "expo-router";
 import { api, errorCode } from "../api";

@@ -1,5 +1,5 @@
 import { Pressable, Text, View } from "react-native";
-import type { CheckpointItem } from "@arna/contracts";
+import type { CheckpointItem } from "@glotmate/contracts";
 
 interface ChoiceItemProps {
   /** `mcq` ya da `gap` — ikisi de tek doğru cevaplı şık listesi */

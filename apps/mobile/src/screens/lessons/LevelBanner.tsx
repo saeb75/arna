@@ -1,5 +1,5 @@
 import { Text, View } from "react-native";
-import type { CefrLevel } from "@arna/contracts";
+import type { CefrLevel } from "@glotmate/contracts";
 import { LEVEL_ROW_H, type LevelState } from "../../lib/lessonPath";
 
 /**

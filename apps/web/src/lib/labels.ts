@@ -1,4 +1,4 @@
-import type { CefrLevel, Interest, Track } from "@arna/contracts";
+import type { CefrLevel, Interest, Track } from "@glotmate/contracts";
 
 export const INTEREST_LABELS: Record<Interest, string> = {
   technology: "Teknoloji",

@@ -7,7 +7,7 @@ import {
   type CheckpointItem,
   type LessonCore,
   type LessonLocalePack,
-} from "@arna/contracts";
+} from "@glotmate/contracts";
 import { and, asc, type Column, eq, like, not } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { catalogLessons, catalogUnits, lessonCores, lessonLocales } from "../../db/schema.js";

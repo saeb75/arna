@@ -5,7 +5,7 @@ const app = await buildApp();
 
 try {
   await app.listen({ port: env.PORT, host: "0.0.0.0" });
-  app.log.info(`arna backend ${env.PORT} portunda`);
+  app.log.info(`glotmate backend ${env.PORT} portunda`);
 } catch (err) {
   app.log.error(err);
   process.exit(1);

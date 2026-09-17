@@ -11,7 +11,7 @@
  * görmek. Bu geçmeden 371 üretimine GEÇİLMEZ — şema burada değişirse 3 dersi
  * yeniden üretmek bedava, 371'i değil.
  */
-import { assembleLesson, type LessonCore, type SceneSet } from "@arna/contracts";
+import { assembleLesson, type LessonCore, type SceneSet } from "@glotmate/contracts";
 import { eq } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
 import { lessonCores, lessonSceneSets, catalogLessons } from "../src/db/schema.js";

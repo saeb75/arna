@@ -22,7 +22,7 @@ import {
   roleplayTurnOutputSchema,
   type CefrLevel,
   type ObjectiveHit,
-} from "@arna/contracts";
+} from "@glotmate/contracts";
 import { completeJson } from "../src/modules/llm/index.js";
 import { buildPersonaPrompt, ROLEPLAY_TURN_VERSION } from "../src/modules/roleplay/personaPrompt.js";
 import { detectObjectiveHits, ROLEPLAY_DETECT_VERSION } from "../src/modules/roleplay/service.js";

@@ -1,4 +1,4 @@
-import { CEFR_LEVELS, type CefrLevel, type CurriculumLesson, type CurriculumResponse } from "@arna/contracts";
+import { CEFR_LEVELS, type CefrLevel, type CurriculumLesson, type CurriculumResponse } from "@glotmate/contracts";
 
 /**
  * Ders yolu — SAF dönüşüm: müfredat yanıtı → ekranda çizilecek satır listesi.

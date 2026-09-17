@@ -1,5 +1,5 @@
 import { Text, View } from "react-native";
-import type { RichText } from "@arna/contracts";
+import type { RichText } from "@glotmate/contracts";
 
 /**
  * RichText parçalı sohbet balonu — `en` parçalar vurgulu (ders malzemesi),

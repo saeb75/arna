@@ -15,7 +15,7 @@ import {
   type Checkpoint,
   type CheckpointAnswer,
   type CheckpointItem,
-} from "@arna/contracts";
+} from "@glotmate/contracts";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { api, ApiError } from "@/lib/api";

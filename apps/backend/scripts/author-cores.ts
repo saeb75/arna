@@ -15,13 +15,13 @@
 import { and, eq, inArray, ne, notInArray, sql as raw } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
 import { catalogLessons, lessonCores, lessonLocales, lessonSceneSets } from "../src/db/schema.js";
-import { lessonCoreSchema, sceneSetSchema } from "@arna/contracts";
+import { lessonCoreSchema, sceneSetSchema } from "@glotmate/contracts";
 import { localeSourceHash } from "../src/modules/lesson/layers.js";
 import { lintCore, lintScenes } from "../src/modules/lesson/lintLayers.js";
 import { LESSON_CORE_VERSION } from "../src/modules/llm/prompts/lesson-core.v1.js";
 import { LESSON_SCENES_VERSION } from "../src/modules/llm/prompts/lesson-scenes.v1.js";
 import { buildCore, buildScenes, type Authored } from "./authored/dsl.js";
-import { CORE_FORMAT, SCENE_FORMAT } from "@arna/contracts";
+import { CORE_FORMAT, SCENE_FORMAT } from "@glotmate/contracts";
 
 const args = process.argv.slice(2);
 const level = args[args.indexOf("--level") + 1];

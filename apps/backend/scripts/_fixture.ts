@@ -1,7 +1,7 @@
 /** Test script'lerinin paylaştığı v6 ders içeriği kalıbı.
  *  Tek yerde durur ki format değişince dört script tek tek elden geçmesin.
  *  DİKKAT: içerikte öğrenci adı YOKTUR — ders kullanıcıdan bağımsızdır. */
-import { CONTENT_FORMAT, CORE_FORMAT, SCENE_FORMAT, TRACKS, type LessonContent, type LessonCore } from "@arna/contracts";
+import { CONTENT_FORMAT, CORE_FORMAT, SCENE_FORMAT, TRACKS, type LessonContent, type LessonCore } from "@glotmate/contracts";
 import { eq } from "drizzle-orm";
 import { db } from "../src/db/client.js";
 import {

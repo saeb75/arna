@@ -1,4 +1,4 @@
-import type { ChromeBundle } from "@arna/contracts";
+import type { ChromeBundle } from "@glotmate/contracts";
 
 /**
  * İngilizce chrome — MUTLAK SON ÇARE paketi. Bir dilin paketi yoksa buna düşülür

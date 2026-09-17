@@ -17,7 +17,7 @@ import {
   type FlowDecision,
   type LectureBeat,
   type WrapupDecision,
-} from "@arna/contracts";
+} from "@glotmate/contracts";
 
 let pass = 0;
 let fail = 0;

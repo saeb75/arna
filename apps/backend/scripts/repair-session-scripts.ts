@@ -17,7 +17,7 @@
  * İdempotent: ikinci koşuda 0 satır bulur.
  */
 import { eq } from "drizzle-orm";
-import type { LessonCore, RichText, SessionScript } from "@arna/contracts";
+import type { LessonCore, RichText, SessionScript } from "@glotmate/contracts";
 import { db } from "../src/db/client.js";
 import { catalogLessons, lessonCores, sessions, userProfiles } from "../src/db/schema.js";
 import { getChrome } from "../src/i18n/index.js";

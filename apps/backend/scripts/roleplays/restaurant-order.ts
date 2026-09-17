@@ -1,4 +1,4 @@
-import { ROLEPLAY_SPEC_FORMAT, type RoleplaySpec } from "@arna/contracts";
+import { ROLEPLAY_SPEC_FORMAT, type RoleplaySpec } from "@glotmate/contracts";
 
 /**
  * PİLOT 1 — Restoran siparişi.

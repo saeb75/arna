@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@arna/contracts"],
+  transpilePackages: ["@glotmate/contracts"],
 };
 
 export default nextConfig;

@@ -6,7 +6,7 @@
  *     eşleşiyor → iki turda goalMet tetiklenip sahne kapanıyordu.
  *
  *  LLM ÇAĞRISI YOK, DB YOK. Çalıştırma: `npx tsx scripts/test-mustuse.ts` */
-import { PRACTICE_MIN_TURNS_BEFORE_GOAL } from "@arna/contracts";
+import { PRACTICE_MIN_TURNS_BEFORE_GOAL } from "@glotmate/contracts";
 import { lintMustUse } from "../src/modules/lesson/lint.js";
 
 let pass = 0;

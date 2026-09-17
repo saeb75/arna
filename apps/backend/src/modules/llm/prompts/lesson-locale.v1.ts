@@ -1,4 +1,4 @@
-import { L10N_FORMAT, TRACKS, type LessonCore, type SceneSet } from "@arna/contracts";
+import { L10N_FORMAT, TRACKS, type LessonCore, type SceneSet } from "@glotmate/contracts";
 import { languageName } from "../../../lib/language.js";
 
 export const LESSON_LOCALE_VERSION = "lesson-locale.v1";

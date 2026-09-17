@@ -1,5 +1,5 @@
 {
-  "name": "@arna/backend",
+  "name": "@glotmate/backend",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
-    "@arna/contracts": "*",
+    "@glotmate/contracts": "*",
     "@fastify/cors": "^10.0.1",
     "@fastify/multipart": "^10.1.0",
     "@fastify/rate-limit": "^10.1.1",

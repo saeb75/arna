@@ -14,7 +14,7 @@ import {
   type LessonLocalePack,
   type SceneSet,
   type Track,
-} from "@arna/contracts";
+} from "@glotmate/contracts";
 import { and, asc, eq, gt } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { catalogLessons, lessonCores, lessonLocales, lessonSceneSets, userProfiles } from "../../db/schema.js";

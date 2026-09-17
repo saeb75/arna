@@ -9,7 +9,7 @@ import {
   type Checkpoint,
   type CheckpointAnswer,
   type CheckpointItem,
-} from "@arna/contracts";
+} from "@glotmate/contracts";
 import { Button } from "../../components/ui/Button";
 import { CheckpointController } from "../../controllers/CheckpointController";
 import { useCheckpointStore } from "../../stores/useCheckpointStore";

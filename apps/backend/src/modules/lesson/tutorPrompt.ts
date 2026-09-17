@@ -1,4 +1,4 @@
-import type { LessonCore, SceneVariant } from "@arna/contracts";
+import type { LessonCore, SceneVariant } from "@glotmate/contracts";
 import { languageName } from "../../lib/language.js";
 
 interface TutorPromptInput {

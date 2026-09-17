@@ -80,7 +80,7 @@ export const lessons = pgTable(
     userId: uuid("user_id").notNull(),
     version: integer("version").notNull().default(1),
     status: text("status").notNull().default("generating"), // generating | ready | failed
-    content: jsonb("content"), // LessonContent (@arna/contracts ile doğrulanır)
+    content: jsonb("content"), // LessonContent (@glotmate/contracts ile doğrulanır)
     validationReport: jsonb("validation_report"),
     model: text("model"),
     promptVersion: text("prompt_version"),
@@ -180,7 +180,7 @@ export const lessonContents = pgTable(
     formatVersion: integer("format_version").notNull(),
     promptVersion: text("prompt_version").notNull(),
     status: text("status").notNull().default("generating"), // generating | ready | failed | retired
-    content: jsonb("content"), // LessonContent (@arna/contracts ile doğrulanır)
+    content: jsonb("content"), // LessonContent (@glotmate/contracts ile doğrulanır)
     validationReport: jsonb("validation_report"),
     model: text("model"),
     /** Yalnızca denetim: üretimin faturasını kim ödedi. SAHİPLİK DEĞİL. */
@@ -259,7 +259,7 @@ export const lessonCores = pgTable(
     /** Katalog satırının üretimi etkileyen alanlarının parmak izi */
     specHash: text("spec_hash").notNull(),
     status: text("status").notNull().default("generating"), // generating | ready | failed | published | retired
-    core: jsonb("core"), // LessonCore (@arna/contracts)
+    core: jsonb("core"), // LessonCore (@glotmate/contracts)
     validationReport: jsonb("validation_report"),
     model: text("model"),
     generatedForUserId: uuid("generated_for_user_id"),
@@ -324,7 +324,7 @@ export const lessonLocales = pgTable(
     /** Katalog başlığı + core rev + sceneSet rev parmak izi — başlık değişince yalnız paket yenilenir */
     sourceHash: text("source_hash").notNull(),
     status: text("status").notNull().default("generating"), // generating | ready | failed | retired
-    pack: jsonb("pack"), // LessonLocalePack (@arna/contracts)
+    pack: jsonb("pack"), // LessonLocalePack (@glotmate/contracts)
     validationReport: jsonb("validation_report"),
     model: text("model"),
     generatedForUserId: uuid("generated_for_user_id"),
@@ -391,7 +391,7 @@ export const roleplayRevisions = pgTable(
     /** Üretimi/oynatmayı etkileyen alanların parmak izi */
     specHash: text("spec_hash").notNull(),
     status: text("status").notNull().default("draft"), // draft | published | retired
-    spec: jsonb("spec").notNull(), // RoleplaySpec (@arna/contracts)
+    spec: jsonb("spec").notNull(), // RoleplaySpec (@glotmate/contracts)
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

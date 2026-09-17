@@ -1,7 +1,7 @@
 import type { ComponentProps } from "react";
 import { Pressable, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import type { LessonKind } from "@arna/contracts";
+import type { LessonKind } from "@glotmate/contracts";
 import { NODE_ROW_H, type NodeSide, type NodeState } from "../../lib/lessonPath";
 
 type Glyph = ComponentProps<typeof MaterialCommunityIcons>["name"];

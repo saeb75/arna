@@ -9,7 +9,7 @@
 // NİHAİ settle sahibi VoiceService'in watchdog'u: köprü ölürse onError/timeout
 // üzerinden expo-audio fallback devreye girer, ders ASLA kilitlenmez.
 
-import type { AvatarClip, AvatarCommand, AvatarEvent } from "@arna/contracts";
+import type { AvatarClip, AvatarCommand, AvatarEvent } from "@glotmate/contracts";
 
 interface WebViewHandle {
   inject: (js: string) => void;

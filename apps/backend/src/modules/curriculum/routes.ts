@@ -1,4 +1,4 @@
-import { catalogLessonIdSchema, cefrLevelSchema, trackSchema, tutorLanguageSchema } from "@arna/contracts";
+import { catalogLessonIdSchema, cefrLevelSchema, trackSchema, tutorLanguageSchema } from "@glotmate/contracts";
 import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";

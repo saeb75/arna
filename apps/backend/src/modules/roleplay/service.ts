@@ -12,7 +12,7 @@ import {
   type ObjectiveHit,
   type RichText,
   type RoleplaySpec,
-} from "@arna/contracts";
+} from "@glotmate/contracts";
 import { db } from "../../db/client.js";
 import { roleplayAttempts, sessions, transcriptTurns, userProfiles } from "../../db/schema.js";
 import { languageName, nativeLanguageOf } from "../../lib/language.js";

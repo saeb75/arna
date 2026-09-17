@@ -9,7 +9,7 @@
  * Yazarın sorumluluğu: iddialar, örnekler, alıştırmalar, sahneler.
  * Bu dosyanın sorumluluğu: onları şemanın ve lint'in beklediği şekle sokmak.
  */
-import { CORE_FORMAT, SCENE_FORMAT, TRACKS, type LessonCore, type SceneSet } from "@arna/contracts";
+import { CORE_FORMAT, SCENE_FORMAT, TRACKS, type LessonCore, type SceneSet } from "@glotmate/contracts";
 
 // --- Öğretim noktası ---------------------------------------------------------
 export interface Pt {

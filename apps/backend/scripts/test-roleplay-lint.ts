@@ -8,7 +8,7 @@
  *  külliyatta iki kez yaşandı (dolgu iddia sezgisi, mutlak kelime taraması).
  *
  *  Çalıştırma: apps/backend içinde `npx tsx scripts/test-roleplay-lint.ts` */
-import { roleplaySpecSchema, type RoleplaySpec } from "@arna/contracts";
+import { roleplaySpecSchema, type RoleplaySpec } from "@glotmate/contracts";
 import { lintRoleplay } from "../src/modules/roleplay/lintRoleplay.js";
 import { COMPLAINT_REFUND } from "./roleplays/complaint-refund.js";
 import { RESTAURANT_ORDER } from "./roleplays/restaurant-order.js";

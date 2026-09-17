@@ -17,7 +17,7 @@
  */
 import { createHash } from "node:crypto";
 import { and, eq, notInArray } from "drizzle-orm";
-import { roleplaySpecSchema, ROLEPLAY_SPEC_FORMAT, type RoleplaySpec } from "@arna/contracts";
+import { roleplaySpecSchema, ROLEPLAY_SPEC_FORMAT, type RoleplaySpec } from "@glotmate/contracts";
 import { db } from "../src/db/client.js";
 import { roleplayRevisions, roleplays } from "../src/db/schema.js";
 import { lintRoleplay } from "../src/modules/roleplay/lintRoleplay.js";

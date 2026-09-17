@@ -1,6 +1,6 @@
 import { View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { CHECKPOINT_LIVES } from "@arna/contracts";
+import { CHECKPOINT_LIVES } from "@glotmate/contracts";
 
 /**
  * Kalan canlar. Sayı contracts'tan gelir — ekran kendi sabitini TUTMAZ, yoksa

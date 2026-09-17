@@ -22,7 +22,7 @@ import {
   type SessionSyncBody,
   type Track,
   type TranscriptTurn,
-} from "@arna/contracts";
+} from "@glotmate/contracts";
 import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { toFile } from "openai";
 import { z } from "zod";

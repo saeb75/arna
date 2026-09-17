@@ -1,4 +1,4 @@
-import type { ChromeBundle } from "@arna/contracts";
+import type { ChromeBundle } from "@glotmate/contracts";
 
 /** İspanyolca chrome — lansman test dillerinden (tr ile birlikte). */
 export const ES_CHROME: ChromeBundle = {

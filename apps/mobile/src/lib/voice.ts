@@ -1,6 +1,6 @@
 import { AudioModule, createAudioPlayer, setAudioModeAsync, RecordingPresets, type AudioPlayer } from "expo-audio";
 import * as FileSystem from "expo-file-system/legacy";
-import type { AvatarClip, RichText } from "@arna/contracts";
+import type { AvatarClip, RichText } from "@glotmate/contracts";
 import { api } from "../api";
 import { AvatarBridge } from "./avatarBridge";
 

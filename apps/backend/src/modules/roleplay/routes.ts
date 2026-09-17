@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
-import { resolvePlayedLevel, type CefrLevel } from "@arna/contracts";
+import { resolvePlayedLevel, type CefrLevel } from "@glotmate/contracts";
 import { db } from "../../db/client.js";
 import { userProfiles } from "../../db/schema.js";
 import { eq } from "drizzle-orm";

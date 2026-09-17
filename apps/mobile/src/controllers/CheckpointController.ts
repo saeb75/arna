@@ -1,4 +1,4 @@
-import { checkpointSchema } from "@arna/contracts";
+import { checkpointSchema } from "@glotmate/contracts";
 import { api, errorCode } from "../api";
 import { useCheckpointStore } from "../stores/useCheckpointStore";
 

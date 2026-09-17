@@ -16,7 +16,7 @@
 import { eq, inArray } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
 import { catalogLessons, lessonCores, lessonLocales, lessonSceneSets } from "../src/db/schema.js";
-import { SCENE_FORMAT, lessonCoreSchema, sceneSetSchema, type LessonCore, type SceneSet } from "@arna/contracts";
+import { SCENE_FORMAT, lessonCoreSchema, sceneSetSchema, type LessonCore, type SceneSet } from "@glotmate/contracts";
 import { lintCore, lintScenes } from "../src/modules/lesson/lintLayers.js";
 
 const dry = process.argv.includes("--dry");

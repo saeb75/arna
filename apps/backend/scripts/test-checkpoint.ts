@@ -14,7 +14,7 @@ import {
   gradeCheckpointItem,
   livesLeft,
   type CheckpointItem,
-} from "@arna/contracts";
+} from "@glotmate/contracts";
 import { and, eq, inArray, like, not } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
 import { catalogLessons, lessonCores, lessonLocales, lessonSceneSets } from "../src/db/schema.js";

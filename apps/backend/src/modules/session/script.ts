@@ -1,4 +1,4 @@
-import type { ChromeBundle, LessonCore, RichText, SessionScript, TextRun } from "@arna/contracts";
+import type { ChromeBundle, LessonCore, RichText, SessionScript, TextRun } from "@glotmate/contracts";
 import { z } from "zod";
 import { completeJson } from "../llm/index.js";
 import { languageName } from "../../lib/language.js";

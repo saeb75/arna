@@ -16,7 +16,7 @@
  * sürüklenme koruması (emsal: patch-b1-review.ts).
  */
 import { and, eq } from "drizzle-orm";
-import type { LessonCore } from "@arna/contracts";
+import type { LessonCore } from "@glotmate/contracts";
 import { db, sql } from "../src/db/client.js";
 import { catalogLessons, lessonCores } from "../src/db/schema.js";
 import { buildCore } from "./authored/dsl.js";

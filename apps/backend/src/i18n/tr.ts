@@ -1,4 +1,4 @@
-import type { ChromeBundle } from "@arna/contracts";
+import type { ChromeBundle } from "@glotmate/contracts";
 
 /**
  * Türkçe chrome. Script şablonlarındaki {name}/{topic}/{scenario} sunucuda

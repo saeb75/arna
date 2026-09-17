@@ -1,4 +1,4 @@
-import { onboardingInputSchema } from "@arna/contracts";
+import { onboardingInputSchema } from "@glotmate/contracts";
 import type { FastifyInstance } from "fastify";
 import { createProgramForUser } from "./service.js";
 

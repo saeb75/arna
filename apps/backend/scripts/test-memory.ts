@@ -2,7 +2,7 @@
  *  ders bitir → çıkarım → gerçekler + süreklilik kancası → sonraki derste prompt'a giriyor mu
  *  Çalıştırma: apps/backend içinde `npx tsx scripts/test-memory.ts`
  *  Gerçek LLM + embedding çağrısı yapar (~$0.001). */
-import type { LessonContent } from "@arna/contracts";
+import type { LessonContent } from "@glotmate/contracts";
 import { and, cosineDistance, desc, eq, isNotNull, sql as dsql } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
 import { lessonProgress, llmCalls, memories, sessionSummaries, sessions, transcriptTurns, userProfiles } from "../src/db/schema.js";

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { CurriculumResponse } from "@arna/contracts";
+import type { CurriculumResponse } from "@glotmate/contracts";
 
 interface CurriculumState {
   curriculum: CurriculumResponse | null;

@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Arna (Speakly) API
+  title: GlotMate API
   version: 0.2.0
   description: |
     Praktika benzeri AI İngilizce öğretmeni — backend API'si.
@@ -13,7 +13,7 @@ info:
     Oturum (Faz 4). Tipik akış: onboarding → curriculum/current → lessons/:id →
     lessons/:id/sessions → chat/tts/stt döngüsü → sessions/:id/end.
   contact:
-    name: Arna
+    name: GlotMate
 servers:
   - url: http://localhost:6566
     description: Yerel geliştirme
@@ -756,7 +756,7 @@ components:
         taşır — istemci dil sinyallerini hardcode etmez.
 
         İçerikte kullanıcıya özel hiçbir veri YOKTUR. Akış kontrolü içerikte değil,
-        SUNUCU KODUNDA ve @arna/contracts saf fonksiyonlarındadır. Tam şema:
+        SUNUCU KODUNDA ve @glotmate/contracts saf fonksiyonlarındadır. Tam şema:
         packages/contracts/src/lessonLayers.ts → lessonContentV7Schema.
 
         İki faz: LECTURE (beats) → PRACTICE (roleplay). Tam şema

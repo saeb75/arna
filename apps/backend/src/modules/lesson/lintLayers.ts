@@ -1,4 +1,4 @@
-import { TRACKS, type LessonCore, type LessonLocalePack, type SceneSet } from "@arna/contracts";
+import { TRACKS, type LessonCore, type LessonLocalePack, type SceneSet } from "@glotmate/contracts";
 import { isEnglishText, lintMustUse, type LintReport } from "./lint.js";
 
 /**

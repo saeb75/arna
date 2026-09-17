@@ -1,4 +1,4 @@
-import { chromeBundleSchema, type ChromeBundle } from "@arna/contracts";
+import { chromeBundleSchema, type ChromeBundle } from "@glotmate/contracts";
 import { EN_CHROME } from "./en.js";
 import { ES_CHROME } from "./es.js";
 import { TR_CHROME } from "./tr.js";

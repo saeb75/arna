@@ -5,7 +5,7 @@
  *  sorularında AYNI kelime TERS anlama geliyor — onay kısayolu bunu ayırt etmiyordu.
  *
  *  Çalıştırma: apps/backend içinde `npx tsx scripts/test-question-window.ts` */
-import { decideAfterTutorReply } from "@arna/contracts";
+import { decideAfterTutorReply } from "@glotmate/contracts";
 import { eq } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
 import { llmCalls, userProfiles } from "../src/db/schema.js";

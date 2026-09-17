@@ -1,6 +1,6 @@
 import { TextInput, type TextInputProps } from "react-native";
 
-/** Tasarım sistemi girişi — RN TextInput'un Arna görünümlü sarmalayıcısı. */
+/** Tasarım sistemi girişi — RN TextInput'un GlotMate görünümlü sarmalayıcısı. */
 export function Input(props: TextInputProps) {
   return (
     <TextInput

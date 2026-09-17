@@ -11,7 +11,7 @@ import {
   type Interest,
   type Track,
   type TutorLanguage,
-} from "@arna/contracts";
+} from "@glotmate/contracts";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

@@ -4,7 +4,7 @@
 // `window.__ARNA_AVATAR__.push(json)` ile buraya iter (JWT buraya asla
 // girmez); bu bileşen çalar (clipPlayer), AvatarScene'i sürer ve olayları
 // `window.ReactNativeWebView.postMessage` ile geri bildirir. Protokol:
-// @arna/contracts avatarProtocol.ts. Masaüstü tarayıcıda (ReactNativeWebView
+// @glotmate/contracts avatarProtocol.ts. Masaüstü tarayıcıda (ReactNativeWebView
 // yok) olaylar console'a düşer — sayfa elle test edilebilir.
 //
 // `ended` konuşma başına TAM BİR KEZ gider ama NİHAİ settle sahibi RN'deki
@@ -13,7 +13,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import type { AvatarCommand, AvatarEvent } from "@arna/contracts";
+import type { AvatarCommand, AvatarEvent } from "@glotmate/contracts";
 import AvatarScene from "@/components/AvatarScene";
 import { createClipPlayer, type ClipPlayer } from "@/lib/clipPlayer";
 import { alignmentToLine } from "@/lib/alignment";

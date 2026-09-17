@@ -14,7 +14,7 @@
  *  terim içeren L1 cümlesi — hiçbiri parantez taşımıyor.
  *
  *  Çalıştırma: apps/backend içinde `npx tsx scripts/test-richtext-guard.ts` */
-import { spokenRunsSchema, type RichText } from "@arna/contracts";
+import { spokenRunsSchema, type RichText } from "@glotmate/contracts";
 import { getChrome } from "../src/i18n/index.js";
 import { templateGreeting } from "../src/modules/session/script.js";
 import { sql } from "drizzle-orm";

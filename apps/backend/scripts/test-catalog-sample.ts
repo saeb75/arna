@@ -11,7 +11,7 @@
  *
  * Satır başına bir LLM çağrısı (~$0.014).
  */
-import { lessonContentSchema } from "@arna/contracts";
+import { lessonContentSchema } from "@glotmate/contracts";
 import { inArray } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
 import { catalogLessons } from "../src/db/schema.js";

@@ -1,4 +1,4 @@
-import type { LessonCore } from "@arna/contracts";
+import type { LessonCore } from "@glotmate/contracts";
 import { and, asc, cosineDistance, desc, eq, isNotNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../../db/client.js";

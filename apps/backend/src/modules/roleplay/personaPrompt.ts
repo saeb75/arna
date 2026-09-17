@@ -1,4 +1,4 @@
-import type { CefrLevel, RoleplayComplication, RoleplayObjective, RoleplaySpec } from "@arna/contracts";
+import type { CefrLevel, RoleplayComplication, RoleplayObjective, RoleplaySpec } from "@glotmate/contracts";
 
 export const ROLEPLAY_TURN_VERSION = "roleplay-turn.v1";
 

@@ -23,7 +23,7 @@ import {
   roleplaySpecSchema,
   roleplayTurnOutputSchema,
   type RoleplaySpec,
-} from "@arna/contracts";
+} from "@glotmate/contracts";
 
 let fail = 0;
 const check = (label: string, ok: boolean, detail = "") => {

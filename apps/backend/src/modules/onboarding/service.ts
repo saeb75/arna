@@ -1,4 +1,4 @@
-import type { CurriculumResponse, OnboardingInput } from "@arna/contracts";
+import type { CurriculumResponse, OnboardingInput } from "@glotmate/contracts";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { programs, userProfiles } from "../../db/schema.js";

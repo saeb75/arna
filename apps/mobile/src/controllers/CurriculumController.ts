@@ -1,10 +1,10 @@
-import { curriculumResponseSchema } from "@arna/contracts";
+import { curriculumResponseSchema } from "@glotmate/contracts";
 import { api, errorCode } from "../api";
 import { useCurriculumStore } from "../stores/useCurriculumStore";
 
 /**
  * İLK GERÇEK DİLİM — CLAUDE.md desenin kanıtı:
- * Screen → Controller → axios → validate(@arna/contracts) → store → Screen.
+ * Screen → Controller → axios → validate(@glotmate/contracts) → store → Screen.
  * Şema ELLE YAZILMADI; web'in kullandığı curriculumResponseSchema'nın aynısı.
  */
 export class CurriculumController {

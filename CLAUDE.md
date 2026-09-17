@@ -1,4 +1,4 @@
-# Arna (Speakly) — AI İngilizce Öğretmeni
+# GlotMate — AI İngilizce Öğretmeni
 
 Praktika benzeri, 3B avatarlı, kalıcı hafızalı, kişiselleştirilmiş müfredatlı İngilizce öğrenme uygulaması. Bu repo monorepo'dur; tüm alt projeler burada yaşar.
 

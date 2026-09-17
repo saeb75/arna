@@ -1,4 +1,4 @@
-# @arna/mobile
+# @glotmate/mobile
 
 Asıl ürün istemcisi — Expo SDK 57 + Expo Router + NativeWind 4 + Zustand.
 Mimari sözleşme: `CLAUDE.md` (bağlayıcı — her özellik oradaki katmanlı desene uyar).

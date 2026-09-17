@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Checkpoint } from "@arna/contracts";
+import type { Checkpoint } from "@glotmate/contracts";
 
 interface CheckpointState {
   checkpoint: Checkpoint | null;

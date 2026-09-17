@@ -7,7 +7,7 @@ const geistSans = Geist({ variable: "--font-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Arna — AI İngilizce Öğretmeni",
+  title: "GlotMate — AI İngilizce Öğretmeni",
   description: "Avatarlı, kişisel programlı İngilizce pratik uygulaması",
 };
 

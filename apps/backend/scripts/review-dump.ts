@@ -12,7 +12,7 @@ import { writeFileSync } from "node:fs";
 import { and, asc, eq, like, not } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
 import { catalogLessons, lessonCores, lessonSceneSets } from "../src/db/schema.js";
-import type { LessonCore, SceneVariant } from "@arna/contracts";
+import type { LessonCore, SceneVariant } from "@glotmate/contracts";
 
 const level = process.argv[process.argv.indexOf("--level") + 1];
 if (!level || level.startsWith("--")) {

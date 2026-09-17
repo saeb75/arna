@@ -1,4 +1,4 @@
-import { cefrLevelSchema } from "@arna/contracts";
+import { cefrLevelSchema } from "@glotmate/contracts";
 import { z } from "zod";
 
 /**
@@ -11,7 +11,7 @@ import { z } from "zod";
  * - Track (business/conversation/exam) müfredatı değil, üretilen içeriğin SAHNESİNİ
  *   belirler; içerik önbellek anahtarının bir boyutudur, katalog satırının değil.
  *
- * Bu dosya yalnızca seed'in giriş şeklidir; API'ye çıkan şekiller @arna/contracts'ta.
+ * Bu dosya yalnızca seed'in giriş şeklidir; API'ye çıkan şekiller @glotmate/contracts'ta.
  */
 
 export const LESSON_KINDS = ["phrases", "grammar", "practice"] as const;

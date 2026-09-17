@@ -27,7 +27,7 @@ export function LoginScreen() {
       className="flex-1 justify-center bg-background px-6"
     >
       <View className="gap-4">
-        <Text className="text-center text-3xl font-bold text-white">Arna</Text>
+        <Text className="text-center text-3xl font-bold text-white">GlotMate</Text>
         <Text className="mb-2 text-center text-sm text-muted">
           İngilizce öğretmenin seni bekliyor
         </Text>

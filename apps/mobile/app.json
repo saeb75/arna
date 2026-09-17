@@ -1,14 +1,15 @@
 {
   "expo": {
-    "name": "Arna",
-    "slug": "arna",
+    "name": "GlotMate",
+    "slug": "glotmate",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "arna",
+    "scheme": "glotmate",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.imtiyaz.glotmate"
     },
     "android": {
       "adaptiveIcon": {
@@ -17,7 +18,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.imtiyaz.glotmate"
     },
     "web": {
       "output": "static",

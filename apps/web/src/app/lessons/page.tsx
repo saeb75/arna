@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CEFR_LEVELS, type CefrLevel, type CurriculumResponse, type LessonKind } from "@arna/contracts";
+import { CEFR_LEVELS, type CefrLevel, type CurriculumResponse, type LessonKind } from "@glotmate/contracts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {

@@ -11,7 +11,7 @@
  * yazılması → sahne ikinci turda kapanıyor) buradan geçmeyen bir satırla
  * yeniden doğar. Kural gövdesi kopyalanmaz, `lesson/lint.ts` yeniden kullanılır.
  */
-import type { CefrLevel } from "@arna/contracts";
+import type { CefrLevel } from "@glotmate/contracts";
 import {
   AUTHORED_LEVELS,
   CURRICULUM,

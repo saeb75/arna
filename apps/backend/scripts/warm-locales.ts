@@ -18,7 +18,7 @@ import {
   getPublishedSceneSet,
   localeSourceHash,
 } from "../src/modules/lesson/layers.js";
-import { SCENE_FORMAT, type LessonCore, type SceneSet } from "@arna/contracts";
+import { SCENE_FORMAT, type LessonCore, type SceneSet } from "@glotmate/contracts";
 
 const args = process.argv.slice(2);
 const valueOf = (f: string) => {

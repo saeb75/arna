@@ -1,4 +1,4 @@
-import { SCENE_FORMAT, TRACKS, type LessonCore } from "@arna/contracts";
+import { SCENE_FORMAT, TRACKS, type LessonCore } from "@glotmate/contracts";
 
 export const LESSON_SCENES_VERSION = "lesson-scenes.v1";
 

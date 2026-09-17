@@ -1,5 +1,5 @@
 import { and, asc, eq } from "drizzle-orm";
-import { roleplaySpecSchema, type RoleplaySpec } from "@arna/contracts";
+import { roleplaySpecSchema, type RoleplaySpec } from "@glotmate/contracts";
 import { db } from "../../db/client.js";
 import { roleplayAttempts, roleplayRevisions, roleplays } from "../../db/schema.js";
 

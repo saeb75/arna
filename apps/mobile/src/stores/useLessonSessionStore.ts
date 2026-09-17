@@ -6,7 +6,7 @@ import type {
   SessionPosition,
   SessionScript,
   TranscriptTurn,
-} from "@arna/contracts";
+} from "@glotmate/contracts";
 
 /**
  * Ders oturumu durumu — web sayfasındaki useState+useRef yığınının store karşılığı.

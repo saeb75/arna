@@ -6,7 +6,7 @@
  *  TypeScript yakalamadı (join() her diziyi kabul eder), bu test yakalar.
  *
  *  Çalıştırma: apps/backend içinde `npx tsx scripts/test-tutor-prompt.ts` */
-import type { LessonCore, SceneVariant } from "@arna/contracts";
+import type { LessonCore, SceneVariant } from "@glotmate/contracts";
 import { buildTutorPrompt } from "../src/modules/lesson/tutorPrompt.js";
 
 let fail = 0;

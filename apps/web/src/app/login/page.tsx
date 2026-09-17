@@ -40,7 +40,7 @@ export default function LoginPage() {
     <main className="flex h-dvh items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Arna</CardTitle>
+          <CardTitle className="text-2xl">GlotMate</CardTitle>
           <CardDescription>
             {mode === "login" ? "Hesabına giriş yap" : "Yeni hesap oluştur"}
           </CardDescription>

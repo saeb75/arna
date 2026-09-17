@@ -1,4 +1,4 @@
-import { catalogLessonIdSchema } from "@arna/contracts";
+import { catalogLessonIdSchema } from "@glotmate/contracts";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { LayerError, resolveLesson, warmNextLocale } from "./layers.js";

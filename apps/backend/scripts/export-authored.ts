@@ -16,7 +16,7 @@
  */
 import { writeFileSync } from "node:fs";
 import { and, asc, eq } from "drizzle-orm";
-import { SCENE_FORMAT, TRACKS, type LessonCore, type SceneSet } from "@arna/contracts";
+import { SCENE_FORMAT, TRACKS, type LessonCore, type SceneSet } from "@glotmate/contracts";
 import { db, sql } from "../src/db/client.js";
 import { catalogLessons, lessonCores, lessonSceneSets } from "../src/db/schema.js";
 import { buildCore, buildScenes, type Authored, type Ex, type Q, type Sc } from "./authored/dsl.js";
