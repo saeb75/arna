@@ -2,6 +2,7 @@ import "../global.css";
 import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import colors from "../../colors";
 import { AuthController } from "../controllers/AuthController";
 import { UpdatesController } from "../controllers/UpdatesController";
 import { useAuthStore } from "../stores/useAuthStore";
@@ -23,8 +24,9 @@ export default function RootLayout() {
 
   return (
     <>
-      <StatusBar style="light" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#0b0b10" } }} />
+      {/* Light tema: durum çubuğu metni koyu */}
+      <StatusBar style="dark" />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }} />
     </>
   );
 }

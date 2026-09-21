@@ -28,6 +28,8 @@ tags:
     description: Tembel ders içeriği üretimi ("plan peşin, içerik tembel")
   - name: Oturum
     description: Ders çalışma zamanı — chat / TTS / STT / bitirme
+  - name: Admin
+    description: Admin paneli uçları — JWT `app_metadata.role = admin` ister (403 aksi hâlde)
 
 security:
   - bearerAuth: []
@@ -206,6 +208,54 @@ paths:
                   takenAt: { type: string, format: date-time }
         "400": { $ref: "#/components/responses/InvalidInput" }
         "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/admin/lessons:
+    get:
+      tags: [Admin]
+      summary: Ders matrisi — katalog × (çekirdek · sahne seti · dil paketleri)
+      description: |
+        Aktif katalog satırlarının tamamı (fixture'lar hariç) ve her biri için
+        GÜNCEL katman durumu: format + promptVersion (+ çekirdekte specHash)
+        tutan satır. Eski sürüm satırları görünmez. `locales[].stale`, paketin
+        sourceHash'inin güncel içerikle tutmadığını söyler (ilk açılışta yeniden
+        üretilir). Filtre yok — 395 satır, istemci süzer.
+      responses:
+        "200":
+          description: Matris
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [lessons, generatedAt]
+                properties:
+                  generatedAt: { type: string, format: date-time }
+                  lessons:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, example: a1-she-works-at-night }
+                        level: { type: string, enum: [A1, A2, B1, B2, C1, C2] }
+                        unitIndex: { type: integer }
+                        unitTitle: { type: string }
+                        position: { type: integer }
+                        kind: { type: string, enum: [phrases, grammar, practice] }
+                        title: { type: string }
+                        focus: { type: string }
+                        targetPhrases: { type: array, items: { type: string } }
+                        core: { $ref: "#/components/schemas/AdminLayer" }
+                        sceneSet: { $ref: "#/components/schemas/AdminLayer" }
+                        locales:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              language: { type: string, example: tr }
+                              status: { $ref: "#/components/schemas/LayerStatus" }
+                              stale: { type: boolean }
+                              updatedAt: { type: string, format: date-time }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
 
   /v1/lessons/{catalogLessonId}:
     get:
@@ -538,6 +588,12 @@ components:
           examples:
             eksik: { value: { error: missing_token } }
             gecersiz: { value: { error: invalid_token } }
+    Forbidden:
+      description: Token geçerli ama admin rolü yok
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: forbidden }
     InvalidInput:
       description: Gövde şema doğrulamasından geçemedi
       content:
@@ -568,6 +624,19 @@ components:
       required: [error]
       properties:
         error: { type: string, description: Makine-okunur hata kodu }
+
+    LayerStatus:
+      type: string
+      enum: [generating, ready, failed, published, retired]
+
+    AdminLayer:
+      type: object
+      nullable: true
+      description: Çekirdek/sahne seti satır özeti; null = bu katalog sürümü için üretilmemiş
+      properties:
+        id: { type: string, format: uuid }
+        status: { $ref: "#/components/schemas/LayerStatus" }
+        updatedAt: { type: string, format: date-time }
 
     Checkpoint:
       type: object

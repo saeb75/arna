@@ -67,7 +67,7 @@ export function LessonsScreen() {
   if (error) {
     return (
       <View className="flex-1 items-center justify-center gap-3 bg-background px-6">
-        <Text className="text-center text-sm text-red-400">Dersler yüklenemedi ({error})</Text>
+        <Text className="text-center text-sm text-danger">Dersler yüklenemedi ({error})</Text>
         <Pressable onPress={() => void CurriculumController.getCurriculum()}>
           <Text className="text-primary">Tekrar dene</Text>
         </Pressable>

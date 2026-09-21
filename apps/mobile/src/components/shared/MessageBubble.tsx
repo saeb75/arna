@@ -20,13 +20,19 @@ function needsSpace(prev: string | undefined, cur: string): boolean {
   return !/\s$/.test(prev) && !/^\s/.test(cur);
 }
 
-function Runs({ runs }: { runs: RichText }) {
+/**
+ * Kullanıcı balonu mor zeminde: metin `onPrimary`, `en` vurgusu yalnız kalınlıkla.
+ * Hoca balonu beyaz kartta: metin `foreground`, `en` parçalar `accent`.
+ */
+function Runs({ runs, onPrimary }: { runs: RichText; onPrimary: boolean }) {
+  const body = onPrimary ? "text-onPrimary" : "text-foreground";
+  const en = onPrimary ? "text-onPrimary" : "text-accent";
   return (
-    <Text className="text-base leading-6 text-white">
+    <Text className={`text-base leading-6 ${body}`}>
       {runs.map((r, i) => {
         const sep = needsSpace(runs[i - 1]?.text, r.text) ? " " : "";
         return r.lang === "en" ? (
-          <Text key={i} className={r.emphasis ? "font-bold text-indigo-300" : "font-semibold text-indigo-200"}>
+          <Text key={i} className={`${r.emphasis ? "font-bold" : "font-semibold"} ${en}`}>
             {sep + r.text}
           </Text>
         ) : (
@@ -42,19 +48,19 @@ export function MessageBubble({ role, text, runs, points }: MessageBubbleProps) 
   return (
     <View
       className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
-        isUser ? "self-end bg-primary" : "self-start bg-card"
+        isUser ? "self-end bg-primary" : "self-start border border-border bg-card"
       }`}
     >
       {points?.length ? (
         <View className="gap-2">
           {points.map((p, i) => (
-            <Runs key={i} runs={p} />
+            <Runs key={i} runs={p} onPrimary={isUser} />
           ))}
         </View>
       ) : runs?.length ? (
-        <Runs runs={runs} />
+        <Runs runs={runs} onPrimary={isUser} />
       ) : (
-        <Text className="text-base leading-6 text-white">{text}</Text>
+        <Text className={`text-base leading-6 ${isUser ? "text-onPrimary" : "text-foreground"}`}>{text}</Text>
       )}
     </View>
   );

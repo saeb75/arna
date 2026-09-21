@@ -1,5 +1,6 @@
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import colors from "../../../colors";
 import { UpdatesController } from "../../controllers/UpdatesController";
 import { useUpdatesStore } from "../../stores/useUpdatesStore";
 
@@ -21,9 +22,9 @@ export function UpdateBanner() {
       // Üst güvenli alan ÇALIŞMA ZAMANI değeri — NativeWind sınıfıyla ifade edilemez.
       style={{ top: insets.top + 8 }}
     >
-      <View className="w-full flex-row items-center gap-3 rounded-2xl bg-surface px-4 py-3">
+      <View className="w-full flex-row items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3">
         <View className="flex-1">
-          <Text className="text-sm font-semibold text-white">Yeni sürüm hazır</Text>
+          <Text className="text-sm font-semibold text-foreground">Yeni sürüm hazır</Text>
           <Text className="text-xs text-muted">Uygulamayı yeniden başlatınca uygulanacak.</Text>
         </View>
         <Pressable
@@ -33,7 +34,7 @@ export function UpdateBanner() {
           className={`rounded-full bg-primary/20 px-4 py-2 ${applying ? "opacity-40" : "active:opacity-80"}`}
         >
           {applying ? (
-            <ActivityIndicator color="#8b5cf6" />
+            <ActivityIndicator color={colors.primary} />
           ) : (
             <Text className="text-sm font-semibold text-primary">Yeniden başlat</Text>
           )}

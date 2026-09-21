@@ -21,14 +21,14 @@ export function OptionButtons({ options, disabled, onSelect }: OptionButtonsProp
           key={i}
           disabled={disabled}
           onPress={() => onSelect(opt)}
-          className={`flex-row items-center gap-3 rounded-xl border border-muted/30 bg-card px-4 py-3 active:bg-primary/20 ${
+          className={`flex-row items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 active:bg-primary/20 ${
             disabled ? "opacity-40" : ""
           }`}
         >
           <View className="size-7 items-center justify-center rounded-full bg-primary/15">
-            <Text className="text-sm font-bold text-indigo-300">{LETTERS[i]}</Text>
+            <Text className="text-sm font-bold text-primary">{LETTERS[i]}</Text>
           </View>
-          <Text className="flex-1 text-base text-white">{opt}</Text>
+          <Text className="flex-1 text-base text-foreground">{opt}</Text>
         </Pressable>
       ))}
     </View>

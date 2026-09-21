@@ -174,7 +174,19 @@ apps/mobile/src/
 │   └── shared/                 # birden çok ekranda kullanılan: MessageBubble.tsx…
 ├── lib/                        # supabase.ts, yardımcılar
 └── global.css                  # @tailwind direktifleri — _layout.tsx import eder
+apps/mobile/colors.js           # PALET — tek renk kaynağı (tailwind.config.js + bileşenler)
 ```
+
+**Renk kuralı (light tema, marka moru `primary` sabit):** her renk
+`colors.js`'teki bir token'dır. Sınıf olarak (`bg-background`, `text-foreground`,
+`text-muted`, `border-border`, `text-danger`…) ya da NativeWind sınıfı alamayan
+prop'larda (`color=`, `placeholderTextColor=`, Stack `contentStyle`) `import
+colors from ".../colors"` ile. Literal Tailwind rengi (`text-white`,
+`text-red-400`, `bg-amber-500/10`) ve hex string bileşende YAZILMAZ — dark'tan
+light'a geçişte 40+ literal tek tek elle düzeltilmek zorunda kaldı. Mor zemin
+üstündeki metin/ikon `onPrimary`; İngilizce parçaların vurgusu `accent`.
+Sistem teması OKUNMAZ (`app.json` `userInterfaceStyle: "light"`) — palet tek
+yönlüdür, `dark:` öneki kullanılmaz.
 
 **Monorepo notu:** `expo-doctor`'ın react-dom kopya uyarısı (mobil 19.2.x ↔ kökte
 web'in Next sürümü) ZARARSIZ — yalnız kullanılmayan expo-web hedefini etkiler;
@@ -293,4 +305,6 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
   destekleyemediği animasyon/native prop durumunda, yorum satırıyla gerekçeli
 - Elle response tipi/şeması yazmak (contracts varken)
 - Rota dosyasında (`src/app/`) iş mantığı, state, stil
+- Literal renk: `text-white`, `text-red-400`, hex string, `dark:` öneki — yalnız
+  `colors.js` token'ları (bkz. Renk kuralı)
 - Tailwind v4'e / NativeWind v5'e kendi kendine geçiş — stabil çıkana kadar bekle

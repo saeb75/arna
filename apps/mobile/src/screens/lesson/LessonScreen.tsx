@@ -37,7 +37,7 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
   if (loadError) {
     return (
       <View className="flex-1 items-center justify-center gap-3 bg-background px-6">
-        <Text className="text-center text-sm text-red-400">Ders yüklenemedi ({loadError})</Text>
+        <Text className="text-center text-sm text-danger">Ders yüklenemedi ({loadError})</Text>
         <Pressable onPress={() => router.back()}>
           <Text className="text-primary">← Geri</Text>
         </Pressable>
@@ -58,7 +58,7 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
   if (!started) {
     return (
       <View className="flex-1 justify-center gap-4 bg-background px-6">
-        <Text className="text-2xl font-bold text-white">{lesson.title}</Text>
+        <Text className="text-2xl font-bold text-foreground">{lesson.title}</Text>
         <Text className="text-sm text-muted">{lesson.theme}</Text>
         {resume ? (
           <>
@@ -107,7 +107,7 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
         <Pressable onPress={() => LessonSessionController.confirmExit()} hitSlop={12}>
           <Text className="text-lg text-muted">✕</Text>
         </Pressable>
-        <Text className="text-sm font-medium text-white" numberOfLines={1}>{lesson.title}</Text>
+        <Text className="text-sm font-medium text-foreground" numberOfLines={1}>{lesson.title}</Text>
         <Pressable onPress={() => LessonSessionController.showHint()} hitSlop={12}>
           <Text className="text-lg">💡</Text>
         </Pressable>
@@ -140,7 +140,7 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
         </View>
       )}
 
-      <View className="flex-row items-center gap-2 border-t border-muted/20 px-4 pb-8 pt-3">
+      <View className="flex-row items-center gap-2 border-t border-border px-4 pb-8 pt-3">
         <View className="flex-1">
           <Input
             value={typed}
@@ -166,7 +166,7 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
           onPressIn={() => void LessonSessionController.pressMic()}
           onPressOut={() => void LessonSessionController.releaseMic()}
           className={`size-14 items-center justify-center rounded-full ${
-            recording ? "bg-red-600" : inputLocked ? "bg-card opacity-40" : "bg-primary"
+            recording ? "bg-danger" : inputLocked ? "bg-nodeIdle" : "bg-primary"
           }`}
         >
           <Text className="text-xl">🎙</Text>

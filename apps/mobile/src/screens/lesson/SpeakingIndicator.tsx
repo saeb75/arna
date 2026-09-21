@@ -29,7 +29,7 @@ export function SpeakingIndicator({ speaking }: { speaking: boolean }) {
       <Animated.View
         style={{ transform: [{ scale }] }}
         className={`size-16 items-center justify-center rounded-full ${
-          speaking ? "bg-primary" : "bg-card"
+          speaking ? "bg-primary" : "bg-surface"
         }`}
       >
         <Text className="text-2xl">🎧</Text>

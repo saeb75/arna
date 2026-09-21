@@ -132,7 +132,7 @@ export function CheckpointScreen({ level, unit }: { level: string; unit: string 
   if (error) {
     return (
       <View className="flex-1 items-center justify-center gap-4 bg-background px-6">
-        <Text className="text-center text-sm text-red-400">{ERROR_TEXT[error] ?? "Test yüklenemedi."}</Text>
+        <Text className="text-center text-sm text-danger">{ERROR_TEXT[error] ?? "Test yüklenemedi."}</Text>
         <Button title="Derslere dön" variant="outline" onPress={() => router.replace("/lessons")} />
       </View>
     );
@@ -173,7 +173,7 @@ export function CheckpointScreen({ level, unit }: { level: string; unit: string 
         <Pressable onPress={() => router.replace("/lessons")} accessibilityLabel="Çık" hitSlop={12}>
           <Text className="text-lg text-muted">✕</Text>
         </Pressable>
-        <View className="h-2 flex-1 overflow-hidden rounded-full bg-card">
+        <View className="h-2 flex-1 overflow-hidden rounded-full bg-nodeIdle">
           {/* Genişlik yüzdesi ÇALIŞMA ZAMANI değeri — NativeWind sınıfıyla ifade edilemez */}
           <View className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} />
         </View>
@@ -194,12 +194,12 @@ export function CheckpointScreen({ level, unit }: { level: string; unit: string 
         )}
 
         {checked && (
-          <View className={`rounded-xl p-4 ${isCorrect ? "bg-success/10" : "bg-red-500/10"}`}>
-            <Text className={`text-sm font-medium ${isCorrect ? "text-success" : "text-red-400"}`}>
+          <View className={`rounded-xl p-4 ${isCorrect ? "bg-success/10" : "bg-danger/10"}`}>
+            <Text className={`text-sm font-medium ${isCorrect ? "text-success" : "text-danger"}`}>
               {isCorrect ? "Doğru!" : "Doğrusu:"}
             </Text>
             {!isCorrect && (
-              <Text className="mt-1 text-sm text-white">
+              <Text className="mt-1 text-sm text-foreground">
                 {item.kind === "order" ? item.answer.join(" ") : item.options[item.correctIndex]}
               </Text>
             )}

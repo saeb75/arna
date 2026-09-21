@@ -7,7 +7,7 @@ export function UnitPill({ title }: { title: string }) {
     // Yükseklik lib'den — getItemLayout ile aynı kaynak (bkz. PathNode)
     <View className="items-center justify-center" style={{ height: UNIT_ROW_H }}>
       <View className="rounded-full bg-surface px-5 py-2.5">
-        <Text className="text-sm font-semibold text-white">{title}</Text>
+        <Text className="text-sm font-semibold text-foreground">{title}</Text>
       </View>
     </View>
   );

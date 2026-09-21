@@ -1,11 +1,12 @@
 import { TextInput, type TextInputProps } from "react-native";
+import colors from "../../../colors";
 
 /** Tasarım sistemi girişi — RN TextInput'un GlotMate görünümlü sarmalayıcısı. */
 export function Input(props: TextInputProps) {
   return (
     <TextInput
-      placeholderTextColor="#6b7280"
-      className="h-12 rounded-xl border border-muted/30 bg-card px-4 text-base text-white"
+      placeholderTextColor={colors.muted}
+      className="h-12 rounded-xl border border-border bg-card px-4 text-base text-foreground"
       {...props}
     />
   );

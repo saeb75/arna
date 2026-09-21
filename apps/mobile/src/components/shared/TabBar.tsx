@@ -3,6 +3,7 @@ import { Pressable, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { BottomTabBarProps } from "expo-router/js-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import colors from "../../../colors";
 
 type Glyph = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -27,7 +28,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
       // edilemez; tasarımda bar ev göstergesinin biraz içine giriyor.
       style={{ bottom: Math.max(insets.bottom - 10, 12) }}
     >
-      <View className="flex-row items-center rounded-full bg-surface p-1.5">
+      <View className="flex-row items-center rounded-full border border-border bg-surface p-1.5">
         {state.routes.map((route, index) => {
           const tab = TABS[route.name];
           if (!tab) return null;
@@ -44,7 +45,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
               }}
               className={`items-center gap-0.5 rounded-full px-6 py-2 ${focused ? "bg-primary/20" : ""}`}
             >
-              <MaterialCommunityIcons name={tab.icon} size={22} color={focused ? "#8b5cf6" : "#9ca3af"} />
+              <MaterialCommunityIcons name={tab.icon} size={22} color={focused ? colors.primary : colors.muted} />
               <Text className={`text-[11px] font-medium ${focused ? "text-primary" : "text-muted"}`}>
                 {tab.label}
               </Text>

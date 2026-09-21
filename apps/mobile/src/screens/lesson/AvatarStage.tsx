@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 import { AvatarBridge } from "../../lib/avatarBridge";
+import colors from "../../../colors";
 import { SpeakingIndicator } from "./SpeakingIndicator";
 
 /**
@@ -71,7 +72,7 @@ export function AvatarStage({ speaking }: { speaking: boolean }) {
         />
         {!sceneReady && (
           <View className="absolute inset-0 items-center justify-center bg-card">
-            <ActivityIndicator color="#8b5cf6" />
+            <ActivityIndicator color={colors.primary} />
             <Text className="mt-2 text-xs text-muted">Emma hazırlanıyor…</Text>
           </View>
         )}

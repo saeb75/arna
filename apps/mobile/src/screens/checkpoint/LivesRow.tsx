@@ -1,6 +1,7 @@
 import { View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { CHECKPOINT_LIVES } from "@glotmate/contracts";
+import colors from "../../../colors";
 
 /**
  * Kalan canlar. Sayı contracts'tan gelir — ekran kendi sabitini TUTMAZ, yoksa
@@ -14,7 +15,7 @@ export function LivesRow({ left }: { left: number }) {
           key={i}
           name={i < left ? "heart" : "heart-outline"}
           size={19}
-          color={i < left ? "#ef4444" : "#3f3f46"}
+          color={i < left ? colors.danger : colors.muted}
         />
       ))}
     </View>

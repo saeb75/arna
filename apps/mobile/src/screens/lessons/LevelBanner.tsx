@@ -18,14 +18,16 @@ export function LevelBanner({
   state: LevelState;
 }) {
   const dim = state === "upcoming";
+  // Pil aktifken mor zeminde → onPrimary; diğer hâllerde açık yüzeyde koyu metin
+  const pillText = state === "active" ? "text-onPrimary" : dim ? "text-muted" : "text-foreground";
   return (
     <View className="items-center justify-center gap-1" style={{ height: LEVEL_ROW_H }}>
       <View className="flex-row items-center gap-2">
         <View className={`rounded-lg px-2.5 py-1 ${state === "active" ? "bg-primary" : "bg-surface"}`}>
-          <Text className={`text-base font-bold ${dim ? "text-muted" : "text-white"}`}>{level}</Text>
+          <Text className={`text-base font-bold ${pillText}`}>{level}</Text>
         </View>
-        <Text className={`text-lg font-bold ${dim ? "text-muted" : "text-white"}`}>{label}</Text>
-        {state === "completed" && <Text className="text-base text-green-400">✓</Text>}
+        <Text className={`text-lg font-bold ${dim ? "text-muted" : "text-foreground"}`}>{label}</Text>
+        {state === "completed" && <Text className="text-base text-success">✓</Text>}
       </View>
       {state === "completed" && <Text className="text-xs text-muted">Tamamlandı</Text>}
     </View>

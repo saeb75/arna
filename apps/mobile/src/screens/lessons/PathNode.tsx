@@ -3,6 +3,7 @@ import { Pressable, Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import type { LessonKind } from "@glotmate/contracts";
 import { NODE_ROW_H, type NodeSide, type NodeState } from "../../lib/lessonPath";
+import colors from "../../../colors";
 
 type Glyph = ComponentProps<typeof MaterialCommunityIcons>["name"];
 
@@ -30,18 +31,19 @@ const CIRCLE: Record<NodeState, string> = {
   upcoming: "bg-nodeIdle",
 };
 
+/** İkon rengi NativeWind sınıfı alamaz — paletten okunur (hex kopyası yok). */
 const ICON_COLOR: Record<NodeState, string> = {
-  completed: "#8b5cf6",
-  current: "#ffffff",
-  ready: "#8b5cf6",
-  upcoming: "#6b7280",
+  completed: colors.primary,
+  current: colors.onPrimary,
+  ready: colors.primary,
+  upcoming: colors.muted,
 };
 
 /** Başlık, düğümün durumuyla birlikte öne çıkar ya da geri çekilir. */
 const LABEL: Record<NodeState, string> = {
-  completed: "text-white/70",
-  current: "font-semibold text-white",
-  ready: "font-semibold text-white",
+  completed: "text-foreground/70",
+  current: "font-semibold text-foreground",
+  ready: "font-semibold text-foreground",
   upcoming: "text-muted",
 };
 
@@ -78,7 +80,7 @@ export function PathNode({ kind, label, state, side, onPress }: PathNodeProps) {
           </View>
           {state === "completed" && (
             <View className="absolute -bottom-1 -right-1 size-9 items-center justify-center rounded-full border-4 border-background bg-success">
-              <MaterialCommunityIcons name="check-bold" size={15} color="#ffffff" />
+              <MaterialCommunityIcons name="check-bold" size={15} color={colors.onPrimary} />
             </View>
           )}
         </View>

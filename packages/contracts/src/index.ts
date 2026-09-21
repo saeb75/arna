@@ -4,18 +4,16 @@ import { z } from "zod";
 // Ortak sabitler
 // ---------------------------------------------------------------------------
 
-// Yaprak modülden gelir — `roleplay.ts` de okuyor ve döngü oluşmasın diye ayrıldı
-export { CEFR_LEVELS, cefrLevelSchema, type CefrLevel } from "./levels.js";
-import { CEFR_LEVELS, cefrLevelSchema } from "./levels.js";
-
-/**
- * Ders tipi. Sabit müfredat kataloğunun ritmi buna dayanır: `grammar` yapı
- * öğretir, `phrases` işlevsel kalıp seti verir, `practice` yalnızca konuşturur.
- * Katalog lint'i 4'ten fazla ardışık `grammar` dersine izin vermez.
- */
-export const LESSON_KINDS = ["phrases", "grammar", "practice"] as const;
-export const lessonKindSchema = z.enum(LESSON_KINDS);
-export type LessonKind = z.infer<typeof lessonKindSchema>;
+// Yaprak modülden gelir — `roleplay.ts`/`admin.ts` de okuyor ve döngü oluşmasın diye ayrıldı
+export {
+  CEFR_LEVELS,
+  cefrLevelSchema,
+  type CefrLevel,
+  LESSON_KINDS,
+  lessonKindSchema,
+  type LessonKind,
+} from "./levels.js";
+import { CEFR_LEVELS, cefrLevelSchema, lessonKindSchema } from "./levels.js";
 
 /**
  * Katalog satırı kimliği — UUID DEĞİL, kalıcı metin slug ("a1-she-works-at-night").
@@ -426,3 +424,4 @@ export * from "./answerReview.js";
 export * from "./roleplay.js";
 export * from "./avatarProtocol.js";
 export * from "./sessionResume.js";
+export * from "./admin.js";

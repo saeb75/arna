@@ -27,7 +27,7 @@ export function LoginScreen() {
       className="flex-1 justify-center bg-background px-6"
     >
       <View className="gap-4">
-        <Text className="text-center text-3xl font-bold text-white">GlotMate</Text>
+        <Text className="text-center text-3xl font-bold text-foreground">GlotMate</Text>
         <Text className="mb-2 text-center text-sm text-muted">
           İngilizce öğretmenin seni bekliyor
         </Text>
@@ -46,7 +46,7 @@ export function LoginScreen() {
           secureTextEntry
           autoComplete="password"
         />
-        {error && <Text className="text-center text-sm text-red-400">{error}</Text>}
+        {error && <Text className="text-center text-sm text-danger">{error}</Text>}
         <Button title="Giriş yap" onPress={() => void submit()} loading={busy} disabled={!email || !password} />
       </View>
     </KeyboardAvoidingView>

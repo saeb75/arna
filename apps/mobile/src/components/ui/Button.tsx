@@ -1,4 +1,5 @@
 import { ActivityIndicator, Pressable, Text } from "react-native";
+import colors from "../../../colors";
 
 /**
  * Tasarım sistemi butonu — tek bileşen, NativeWind.
@@ -17,7 +18,7 @@ export function Button({ title, onPress, disabled, loading, variant = "primary" 
   const style =
     variant === "primary"
       ? "bg-primary active:opacity-80"
-      : "border border-muted/40 active:bg-card";
+      : "border border-border bg-card active:bg-surface";
   return (
     <Pressable
       onPress={onPress}
@@ -25,9 +26,13 @@ export function Button({ title, onPress, disabled, loading, variant = "primary" 
       className={`${base} ${style} ${disabled || loading ? "opacity-40" : ""}`}
     >
       {loading ? (
-        <ActivityIndicator color="#fff" />
+        <ActivityIndicator color={variant === "primary" ? colors.onPrimary : colors.primary} />
       ) : (
-        <Text className={variant === "primary" ? "text-base font-semibold text-white" : "text-base font-medium text-white"}>
+        <Text
+          className={
+            variant === "primary" ? "text-base font-semibold text-onPrimary" : "text-base font-medium text-foreground"
+          }
+        >
           {title}
         </Text>
       )}

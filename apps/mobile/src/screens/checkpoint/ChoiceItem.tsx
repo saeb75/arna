@@ -13,7 +13,7 @@ interface ChoiceItemProps {
 export function ChoiceItem({ item, choice, checked, onChoose }: ChoiceItemProps) {
   return (
     <View className="gap-5">
-      <Text className="text-xl leading-relaxed text-white">{item.prompt}</Text>
+      <Text className="text-xl leading-relaxed text-foreground">{item.prompt}</Text>
       <View className="gap-2">
         {item.options.map((option, i) => {
           const picked = choice === i;
@@ -22,10 +22,10 @@ export function ChoiceItem({ item, choice, checked, onChoose }: ChoiceItemProps)
           const style = showRight
             ? "border-success bg-success/10"
             : showWrong
-              ? "border-red-500 bg-red-500/10"
+              ? "border-danger bg-danger/10"
               : picked
                 ? "border-primary bg-primary/10"
-                : "border-muted/25";
+                : "border-border bg-card";
           return (
             <Pressable
               key={i}
@@ -33,7 +33,7 @@ export function ChoiceItem({ item, choice, checked, onChoose }: ChoiceItemProps)
               onPress={() => onChoose(i)}
               className={`rounded-xl border-2 px-4 py-3.5 active:opacity-80 ${style}`}
             >
-              <Text className="text-[15px] text-white">{option}</Text>
+              <Text className="text-[15px] text-foreground">{option}</Text>
             </Pressable>
           );
         })}

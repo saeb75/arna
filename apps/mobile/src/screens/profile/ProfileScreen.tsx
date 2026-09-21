@@ -12,12 +12,12 @@ export function ProfileScreen() {
   return (
     // Güvenli alan çalışma zamanı değeri — gerekçeli inline stil (CLAUDE.md)
     <View className="flex-1 bg-background px-5" style={{ paddingTop: insets.top + 16 }}>
-      <Text className="text-2xl font-bold text-white">Profil</Text>
+      <Text className="text-2xl font-bold text-foreground">Profil</Text>
       <Pressable
         onPress={() => void AuthController.signOut()}
-        className="mt-6 rounded-2xl bg-surface px-4 py-4 active:opacity-80"
+        className="mt-6 rounded-2xl border border-border bg-surface px-4 py-4 active:opacity-80"
       >
-        <Text className="text-base font-medium text-white">Çıkış</Text>
+        <Text className="text-base font-medium text-foreground">Çıkış</Text>
       </Pressable>
     </View>
   );

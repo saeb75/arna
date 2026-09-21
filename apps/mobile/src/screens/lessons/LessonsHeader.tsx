@@ -1,5 +1,6 @@
 import { Text, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import colors from "../../../colors";
 
 /**
  * Üst pil satırı: hedef dil + günlük seri.
@@ -13,16 +14,16 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 export function LessonsHeader({ streak }: { streak: number }) {
   return (
     <View className="flex-row items-center justify-between">
-      <View className="flex-row items-center gap-2 rounded-full bg-surface py-1.5 pl-1.5 pr-4">
-        <View className="size-9 items-center justify-center overflow-hidden rounded-full bg-background">
+      <View className="flex-row items-center gap-2 rounded-full border border-border bg-surface py-1.5 pl-1.5 pr-4">
+        <View className="size-9 items-center justify-center overflow-hidden rounded-full bg-card">
           <Text className="text-xl">🇬🇧</Text>
         </View>
-        <Text className="text-base font-semibold text-white">English</Text>
+        <Text className="text-base font-semibold text-foreground">English</Text>
       </View>
 
-      <View className="flex-row items-center gap-1.5 rounded-full bg-surface px-4 py-2.5">
-        <MaterialCommunityIcons name="fire" size={20} color="#9ca3af" />
-        <Text className="text-base font-semibold text-white">{streak}</Text>
+      <View className="flex-row items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2.5">
+        <MaterialCommunityIcons name="fire" size={20} color={colors.muted} />
+        <Text className="text-base font-semibold text-foreground">{streak}</Text>
       </View>
     </View>
   );

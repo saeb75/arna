@@ -2,6 +2,7 @@ import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Button } from "../../components/ui/Button";
+import colors from "../../../colors";
 
 interface CheckpointResultProps {
   unitIndex: number;
@@ -34,21 +35,21 @@ export function CheckpointResult({
       <View className="items-center">
         <View
           className={`size-20 items-center justify-center rounded-full ${
-            passed ? "bg-success/15" : "bg-red-500/10"
+            passed ? "bg-success/15" : "bg-danger/10"
           }`}
         >
           <MaterialCommunityIcons
             name={passed ? "trophy" : "heart-broken"}
             size={40}
-            color={passed ? "#22c55e" : "#ef4444"}
+            color={passed ? colors.success : colors.danger}
           />
         </View>
 
         <Text className="mt-4 text-xs uppercase tracking-widest text-muted">Ünite {unitIndex} testi</Text>
-        <Text className={`mt-2 text-2xl font-bold ${passed ? "text-success" : "text-white"}`}>
+        <Text className={`mt-2 text-2xl font-bold ${passed ? "text-success" : "text-foreground"}`}>
           {passed ? "Tamamlandı" : "Canların bitti"}
         </Text>
-        <Text className="mt-1 text-4xl font-bold text-white">
+        <Text className="mt-1 text-4xl font-bold text-foreground">
           {score}
           <Text className="text-xl text-muted">/{total}</Text>
         </Text>
@@ -60,8 +61,8 @@ export function CheckpointResult({
       </View>
 
       {weakLessonIds.length > 0 && (
-        <View className="rounded-2xl bg-surface p-4">
-          <Text className="mb-3 text-sm font-medium text-white">Tekrar etmeni önerdiğim dersler</Text>
+        <View className="rounded-2xl border border-border bg-surface p-4">
+          <Text className="mb-3 text-sm font-medium text-foreground">Tekrar etmeni önerdiğim dersler</Text>
           <View className="gap-2.5">
             {weakLessonIds.map((id) => (
               <Pressable key={id} onPress={() => router.replace(`/lesson/${id}`)}>
