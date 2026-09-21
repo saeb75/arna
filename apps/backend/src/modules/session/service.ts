@@ -572,20 +572,32 @@ function momentContext(
  * yakıp soruyu atlatmıştı. Karar yapısaldır (şemayla doğrulanmış boolean), düzyazıdan
  * çıkarılmaz.
  */
+// CANLI HATA (21 Eyl 2026): "help" ve "soruyu tekrar soramısın" DENEME sayıldı —
+// tek-kelime/gibberish kuralı meta-ricaları yutuyordu (model sıralı okuyup ilk
+// eşleşen kurala takılıyor). Haklar ricalarla eridi, son-hak dalı "model cevabı"
+// diye saçmaladı ve soru hiç cevaplanmadan practice'e geçildi. Meta-rica maddesi
+// artık EN BAŞTA ve tek kelimelik hali açıkça kapsanıyor.
 const attemptRule = [
   `First decide: did the student TRY TO ANSWER, or were they talking about something else?`,
-  `- isAttempt=true — anything aimed at the question, however bad. A right answer, a wrong answer,`,
-  `  a single letter, a guess, a half sentence, GIBBERISH or random letters typed into the answer`,
-  `  box ("erf", "kloi", "asdf"), or GIVING UP. "I don't know", "no idea", "bilmiyorum", "pass",`,
+  `- CHECK THIS FIRST — isAttempt=false for META-REQUESTS: asking for help, a hint, a repeat,`,
+  `  an explanation or a translation, in ANY language and even as a SINGLE WORD ("help",`,
+  `  "hint", "repeat", "what?", or their native-language equivalents). A single word that ASKS`,
+  `  for something is a REQUEST, not gibberish and not an answer.`,
+  `- isAttempt=true — anything aimed at ANSWERING the question, however bad. A right answer, a`,
+  `  wrong answer, a single letter, a guess, a half sentence, or random letters that do not ask`,
+  `  for anything ("erf", "kloi", "asdf"), or GIVING UP. "I don't know", "no idea", "pass",`,
   `  "skip" are ATTEMPTS — surrendering is an answer and the student deserves to be told the`,
   `  answer once their tries run out. Nonsense is still an ANSWER, just a poor one; it is not a`,
   `  change of subject. (Whether it is RIGHT is a separate decision, made below.)`,
-  `- isAttempt=false — ONLY when they clearly engaged with something else instead of the question:`,
-  `  a greeting ("hey", "hello"), small talk, a remark about another topic, or asking you to`,
-  `  repeat or explain. If in doubt, choose true.`,
+  `- isAttempt=false also covers clearly engaging with something else: a greeting ("hey",`,
+  `  "hello"), small talk, a remark about another topic. If in doubt between a bad answer and a`,
+  `  request, treat a question-shaped message as a REQUEST.`,
   `Your words must match your flag: if you set isAttempt=false, do NOT say they tried to answer.`,
-  `When isAttempt=false: acknowledge in at most one short clause, correct nothing, NEVER say which`,
-  `answer is correct, and ASK THE QUESTION AGAIN. Stay on the lesson.`,
+  `When isAttempt=false: respond WARMLY in one short sentence (never scold), correct nothing,`,
+  `NEVER say which answer is correct. If they asked for help or a hint, give ONE small hint that`,
+  `points toward the target (never the answer itself). Then RESTATE THE QUESTION/TASK ITSELF in`,
+  `English as its own "en" run — "please answer again" without the question is useless to a`,
+  `student who asked you to repeat it. Stay on the lesson.`,
 ].join("\n");
 
 /**
@@ -760,7 +772,7 @@ async function judgeExercise(
       .join("\n"),
     user: `The student said: "${text}"`,
     schema: exerciseVerdictSchema,
-    promptVersion: "exercise-check.v5",
+    promptVersion: "exercise-check.v6",
     userId,
     sessionId,
     maxTokens: 250,
@@ -791,7 +803,7 @@ async function judgeExercise(
         ].join("\n"),
         user: `The student said: "${text}"`,
         schema: exerciseVerdictSchema,
-        promptVersion: "exercise-check.v5",
+        promptVersion: "exercise-check.v6",
         userId,
         sessionId,
         maxTokens: 250,
@@ -877,7 +889,7 @@ async function judgeOpenResponse(
         ? [
             `The student has GIVEN UP on this task. Set isAttempt=true and ok=false.`,
             isLastAttempt
-              ? `This was their LAST try: warmly GIVE THEM a model answer as a full ENGLISH sentence (own "en" run). Do NOT ask the task again.`
+              ? `This was their LAST try: warmly GIVE THEM a model answer as a full ENGLISH sentence (own "en" run) — a sentence that ACTUALLY COMPLETES THE TASK ABOVE and satisfies the rubric, never a rephrasing of what the student just said. Do NOT ask the task again.`
               : `Encourage them in one clause, then ASK THEM TO TRY AGAIN.`,
           ]
         : [
@@ -885,7 +897,7 @@ async function judgeOpenResponse(
             ``,
             `If isAttempt is false, ok MUST be false and the feedback just re-asks the task.`,
             isLastAttempt
-              ? `If it IS an attempt and ok is false, this was their LAST try: warmly GIVE THEM a model answer as a full ENGLISH sentence (own "en" run). Do NOT ask the task again.`
+              ? `If it IS an attempt and ok is false, this was their LAST try: warmly GIVE THEM a model answer as a full ENGLISH sentence (own "en" run) — a sentence that ACTUALLY COMPLETES THE TASK ABOVE and satisfies the rubric, never a rephrasing of what the student just said. Do NOT ask the task again.`
               : `If it IS an attempt and ok is false, name what is missing in one clause and ASK THEM TO TRY AGAIN. Do not reveal a full model answer yet.`,
           ]),
       ``,
@@ -897,7 +909,7 @@ async function judgeOpenResponse(
       .join("\n"),
     user: `The student said: "${text}"`,
     schema: openResponseVerdictSchema,
-    promptVersion: "open-response.v3",
+    promptVersion: "open-response.v4",
     userId,
     sessionId,
     maxTokens: 250,

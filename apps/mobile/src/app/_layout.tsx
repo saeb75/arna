@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { AuthController } from "../controllers/AuthController";
+import { UpdatesController } from "../controllers/UpdatesController";
 import { useAuthStore } from "../stores/useAuthStore";
 
 /**
@@ -14,6 +15,8 @@ export default function RootLayout() {
 
   useEffect(() => {
     void AuthController.restore();
+    // OTA kontrolü `ready` kapısının DIŞINDA: açılış güncellemeyi beklemez.
+    UpdatesController.start();
   }, []);
 
   if (!ready) return null; // kalıcı oturum okunana kadar hiçbir ekran parlamasın
