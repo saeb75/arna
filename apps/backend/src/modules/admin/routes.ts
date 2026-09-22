@@ -4,6 +4,7 @@ import { z } from "zod";
 import { buildTtsSettingsResponse, previewTts, TtsError, updateTtsSettings } from "../tts/index.js";
 import { AdminError, getAdminLessonDetail, getAdminLessonMatrix } from "./queries.js";
 import { getAdminUserDetail, getAdminUsers } from "./users.js";
+import { getAdminSessionDetail, getAdminSessions } from "./sessions.js";
 import {
   AdminActionError,
   generateLocale,
@@ -142,6 +143,23 @@ export default async function adminRoutes(app: FastifyInstance) {
     if (!p.success) return reply.code(400).send({ error: "invalid_params" });
     try {
       return await getAdminUserDetail(p.data.id);
+    } catch (err) {
+      return sendActionError(reply, err);
+    }
+  });
+
+  // --- Oturumlar (salt okunur; bug avı) --------------------------------------
+  app.get("/admin/sessions", { preHandler: app.requireAdmin }, async (request, reply) => {
+    const q = z.object({ limit: z.coerce.number().int().min(1).max(1000).default(200) }).safeParse(request.query ?? {});
+    if (!q.success) return reply.code(400).send({ error: "invalid_params" });
+    return await getAdminSessions({ limit: q.data.limit });
+  });
+
+  app.get("/admin/sessions/:id", { preHandler: app.requireAdmin }, async (request, reply) => {
+    const p = z.object({ id: z.string().uuid() }).safeParse(request.params);
+    if (!p.success) return reply.code(400).send({ error: "invalid_params" });
+    try {
+      return await getAdminSessionDetail(p.data.id);
     } catch (err) {
       return sendActionError(reply, err);
     }

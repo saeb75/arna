@@ -47,6 +47,17 @@ export const TUTOR_LANGUAGE_LABEL: Record<string, string> = {
   english: "English only",
 };
 
+export const PHASE_LABEL: Record<string, string> = {
+  lecture: "Lecture",
+  practice: "Practice",
+  wrapup: "Wrap-up",
+};
+
+export const SESSION_KIND_LABEL: Record<string, string> = {
+  lesson: "Lesson",
+  roleplay: "Role-play",
+};
+
 export const PROGRESS_LABEL: Record<string, string> = {
   in_progress: "In progress",
   completed: "Completed",
@@ -115,4 +126,17 @@ export function languageName(code: string): string {
   } catch {
     return code;
   }
+}
+
+/** 0 → "0s", 754 → "12m 34s", 4000 → "1h 6m" */
+export function formatDuration(sec: number): string {
+  if (sec < 60) return `${sec}s`;
+  const m = Math.floor(sec / 60), s = sec % 60;
+  if (m < 60) return s ? `${m}m ${s}s` : `${m}m`;
+  const h = Math.floor(m / 60), mm = m % 60;
+  return mm ? `${h}h ${mm}m` : `${h}h`;
+}
+
+export function formatMs(ms: number): string {
+  return ms >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${ms} ms`;
 }

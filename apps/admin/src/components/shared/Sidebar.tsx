@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Settings, Users } from "lucide-react";
+import { BookOpen, MessagesSquare, Settings, Users } from "lucide-react";
 import { BrandMark } from "@/components/shared/BrandMark";
 import { SidebarNavItem } from "@/components/shared/SidebarNavItem";
 import { UserMenu } from "@/components/shared/UserMenu";
@@ -8,6 +8,7 @@ import { UserMenu } from "@/components/shared/UserMenu";
 const NAV = [
   { href: "/lessons", label: "Lessons", icon: BookOpen },
   { href: "/users", label: "Users", icon: Users },
+  { href: "/sessions", label: "Sessions", icon: MessagesSquare },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

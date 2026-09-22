@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { cefrLevelSchema, lessonKindSchema } from "./levels.js";
 import { lessonCoreSchema, sceneVariantSchema } from "./lessonLayers.js";
+import { sessionPositionSchema, transcriptTurnSchema } from "./sessionResume.js";
 
 /**
  * ADMİN PANELİ SÖZLEŞMELERİ — `GET /v1/admin/*` uçları.
@@ -282,3 +283,101 @@ export const adminUserDetailSchema = z.object({
   cost: adminUserCostSchema,
 });
 export type AdminUserDetail = z.infer<typeof adminUserDetailSchema>;
+
+// ---------------------------------------------------------------------------
+// OTURUMLAR — `GET /v1/admin/sessions`, `GET /v1/admin/sessions/:id` (salt okunur)
+//
+// Bug avı yüzeyi: transkriptin TAMAMI (script + chat satırları), pozisyon
+// imleci, LLM çağrıları. `state.memoryBlock` ve `state.script` prompt
+// malzemesidir — şemada YOK, sunucu seçmez.
+// ---------------------------------------------------------------------------
+
+export const SESSION_PHASES = ["lecture", "practice", "wrapup"] as const;
+
+export const adminSessionSchema = z.object({
+  id: z.string().uuid(),
+  userId: z.string().uuid(),
+  userEmail: z.string().nullable(),
+  userName: z.string().nullable(),
+  /** lesson | roleplay | null (eski oturumlar türsüz) */
+  kind: z.string().nullable(),
+  catalogLessonId: z.string().nullable(),
+  lessonTitle: z.string().nullable(),
+  level: cefrLevelSchema.nullable(),
+  /** Roleplay slug — revizyon üzerinden */
+  roleplayId: z.string().nullable(),
+  /** Oturuma pinlenen değerler (`state`) */
+  track: z.string().nullable(),
+  tutorLanguage: z.string().nullable(),
+  startedAt: z.string(),
+  endedAt: z.string().nullable(),
+  durationSec: z.number().int().nonnegative().nullable(),
+  /** `position` imleci — nerede kaldı / takıldı */
+  phase: z.enum(SESSION_PHASES).nullable(),
+  awaiting: z.string().nullable(),
+  turnCount: z.number().int().nonnegative(),
+  userTurnCount: z.number().int().nonnegative(),
+  /** Sunucu LLM yolundan geçen turlar (`source=chat`) */
+  chatTurnCount: z.number().int().nonnegative(),
+  llmCalls: z.number().int().nonnegative(),
+  llmCostUsd: z.number().nonnegative(),
+  avgLatencyMs: z.number().int().nonnegative().nullable(),
+  maxLatencyMs: z.number().int().nonnegative().nullable(),
+  hasSummary: z.boolean(),
+  /** `session_summaries.errors_observed` uzunluğu */
+  errorCount: z.number().int().nonnegative(),
+});
+export type AdminSession = z.infer<typeof adminSessionSchema>;
+
+export const adminSessionsResponseSchema = z.object({
+  sessions: z.array(adminSessionSchema),
+  /** Tüm oturum sayısı (limit'ten bağımsız) */
+  total: z.number().int().nonnegative(),
+  generatedAt: z.string(),
+});
+export type AdminSessionsResponse = z.infer<typeof adminSessionsResponseSchema>;
+
+export const adminTranscriptTurnSchema = transcriptTurnSchema.extend({
+  latencyMs: z.number().int().nullable(),
+  createdAt: z.string(),
+});
+export type AdminTranscriptTurn = z.infer<typeof adminTranscriptTurnSchema>;
+
+export const adminLlmCallSchema = z.object({
+  id: z.number().int(),
+  purpose: z.string(),
+  model: z.string(),
+  promptVersion: z.string().nullable(),
+  inputTokens: z.number().int().nullable(),
+  outputTokens: z.number().int().nullable(),
+  costUsd: z.number().nonnegative(),
+  latencyMs: z.number().int().nullable(),
+  createdAt: z.string(),
+});
+export type AdminLlmCall = z.infer<typeof adminLlmCallSchema>;
+
+export const adminSessionDetailSchema = z.object({
+  session: adminSessionSchema,
+  /** Şemadan geçmeyen (eski/bozuk) imleç null döner */
+  position: sessionPositionSchema.nullable(),
+  /** `state.practice.hitTurns` — hedef yapının üretildiği tur indeksleri */
+  practiceHitTurns: z.array(z.number().int()),
+  /** id artan — sohbet sırası */
+  turns: z.array(adminTranscriptTurnSchema),
+  summary: z
+    .object({
+      summary: z.string(),
+      continuityHook: z.string().nullable(),
+      errorsObserved: z.unknown().nullable(),
+      createdAt: z.string(),
+    })
+    .nullable(),
+  llmCalls: z.array(adminLlmCallSchema),
+  /** Oturumun oynattığı katman sürümleri — "bozuk içeriği kim gördü" izi */
+  layers: z.object({
+    coreId: z.string().uuid().nullable(),
+    sceneSetId: z.string().uuid().nullable(),
+    localeId: z.string().uuid().nullable(),
+  }),
+});
+export type AdminSessionDetail = z.infer<typeof adminSessionDetailSchema>;

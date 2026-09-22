@@ -1,7 +1,8 @@
 "use client";
 
 import type { AdminUserSession } from "@glotmate/contracts";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ExternalLink } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { formatDateTime } from "@/lib/labels";
@@ -21,22 +22,33 @@ export function SessionRow({ session }: { session: AdminUserSession }) {
 
   return (
     <li className="text-xs">
-      <button
-        type="button"
-        onClick={() => hasDetail && setOpen((v) => !v)}
-        className={cn("flex w-full flex-wrap items-center gap-3 px-3 py-2 text-left", hasDetail && "hover:bg-muted/30")}
-        aria-expanded={open}
-      >
-        <Badge variant="outline" className="font-mono text-[10px] capitalize">{session.kind ?? "—"}</Badge>
-        <span className="min-w-0 flex-1 truncate font-medium">{session.lessonTitle ?? session.catalogLessonId ?? "Untitled"}</span>
-        <span className="tabular-nums text-muted-foreground">{durationLabel(session.startedAt, session.endedAt)}</span>
-        <span className="text-muted-foreground">{formatDateTime(session.startedAt)}</span>
-        {hasDetail ? (
-          <ChevronDown className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-180")} />
-        ) : (
-          <span className="w-4 text-center text-muted-foreground/50">·</span>
-        )}
-      </button>
+      <div className={cn("flex w-full flex-wrap items-center gap-3 px-3 py-2", hasDetail && "hover:bg-muted/30")}>
+        <button
+          type="button"
+          onClick={() => hasDetail && setOpen((v) => !v)}
+          className="flex min-w-0 flex-1 flex-wrap items-center gap-3 text-left"
+          aria-expanded={open}
+          disabled={!hasDetail}
+        >
+          <Badge variant="outline" className="font-mono text-[10px] capitalize">{session.kind ?? "—"}</Badge>
+          <span className="min-w-0 flex-1 truncate font-medium">{session.lessonTitle ?? session.catalogLessonId ?? "Untitled"}</span>
+          <span className="tabular-nums text-muted-foreground">{durationLabel(session.startedAt, session.endedAt)}</span>
+          <span className="text-muted-foreground">{formatDateTime(session.startedAt)}</span>
+          {hasDetail ? (
+            <ChevronDown className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-180")} />
+          ) : (
+            <span className="w-4 text-center text-muted-foreground/50">·</span>
+          )}
+        </button>
+        <Link
+          href={`/sessions/${session.id}`}
+          className="inline-flex shrink-0 items-center gap-1 text-muted-foreground hover:text-foreground"
+          title="Open transcript"
+        >
+          <ExternalLink className="size-3.5" />
+          transcript
+        </Link>
+      </div>
       {open && hasDetail && (
         <div className="flex flex-col gap-2 border-t border-border/60 bg-muted/20 px-3 py-2">
           {session.summary && <p>{session.summary}</p>}
