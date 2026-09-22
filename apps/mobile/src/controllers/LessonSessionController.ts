@@ -638,9 +638,38 @@ export class LessonSessionController {
       isAttempt: res.isAttempt ?? true,
     });
     if (after.kind === "wait") this.syncPosition(after.awaiting); // sayaçlar güncel — imleç de
+
+    // DETERMİNİSTİK YENİDEN-SORMA: girdi cevap değildi (yardım/rica/selam —
+    // yapısal isAttempt=false) ve beklemeye dönülüyorsa SORUNUN KENDİSİ
+    // içerikten birebir yeniden basılır ve seslendirilir. Judge'a "soruyu
+    // yeniden yaz" demek canlıda soru UYDURTTU ("Please introduce yourself." —
+    // madde bambaşkaydı); soru içerik alanıdır, modele yazdırılmaz. Satır ilk
+    // gösterimde log'landı — tekrar log'lanmaz (suppress, resume deseniyle aynı).
+    const reAsk =
+      after.kind === "wait" &&
+      res.isAttempt === false &&
+      (beat.kind === "exercise" || beat.kind === "open_response")
+        ? beat.kind === "exercise"
+          ? exerciseRuns(beat)
+          : beat.runs
+        : null;
+
     this.speak(replyRuns, () => {
-      if (after.kind === "wait") this.arrive(after.awaiting);
-      else setTimeout(() => this.advance(), 300);
+      if (after.kind !== "wait") {
+        setTimeout(() => this.advance(), 300);
+        return;
+      }
+      if (!reAsk) {
+        this.arrive(after.awaiting);
+        return;
+      }
+      suppressTurnLog = true;
+      try {
+        this.pushTeacher(reAsk);
+      } finally {
+        suppressTurnLog = false;
+      }
+      this.speak(reAsk, () => this.arrive(after.awaiting));
     });
   }
 

@@ -576,15 +576,34 @@ function interpolate(template: string, vars: Record<string, string>): string {
   return template.replace(/\{(\w+)\}/g, (_, k: string) => vars[k] ?? `{${k}}`);
 }
 
-/** core_ref'leri çekirdekten çözer; bilinmeyen ref'i assembler DEĞİL lint yakalar. */
-function resolveLocaleRuns(runs: LocaleRun[], examplesById: Map<string, string>): RichText {
+/**
+ * core_ref'leri çekirdekten çözer; bilinmeyen ref'i assembler DEĞİL lint yakalar.
+ *
+ * KALIP/ÖRNEK BİTİŞMESİ (canlı hata, 25 Eyl 2026): paketler kalıp ref'inin
+ * ("my name is") hemen ardına örnek ref'ini ("Hello, my name is Daniel.")
+ * koyuyor; iki `en` parçası araya yalnız boşlukla girince sahte bir cümle
+ * okunuyordu: "my name is Hello, my name is Daniel." Kalıbı bir başka core_ref
+ * izliyorsa metnine `:` eklenir — ekranda ayrım, TTS'te doğal durak. Noktalama
+ * dil-bağımsızdır; chrome'a alan açılmaz. Paket araya kendi l1 bağlacını
+ * yazdıysa dokunulmaz.
+ */
+function resolveLocaleRuns(
+  runs: LocaleRun[],
+  examplesById: Map<string, string>,
+  formIds: ReadonlySet<string>,
+): RichText {
   const out: TextRun[] = [];
-  for (const r of runs) {
-    if (r.kind === "l1") out.push({ lang: "l1", text: r.text });
-    else {
-      const text = examplesById.get(r.refId);
-      if (text) out.push({ lang: "en", text, emphasis: true });
+  for (let i = 0; i < runs.length; i++) {
+    const r = runs[i]!;
+    if (r.kind === "l1") {
+      out.push({ lang: "l1", text: r.text });
+      continue;
     }
+    const text = examplesById.get(r.refId);
+    if (!text) continue;
+    const followedByRef = runs[i + 1]?.kind === "core_ref";
+    const isForm = formIds.has(r.refId);
+    out.push({ lang: "en", text: isForm && followedByRef ? `${text}:` : text, emphasis: true });
   }
   return out;
 }
@@ -601,12 +620,15 @@ export function assembleLesson(input: AssembleInput): LessonContentV7 {
   const { core, scene, pack, chrome } = input;
   const native = pack !== null;
 
-  // core_ref hedefleri: örnek kimlikleri → cümle, NOKTA kimlikleri → formEn
+  // core_ref hedefleri: örnek kimlikleri → cümle, NOKTA kimlikleri → formEn.
+  // formIds ayrı tutulur: kalıp+örnek bitişmesinde `:` yalnız KALIBA eklenir.
   const examplesById = new Map<string, string>();
+  const formIds = new Set<string>();
   for (const b of core.lecture.beats) {
     if (b.kind !== "teach") continue;
     for (const p of b.points) {
       examplesById.set(p.id, p.formEn);
+      formIds.add(p.id);
       for (const ex of p.examples) examplesById.set(ex.id, ex.textEn);
     }
   }
@@ -624,9 +646,10 @@ export function assembleLesson(input: AssembleInput): LessonContentV7 {
           points: b.points.map((p) => ({
             id: p.id,
             runs: native
-              ? resolveLocaleRuns(pack.teachPoints[p.id]?.runs ?? [], examplesById)
+              ? resolveLocaleRuns(pack.teachPoints[p.id]?.runs ?? [], examplesById, formIds)
               : [
-                  en(p.formEn, true),
+                  // ":" — kalıp adı ile ardından gelen açıklama/örnek bitişmesin
+                  en(`${p.formEn}:`, true),
                   ...p.claimsEn.map((c) => en(c)),
                   ...p.examples.map((ex) => en(ex.textEn, true)),
                 ],

@@ -15,7 +15,7 @@ info:
   contact:
     name: GlotMate
 servers:
-  - url: http://localhost:6566
+  - url: http://localhost:6560
     description: Yerel geliştirme
 tags:
   - name: Sistem
@@ -257,6 +257,226 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
 
+  /v1/admin/lessons/{id}:
+    get:
+      tags: [Admin]
+      summary: Ders detayı — katman içerikleri + lint raporları
+      parameters: [{ $ref: "#/components/parameters/AdminLessonId" }]
+      responses:
+        "200": { $ref: "#/components/responses/AdminLessonDetail" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { description: Ders katalogda yok }
+
+  /v1/admin/lessons/{id}/core/regenerate:
+    post:
+      tags: [Admin]
+      summary: Çekirdeği LLM ile yeniden üret (force)
+      description: |
+        Hazır/yayınlı satır varken de üretir. Satır üretim boyunca düşürülmez; sonuç
+        tek UPDATE ile `ready` yazılır → ders yayından çıkar, inceleme + `publish`
+        gerekir. Bayat dil paketleri silinir. Senkron, 10–60 sn. Limit: 10/dk/kullanıcı.
+      parameters: [{ $ref: "#/components/parameters/AdminLessonId" }]
+      responses:
+        "200": { $ref: "#/components/responses/AdminLessonDetail" }
+        "409": { description: "Üretim başka süreçte sürüyor (`locale_in_progress`)" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "502": { description: "Üretim/lint başarısız (`generation_failed`, `report` ile)" }
+
+  /v1/admin/lessons/{id}/scenes/regenerate:
+    post:
+      tags: [Admin]
+      summary: Sahne setini LLM ile yeniden üret (force)
+      parameters: [{ $ref: "#/components/parameters/AdminLessonId" }]
+      responses:
+        "200": { $ref: "#/components/responses/AdminLessonDetail" }
+        "409": { description: "Çekirdek yok (`layer_not_ready`) ya da üretim sürüyor" }
+        "502": { description: Üretim/lint başarısız }
+
+  /v1/admin/lessons/{id}/core/lint:
+    post:
+      tags: [Admin]
+      summary: Elle düzenlenen çekirdeği doğrula (kuru koşu, yazmaz)
+      description: Şema hatası 400 `invalid_input` + `issues`; pedagojik lint hatası 422 `lint_failed` + `report`. `practice.mustUse` katalogdan dayatılır.
+      parameters: [{ $ref: "#/components/parameters/AdminLessonId" }]
+      requestBody: { $ref: "#/components/requestBodies/AdminCoreBody" }
+      responses:
+        "200":
+          description: Lint geçti
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { report: { $ref: "#/components/schemas/LintReport" } }
+        "400": { $ref: "#/components/responses/InvalidInput" }
+        "422": { description: "Lint hataları (`lint_failed`, `report`)" }
+
+  /v1/admin/lessons/{id}/core:
+    put:
+      tags: [Admin]
+      summary: Elle düzenlenen çekirdeği kaydet
+      description: Lint kapısından geçerse satır `ready` + `model=authored/admin` yazılır (yayın ayrı adım); bayat dil paketleri silinir.
+      parameters: [{ $ref: "#/components/parameters/AdminLessonId" }]
+      requestBody: { $ref: "#/components/requestBodies/AdminCoreBody" }
+      responses:
+        "200": { $ref: "#/components/responses/AdminLessonDetail" }
+        "400": { $ref: "#/components/responses/InvalidInput" }
+        "422": { description: Lint hataları }
+
+  /v1/admin/lessons/{id}/locales/{language}:
+    post:
+      tags: [Admin]
+      summary: Dil paketi üret / yenile
+      description: |
+        Çekirdek ve sahne `ready|published` olmalı (aksi 409 `layer_not_ready`).
+        `force=1` anahtarı tutan hazır paketi silip yeniden üretir. Başarıda aynı dilin
+        bayat satırları temizlenir. Senkron. Limit: 30/dk/kullanıcı.
+      parameters:
+        - { $ref: "#/components/parameters/AdminLessonId" }
+        - { name: language, in: path, required: true, schema: { type: string, example: tr } }
+        - { name: force, in: query, required: false, schema: { type: string, enum: ["1"] } }
+      responses:
+        "200": { $ref: "#/components/responses/AdminLessonDetail" }
+        "409": { description: "`layer_not_ready` · `locale_in_progress`" }
+        "502": { description: "`locale_failed`" }
+
+  /v1/admin/lessons/{id}/publish:
+    post:
+      tags: [Admin]
+      summary: Çekirdek + sahne setini yayınla (ready → published)
+      parameters: [{ $ref: "#/components/parameters/AdminLessonId" }]
+      responses:
+        "200": { $ref: "#/components/responses/AdminLessonDetail" }
+        "409": { description: "Katman hazır değil (`layer_not_ready`)" }
+
+  /v1/admin/settings/tts:
+    get:
+      tags: [Admin]
+      summary: Tutor sesi ayarları — aktif sağlayıcı + ses/model
+      description: |
+        `app_settings.tts` satırı; hiç yazılmamışsa env varsayılanı (ElevenLabs,
+        `updatedAt: null`). `configured` sağlayıcının API anahtarının .env'de
+        olup olmadığını söyler — panel anahtarsız sağlayıcıyı seçtirmez.
+        API anahtarları hiçbir cevapta yer almaz.
+      responses:
+        "200":
+          description: Ayarlar
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TtsSettingsResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    put:
+      tags: [Admin]
+      summary: Tutor sesi ayarlarını kaydet
+      description: |
+        Gövde ayarın TAMAMIDIR (kısmi güncelleme yok). Seçili sağlayıcının
+        anahtarı .env'de yoksa, ses kimliği çözümlenemiyorsa (`voiceId: null`
+        ve env varsayılanı da yoksa) ya da model listede değilse 400
+        `provider_not_configured` — yazma olmaz. Başarıda süreç içi ayar
+        önbelleği düşer; sonraki TTS çağrısı yeni sağlayıcıyla gider.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TtsSettings" }
+      responses:
+        "200":
+          description: Güncel ayarlar (GET ile aynı biçim)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TtsSettingsResponse" }
+        "400":
+          description: Şema hatası veya seçili sağlayıcı yapılandırılmamış
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              examples:
+                sema: { value: { error: invalid_input } }
+                anahtar: { value: { error: provider_not_configured, message: "inworld anahtarı yok" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /v1/admin/settings/tts/preview:
+    post:
+      tags: [Admin]
+      summary: Kaydetmeden dinle — seçilen sağlayıcı/ses/modelle kısa metin
+      description: |
+        Gerçek sağlayıcı çağrısı, ses önbelleği ATLANIR (operatör gerçek gecikmeyi
+        duyar). `hasAlignment` zaman damgasının geldiğini söyler — dudak
+        senkronunun bu sağlayıcıyla çalışacağının kanıtı.
+
+        **Rate limit:** kullanıcı başına saatte 30.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [provider, voiceId, modelId, text]
+              properties:
+                provider: { type: string, enum: [elevenlabs, inworld] }
+                voiceId: { type: string }
+                modelId: { type: string }
+                text: { type: string, maxLength: 300 }
+                language: { type: string, default: en, description: BCP-47 }
+      responses:
+        "200":
+          description: Klip
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [audioBase64, latencyMs, hasAlignment]
+                properties:
+                  audioBase64: { type: string, description: mp3 bayt, base64 }
+                  latencyMs: { type: integer }
+                  hasAlignment: { type: boolean }
+        "400": { $ref: "#/components/responses/InvalidInput" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "502":
+          description: Sağlayıcı hata verdi
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              example: { error: tts_unavailable }
+
+  /v1/admin/users:
+    get:
+      tags: [Admin]
+      summary: Kullanıcı listesi (auth.users + profil + sayaçlar)
+      description: |
+        Kaynak `auth.users`; `hasProfile:false` onboarding'i bitirmemiş hesap.
+        Sayaçlar: tamamlanan/başlanan ders, oturum sayısı + son oturum, toplam LLM
+        maliyeti. Salt okunur; rol değişimi bu uçtan yapılmaz.
+      responses:
+        "200":
+          description: Kullanıcılar
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  generatedAt: { type: string, format: date-time }
+                  users: { type: array, items: { $ref: "#/components/schemas/AdminUser" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /v1/admin/users/{id}:
+    get:
+      tags: [Admin]
+      summary: Kullanıcı detayı — profil, ilerleme, son 20 oturum (+özet), hafıza (son 30), ünite testleri, maliyet kırılımı
+      description: Transkript turları ve `sessions.state` ASLA dönmez. Şema `@glotmate/contracts` `adminUserDetailSchema`.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Kullanıcı detayı }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { description: Kullanıcı yok }
+
   /v1/lessons/{catalogLessonId}:
     get:
       tags: [Ders]
@@ -467,11 +687,18 @@ paths:
         tek klipte birleştirilir, her klip KENDİ `language_code`uyla üretilir
         (native modda ana dil + İngilizce karışık konuşma doğru telaffuzla çıkar).
         İstemci klipleri sırayla çalar; `onEnd` son klipten sonra TAM BİR KEZ.
-        Ana dil TTS kapsamı dışındaysa (ElevenLabs ~32 dil) o parçalar sessiz
-        kalır (metin ekranda), yalnız İngilizce klipler döner.
-        Eski `{text}` gövdesi tek İngilizce parça sayılır. Toplam ≤900 karakter.
+        Ana dil aktif sağlayıcının kapsamı dışındaysa (ElevenLabs ~32 dil; Inworld
+        200+) o parçalar sessiz kalır (metin ekranda), yalnız İngilizce klipler döner.
+        Eski `{text}` gövdesi tek İngilizce parça sayılır. Toplam ≤4000 karakter
+        (en fazla 48 parça); her klip 600 karakterde kesilir.
 
-        **Rate limit:** kullanıcı başına saatte 120. TTS yapılandırılmamışsa 502.
+        Sağlayıcı (ElevenLabs / Inworld) ve ses/model `app_settings.tts`'ten gelir
+        (admin panel, `PUT /v1/admin/settings/tts`). Cevap biçimi sağlayıcıdan
+        bağımsızdır: mp3 base64 + KARAKTER bazlı zaman damgası (ElevenLabs biçimi;
+        Inworld sunucuda çevrilir). Seçili sağlayıcı yapılandırılmamış veya hata
+        veriyorsa otomatik geçiş YOK → 502 `tts_unavailable`.
+
+        **Rate limit:** kullanıcı başına saatte 120.
       parameters:
         - name: sessionId
           in: path
@@ -506,9 +733,16 @@ paths:
                     items:
                       type: object
                       properties:
-                        audioBase64: { type: string }
-                        alignment: { type: object }
-                        lang: { type: string }
+                        audioBase64: { type: string, description: mp3 bayt, base64 }
+                        alignment:
+                          type: object
+                          nullable: true
+                          description: Karakter bazlı zaman damgası (saniye, klip başına 0'dan). Sağlayıcı vermezse null — istemci düz çeneye düşer.
+                          properties:
+                            characters: { type: array, items: { type: string } }
+                            character_start_times_seconds: { type: array, items: { type: number } }
+                            character_end_times_seconds: { type: array, items: { type: number } }
+                        lang: { type: string, description: Klibin sağlayıcı dil kodu }
 
   /v1/sessions/{sessionId}/stt:
     post:
@@ -594,6 +828,69 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
           example: { error: forbidden }
+    AdminLessonDetail:
+      description: Ders detayı (katalog + çekirdek + sahne seti + dil paketleri). Şema `@glotmate/contracts` `adminLessonDetailSchema`.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [lesson, catalog, core, sceneSet, locales]
+            properties:
+              lesson: { type: object, description: Matristeki satırla aynı }
+              catalog:
+                type: object
+                properties: { themeHint: { type: string }, specHash: { type: string } }
+              core:
+                nullable: true
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  status: { $ref: "#/components/schemas/LayerStatus" }
+                  updatedAt: { type: string, format: date-time }
+                  model: { type: string, nullable: true }
+                  core: { type: object, nullable: true, description: LessonCore JSON }
+                  report: { $ref: "#/components/schemas/LintReport" }
+              sceneSet:
+                nullable: true
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  status: { $ref: "#/components/schemas/LayerStatus" }
+                  updatedAt: { type: string, format: date-time }
+                  model: { type: string, nullable: true }
+                  scenes: { type: object, nullable: true, description: "track → SceneVariant" }
+                  report: { $ref: "#/components/schemas/LintReport" }
+              locales:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string, format: uuid }
+                    language: { type: string }
+                    status: { $ref: "#/components/schemas/LayerStatus" }
+                    stale: { type: boolean }
+                    updatedAt: { type: string, format: date-time }
+                    model: { type: string, nullable: true }
+                    report: { $ref: "#/components/schemas/LintReport" }
+
+  parameters:
+    AdminLessonId:
+      name: id
+      in: path
+      required: true
+      description: Katalog satırının kalıcı slug'ı
+      schema: { type: string, pattern: "^[a-z0-9]+(-[a-z0-9]+)*$", example: a1-she-works-at-night }
+
+  requestBodies:
+    AdminCoreBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [core]
+            properties:
+              core: { type: object, description: "LessonCore (contracts `lessonCoreSchema`)" }
     InvalidInput:
       description: Gövde şema doğrulamasından geçemedi
       content:
@@ -619,6 +916,36 @@ components:
           schema: { $ref: "#/components/schemas/Error" }
 
   schemas:
+    TtsProviderConfig:
+      type: object
+      required: [voiceId, modelId]
+      properties:
+        voiceId: { type: string, nullable: true, description: "null = .env varsayılanı" }
+        modelId: { type: string }
+    TtsSettings:
+      type: object
+      required: [provider, elevenlabs, inworld]
+      properties:
+        provider: { type: string, enum: [elevenlabs, inworld] }
+        elevenlabs: { $ref: "#/components/schemas/TtsProviderConfig" }
+        inworld: { $ref: "#/components/schemas/TtsProviderConfig" }
+    TtsSettingsResponse:
+      type: object
+      required: [settings, configured, defaultVoiceId, models, updatedAt]
+      properties:
+        settings: { $ref: "#/components/schemas/TtsSettings" }
+        configured:
+          type: object
+          properties: { elevenlabs: { type: boolean }, inworld: { type: boolean } }
+        defaultVoiceId:
+          type: object
+          properties: { elevenlabs: { type: string, nullable: true }, inworld: { type: string, nullable: true } }
+        models:
+          type: object
+          properties:
+            elevenlabs: { type: array, items: { type: string } }
+            inworld: { type: array, items: { type: string } }
+        updatedAt: { type: string, format: date-time, nullable: true }
     Error:
       type: object
       required: [error]
@@ -628,6 +955,33 @@ components:
     LayerStatus:
       type: string
       enum: [generating, ready, failed, published, retired]
+
+    AdminUser:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, nullable: true }
+        isAdmin: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        lastSignInAt: { type: string, format: date-time, nullable: true }
+        hasProfile: { type: boolean }
+        displayName: { type: string, nullable: true }
+        nativeLanguage: { type: string, nullable: true, example: tr }
+        cefrLevel: { type: string, nullable: true, enum: [A1, A2, B1, B2, C1, C2, null] }
+        track: { type: string, nullable: true }
+        tutorLanguage: { type: string, nullable: true }
+        lessonsCompleted: { type: integer }
+        lessonsInProgress: { type: integer }
+        sessionCount: { type: integer }
+        lastSessionAt: { type: string, format: date-time, nullable: true }
+        llmCostUsd: { type: number }
+
+    LintReport:
+      type: object
+      nullable: true
+      properties:
+        errors: { type: array, items: { type: string } }
+        warnings: { type: array, items: { type: string } }
 
     AdminLayer:
       type: object

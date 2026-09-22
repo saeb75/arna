@@ -27,7 +27,6 @@ import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { toFile } from "openai";
 import { z } from "zod";
 import { db } from "../../db/client.js";
-import { env } from "../../config/env.js";
 import { languageName, nativeLanguageOf } from "../../lib/language.js";
 import {
   lessonCores,
@@ -40,6 +39,7 @@ import {
 } from "../../db/schema.js";
 import { getChrome } from "../../i18n/index.js";
 import { completeJson, completeText } from "../llm/index.js";
+import { resolveActiveTts, synthesizeClip, TtsError, type CharAlignment } from "../tts/index.js";
 import { ANSWER_REVIEW_VERSION, buildAnswerReviewPrompt } from "../llm/prompts/answer-review.v1.js";
 import { openaiClient } from "../llm/openai.js";
 import { resolveLesson, LayerError } from "../lesson/layers.js";
@@ -595,9 +595,9 @@ const attemptRule = [
   `Your words must match your flag: if you set isAttempt=false, do NOT say they tried to answer.`,
   `When isAttempt=false: respond WARMLY in one short sentence (never scold), correct nothing,`,
   `NEVER say which answer is correct. If they asked for help or a hint, give ONE small hint that`,
-  `points toward the target (never the answer itself). Then RESTATE THE QUESTION/TASK ITSELF in`,
-  `English as its own "en" run — "please answer again" without the question is useless to a`,
-  `student who asked you to repeat it. Stay on the lesson.`,
+  `points toward the target (never the answer itself). Do NOT restate, reword or INVENT the`,
+  `task — the app shows the EXACT task again right after your reply; a reworded task misleads`,
+  `the student (live bug: the model asked its own made-up question instead). Stay on the lesson.`,
 ].join("\n");
 
 /**
@@ -759,7 +759,9 @@ async function judgeExercise(
         ? `This is the LAST time you can respond on this question. Kindly GIVE the correct answer in a full ENGLISH sentence (its own "en" run), whatever they wrote, and add one word of encouragement. Do NOT ask the question again.`
         : [
             `Reply in 1-2 short sentences: encourage, give a small HINT that points at today's target,`,
-            `then ASK THE SAME QUESTION again — worded differently than before.`,
+            `then invite them to try again in one warm clause. Do NOT restate or reword the task —`,
+            `it is already on screen, and a reworded task misleads (live bug: the model invented`,
+            `its own question and the student answered the wrong thing).`,
             `CRITICAL: the student gets another real try, so your reply must NOT contain the correct`,
             `answer in ANY form — not the sentence, not the option letter, not a quote of it.`,
             `Revealing the answer and then asking again is absurd; such a reply is WRONG.`,
@@ -772,7 +774,7 @@ async function judgeExercise(
       .join("\n"),
     user: `The student said: "${text}"`,
     schema: exerciseVerdictSchema,
-    promptVersion: "exercise-check.v6",
+    promptVersion: "exercise-check.v7",
     userId,
     sessionId,
     maxTokens: 250,
@@ -803,7 +805,7 @@ async function judgeExercise(
         ].join("\n"),
         user: `The student said: "${text}"`,
         schema: exerciseVerdictSchema,
-        promptVersion: "exercise-check.v6",
+        promptVersion: "exercise-check.v7",
         userId,
         sessionId,
         maxTokens: 250,
@@ -890,15 +892,15 @@ async function judgeOpenResponse(
             `The student has GIVEN UP on this task. Set isAttempt=true and ok=false.`,
             isLastAttempt
               ? `This was their LAST try: warmly GIVE THEM a model answer as a full ENGLISH sentence (own "en" run) — a sentence that ACTUALLY COMPLETES THE TASK ABOVE and satisfies the rubric, never a rephrasing of what the student just said. Do NOT ask the task again.`
-              : `Encourage them in one clause, then ASK THEM TO TRY AGAIN.`,
+              : `Encourage them in one clause, then invite them to try again — without restating or rewording the task.`,
           ]
         : [
             attemptRule,
             ``,
-            `If isAttempt is false, ok MUST be false and the feedback just re-asks the task.`,
+            `If isAttempt is false, ok MUST be false; the app re-shows the task after your reply — do not restate it.`,
             isLastAttempt
               ? `If it IS an attempt and ok is false, this was their LAST try: warmly GIVE THEM a model answer as a full ENGLISH sentence (own "en" run) — a sentence that ACTUALLY COMPLETES THE TASK ABOVE and satisfies the rubric, never a rephrasing of what the student just said. Do NOT ask the task again.`
-              : `If it IS an attempt and ok is false, name what is missing in one clause and ASK THEM TO TRY AGAIN. Do not reveal a full model answer yet.`,
+              : `If it IS an attempt and ok is false, name what is missing in one clause and invite them to try again — without restating or rewording the task. Do not reveal a full model answer yet.`,
           ]),
       ``,
       `Reply with STRICT JSON: {"isAttempt": <true|false>, "ok": <true|false>, "feedback": [{"lang":"l1"|"en","text":"..."}]}`,
@@ -909,7 +911,7 @@ async function judgeOpenResponse(
       .join("\n"),
     user: `The student said: "${text}"`,
     schema: openResponseVerdictSchema,
-    promptVersion: "open-response.v4",
+    promptVersion: "open-response.v5",
     userId,
     sessionId,
     maxTokens: 250,
@@ -1144,84 +1146,13 @@ export async function chatTurn(
 }
 
 // ---------------------------------------------------------------------------
-// TTS — ElevenLabs with-timestamps proxy, v7: dil etiketli parçalar → klipler
+// TTS — sağlayıcı gateway'i (modules/tts), v7: dil etiketli parçalar → klipler
 // ---------------------------------------------------------------------------
-
-/**
- * ElevenLabs flash v2.5 ISO-639-1 kapsaması (~32 dil). Kapsam dışı bir ana dil
- * gelirse `null` döner: çağıran L1 parçalarını SESSİZ bırakır (metin ekranda),
- * yalnız İngilizce parçaları okur — anlaşılmaz telaffuz üretmekten iyidir.
- */
-const TTS_LANG: Record<string, string> = {
-  en: "en", tr: "tr", ar: "ar", "zh-hans": "zh", "zh-hant": "zh", es: "es", de: "de",
-  fr: "fr", it: "it", "pt-br": "pt", "pt-pt": "pt", pl: "pl", hi: "hi", ja: "ja",
-  ko: "ko", nl: "nl", ru: "ru", sv: "sv", id: "id", fil: "fil", uk: "uk", el: "el",
-  cs: "cs", fi: "fi", ro: "ro", da: "da", bg: "bg", ms: "ms", sk: "sk", hr: "hr",
-  ta: "ta", vi: "vi", no: "no", hu: "hu",
-};
-export function ttsLanguage(normalized: string): string | null {
-  return TTS_LANG[normalized] ?? null;
-}
-
-/**
- * SES ÖNBELLEĞİ (süreç içi, LRU'suz basit): anahtar (metin, dil, ses, model).
- * İngilizce çekirdek klipleri TÜM dillerin öğrencilerinde birebir aynı — en
- * büyük kazanç orada. R2'ye taşıma CLAUDE.md'de planlı; bu, onun öncülü.
- */
-const audioCache = new Map<string, { audioBase64: string; alignment: unknown }>();
-const AUDIO_CACHE_MAX = 500;
-
-function audioCacheKey(text: string, lang: string): string {
-  return `${env.ELEVENLABS_VOICE_ID}|eleven_flash_v2_5|${lang}|${text}`;
-}
-
-async function synthesizeClip(
-  text: string,
-  languageCode: string,
-): Promise<{ audioBase64: string; alignment: unknown }> {
-  const key = audioCacheKey(text, languageCode);
-  const cached = audioCache.get(key);
-  if (cached) return cached;
-
-  const res = await fetch(
-    `https://api.elevenlabs.io/v1/text-to-speech/${env.ELEVENLABS_VOICE_ID}/with-timestamps?output_format=mp3_44100_128`,
-    {
-      method: "POST",
-      headers: {
-        "xi-api-key": env.ELEVENLABS_API_KEY!,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({ text, model_id: "eleven_flash_v2_5", language_code: languageCode }),
-    },
-  );
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new SessionError("tts_unavailable", `ElevenLabs hata: ${body.slice(0, 200)}`);
-  }
-
-  const data = (await res.json()) as {
-    audio_base64: string;
-    alignment?: unknown;
-    normalized_alignment?: unknown;
-  };
-  const clip = {
-    audioBase64: data.audio_base64,
-    alignment: data.normalized_alignment ?? data.alignment ?? null,
-  };
-
-  if (audioCache.size >= AUDIO_CACHE_MAX) {
-    const first = audioCache.keys().next().value;
-    if (first) audioCache.delete(first);
-  }
-  audioCache.set(key, clip);
-  return clip;
-}
 
 export interface TtsClip {
   audioBase64: string;
-  alignment: unknown;
-  /** İstemcinin viseme zaman çizelgesini kaydırması için: bu klipten ÖNCEKİ toplam metin */
+  alignment: CharAlignment | null;
+  /** Klibin sağlayıcı dil kodu — istemci hangi parçanın hangi dilde okunduğunu bilir */
   lang: string;
 }
 
@@ -1229,6 +1160,10 @@ export interface TtsClip {
  * v7 girişi: dil etiketli parçalar. Ardışık aynı-dil parçalar TEK klipte
  * birleştirilir (daha az istek, daha doğal prosodi); istemci klipleri sırayla
  * çalar ve `onEnd`'i son klipten sonra TAM BİR KEZ ateşler.
+ *
+ * Sağlayıcı (ElevenLabs / Inworld) ve ses/model `app_settings.tts`'ten gelir
+ * (admin panel); burada sağlayıcı adı geçmez. Kapsam dışı ana dil: metin
+ * ekranda kalır, o parçalar sessiz — yalnız İngilizce klipler döner.
  *
  * Eski `{text}` gövdesi tek İngilizce parça olarak kabul edilir (geçiş uyumu).
  */
@@ -1239,39 +1174,45 @@ export async function tts(
 ): Promise<{ clips: TtsClip[] }> {
   const owned = await getOwnedSession(userId, sessionId);
   if (!owned) throw new SessionError("not_found", "Oturum bulunamadı");
-  if (!env.ELEVENLABS_API_KEY || !env.ELEVENLABS_VOICE_ID) {
-    throw new SessionError("tts_unavailable", "TTS yapılandırılmamış");
-  }
 
-  const [profile] = await db
-    .select()
-    .from(userProfiles)
-    .where(eq(userProfiles.userId, userId))
-    .limit(1);
-  const native = nativeLanguageOf(profile);
-  const l1Code = ttsLanguage(native);
+  try {
+    const active = await resolveActiveTts();
 
-  // Ardışık aynı-dil parçaları grupla
-  const groups: Array<{ lang: string | null; text: string }> = [];
-  for (const run of runs) {
-    const code = run.lang === "en" ? "en" : l1Code;
-    const prev = groups[groups.length - 1];
-    if (prev && prev.lang === code) prev.text += ` ${run.text}`;
-    else groups.push({ lang: code, text: run.text });
-  }
+    const [profile] = await db
+      .select()
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, userId))
+      .limit(1);
+    const native = nativeLanguageOf(profile);
+    const enCode = active.provider.languageCode("en");
+    const l1Code = active.provider.languageCode(native);
 
-  const clips: TtsClip[] = [];
-  for (const g of groups) {
-    if (g.lang === null) {
-      // TTS kapsamı dışı ana dil: metin ekranda kalır, ses atlanır
-      console.warn(`[tts] "${native}" kapsam dışı — L1 parçası sessiz bırakıldı`);
-      continue;
+    // Ardışık aynı-dil parçaları grupla
+    const groups: Array<{ lang: string | null; text: string }> = [];
+    for (const run of runs) {
+      const code = run.lang === "en" ? enCode : l1Code;
+      const prev = groups[groups.length - 1];
+      if (prev && prev.lang === code) prev.text += ` ${run.text}`;
+      else groups.push({ lang: code, text: run.text });
     }
-    const clip = await synthesizeClip(g.text.slice(0, 600), g.lang);
-    clips.push({ ...clip, lang: g.lang });
-  }
 
-  return { clips };
+    const clips: TtsClip[] = [];
+    for (const g of groups) {
+      if (g.lang === null) {
+        // TTS kapsamı dışı ana dil: metin ekranda kalır, ses atlanır
+        console.warn(`[tts] "${native}" ${active.provider.name} kapsamı dışı — L1 parçası sessiz bırakıldı`);
+        continue;
+      }
+      const clip = await synthesizeClip(active, g.text.slice(0, 600), g.lang);
+      clips.push({ ...clip, lang: g.lang });
+    }
+
+    return { clips };
+  } catch (err) {
+    // Gateway hatası → oturum hata sözlüğü (route 502'ye çevirir); diğerleri olduğu gibi
+    if (err instanceof TtsError) throw new SessionError("tts_unavailable", err.message);
+    throw err;
+  }
 }
 
 // ---------------------------------------------------------------------------

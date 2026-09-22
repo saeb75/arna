@@ -9,7 +9,7 @@ import { supabase } from "@/lib/supabase";
  *     403 (rol yok) oturumu DÜŞÜRMEZ — token geçerli, yetki yok; panel Forbidden gösterir.
  */
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:6566",
+  baseURL: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:6560",
 });
 
 api.interceptors.request.use(async (config) => {

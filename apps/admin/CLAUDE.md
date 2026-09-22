@@ -8,7 +8,7 @@ temizse admin de o kadar. Desen tartışılacaksa önce bu dosya, sonra kod.
 
 | Paket | Not |
 |---|---|
-| Next 16 (App Router) | `next dev -p 6568` — web 6567, backend 6566 |
+| Next 16 (App Router) | `next dev -p 6568` — web 6567, backend 6560 |
 | Tailwind 4 + shadcn (`base-nova`, neutral, dark) | `components.json` web ile aynı; bileşenler `@base-ui/react` üstünde (`render` prop, `asChild` yok) |
 | Zustand 5 | domain başına store, middleware yok |
 | Axios 1 | tek instance `src/api/index.ts` |
@@ -58,12 +58,14 @@ src/
 │   ├── page.tsx            # kapı: session → /lessons, yoksa /login
 │   ├── login/page.tsx
 │   └── (panel)/            # yetkili alan: layout kapı + <PanelShell/>
-│       └── lessons/page.tsx
+│       ├── lessons/page.tsx · lessons/[id]/page.tsx
+│       ├── users/page.tsx · users/[id]/page.tsx     # salt okunur; auth.users + profil + sayaçlar
+│       └── settings/page.tsx
 ├── api/index.ts            # TEK axios instance + JWT interceptor + errorCode()
 ├── services/               # AuthService, AdminLessonsService…
 ├── controllers/            # AuthController, LessonsController…
 ├── stores/                 # useAuthStore, useLessonsStore…
-├── screens/<ekran>/        # ekran + yalnız orada kullanılan alt bileşenler
+├── screens/<ekran>/        # lessons/, lesson-detail/, users/, user-detail/, settings/, login/, forbidden/
 ├── components/ui/          # shadcn (dokunulmaz, CLI ile güncellenir)
 ├── components/shared/      # 2+ ekranda kullanılan: PanelShell, Sidebar, ErrorState…
 └── lib/                    # supabase.ts, labels.ts, motion.ts, saf yardımcılar
@@ -81,6 +83,40 @@ Hafif ve tekdüze: süre ≤250ms, hareket ≤8px, hepsi `lib/motion.ts` sözlü
 Satır stagger'ı `STAGGER_CAP` ile sınırlı — 400 satırlık tablo saniyeler boyu
 akmaz. Animasyon geçişi yumuşatır, dikkat çekmez; `layoutId` yalnız tek aktif
 öğesi olan yerlerde (sidebar).
+
+## Aksiyonlar ve toplu işler
+
+- Mutasyon uçlarının TAMAMI `AdminLessonDetail` döner; controller store'a yazar ve
+  matrisi (`LessonsController.load()`) tazeler — liste ile detay birbirine yalan
+  söylemez. Sonuç bildirimi (toast) yalnız controller'da.
+- **Sunucuda kuyruk yok.** LLM tetikleyen uçlar senkron (10–60 sn); toplu iş
+  (seviye bazlı dil paketi ısıtma) İSTEMCİDE orkestre edilir: `LocaleWarmController`
+  tek ders ucunu eşzamanlılık 2 ile çağırır, ilerleme/iptal store'da.
+- **Katalog alanları düzenlenmez** (`title/focus/targetPhrases/themeHint`): kaynak
+  repo (`apps/backend/src/curriculum`), DB projeksiyon. Panel yalnız katmanları
+  (çekirdek · sahne · dil paketi) yönetir; `practice.mustUse` katalogdan dayatılır.
+- Çekirdek editörü JSON + canlı önizleme: istemcide `lessonCoreSchema` (şema),
+  sunucuda `lintCore` (pedagoji). Kayıt satırı `ready`ye düşürür — yayın ayrı buton.
+
+## Dil ilkesi — arayüz İNGİLİZCE
+
+Kullanıcıya görünen her metin (etiket, buton, toast, placeholder, boş/hata
+durumu) **İngilizce**. Kod yorumları ve bu doküman Türkçe kalır (repo geleneği).
+Biçimler: tarih `Intl.DateTimeFormat("en-GB")`, para `en-US` USD, dil adları
+`Intl.DisplayNames(["en"])` (`lib/labels.ts` — dil adı sabitlenmez). Denetim:
+`grep -rnE '[çğıöşüÇĞİÖŞÜ]' src | grep -vE '(//|\*)'` yalnız yorum döndürmeli.
+
+## Renk ilkesi
+
+Light tema, ölçülü palet — panel "renkli AI uygulaması" gibi görünmez:
+
+- **Gri skala** (`foreground / muted-foreground / muted / border`) her şeyin zemini.
+- **`primary` (mavi)** tek vurgu: aktif sidebar öğesi, ana buton, marka ve
+  `published` durumu.
+- **`destructive` (kırmızı)** yalnız `failed` ve hata ekranı.
+- Yeşil / sarı / turuncu / menekşe **yok**. Yeni durum rengi EKLENMEZ; anlam
+  biçimle ayrılır: dolgu (yayında), düz gri (ara durum), kesik çerçeve + içi boş
+  halka (bayat paket).
 
 ## Yapılmayacaklar
 

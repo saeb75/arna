@@ -16,13 +16,13 @@ export function ForbiddenScreen() {
         <span className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
           <ShieldOff className="size-6" />
         </span>
-        <h1 className="text-lg font-semibold">Yönetici yetkisi yok</h1>
+        <h1 className="text-lg font-semibold">No admin access</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">{email}</span> hesabında admin rolü tanımlı değil.
-          Rol Supabase tarafında atanır; atandıktan sonra yeniden giriş yap.
+          <span className="font-medium text-foreground">{email}</span> has no admin role.
+          Roles are assigned on the Supabase side; sign in again after it is granted.
         </p>
         <Button variant="outline" className="mt-6" onClick={() => void AuthController.signOut()}>
-          Çıkış yap
+          Sign out
         </Button>
       </motion.div>
     </main>

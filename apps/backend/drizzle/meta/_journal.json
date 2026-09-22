@@ -64,6 +64,13 @@
       "when": 1788261342140,
       "tag": "0008_pretty_norrin_radd",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790015717194,
+      "tag": "0009_left_mandarin",
+      "breakpoints": true
     }
   ]
 }

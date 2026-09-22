@@ -24,7 +24,7 @@ export function UserMenu() {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium">{email}</span>
-          <span className="block text-[11px] text-muted-foreground">Yönetici</span>
+          <span className="block text-[11px] text-muted-foreground">Administrator</span>
         </span>
         <ChevronsUpDown className="size-4 text-muted-foreground" />
       </DropdownMenuTrigger>
@@ -33,7 +33,7 @@ export function UserMenu() {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => void AuthController.signOut()}>
           <LogOut />
-          Çıkış yap
+          Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

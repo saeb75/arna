@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { cefrLevelSchema, lessonKindSchema } from "./levels.js";
+import { lessonCoreSchema, sceneVariantSchema } from "./lessonLayers.js";
 
 /**
  * ADMİN PANELİ SÖZLEŞMELERİ — `GET /v1/admin/*` uçları.
@@ -62,3 +63,222 @@ export const adminLessonsResponseSchema = z.object({
   generatedAt: z.string(),
 });
 export type AdminLessonsResponse = z.infer<typeof adminLessonsResponseSchema>;
+
+// ---------------------------------------------------------------------------
+// Ders detayı — `GET /v1/admin/lessons/:id` ve TÜM mutasyon uçlarının dönüşü
+// ---------------------------------------------------------------------------
+
+/** Backend `LintReport` ile aynı şekil; şema burada ki panel doğrulayabilsin */
+export const lintReportSchema = z.object({
+  errors: z.array(z.string()),
+  warnings: z.array(z.string()),
+});
+export type LintReport = z.infer<typeof lintReportSchema>;
+
+export const adminCoreDetailSchema = adminLayerSchema.extend({
+  model: z.string().nullable(),
+  /** null = satır var ama içerik yok (generating/failed) */
+  core: lessonCoreSchema.nullable(),
+  report: lintReportSchema.nullable(),
+});
+export type AdminCoreDetail = z.infer<typeof adminCoreDetailSchema>;
+
+export const adminSceneDetailSchema = adminLayerSchema.extend({
+  model: z.string().nullable(),
+  scenes: z.record(z.string(), sceneVariantSchema).nullable(),
+  report: lintReportSchema.nullable(),
+});
+export type AdminSceneDetail = z.infer<typeof adminSceneDetailSchema>;
+
+export const adminLocaleDetailSchema = adminLocaleSchema.extend({
+  id: z.string().uuid(),
+  model: z.string().nullable(),
+  report: lintReportSchema.nullable(),
+});
+export type AdminLocaleDetail = z.infer<typeof adminLocaleDetailSchema>;
+
+export const adminLessonDetailSchema = z.object({
+  /** Matristeki satırla aynı şekil — liste ve detay tek tipten okur */
+  lesson: adminLessonSchema,
+  catalog: z.object({ themeHint: z.string(), specHash: z.string() }),
+  core: adminCoreDetailSchema.nullable(),
+  sceneSet: adminSceneDetailSchema.nullable(),
+  locales: z.array(adminLocaleDetailSchema),
+});
+export type AdminLessonDetail = z.infer<typeof adminLessonDetailSchema>;
+
+/** `POST /admin/lessons/:id/core/lint` — kuru koşu, yazmaz */
+export const adminCoreLintResponseSchema = z.object({ report: lintReportSchema });
+export type AdminCoreLintResponse = z.infer<typeof adminCoreLintResponseSchema>;
+
+/** `PUT /admin/lessons/:id/core` ve `POST .../core/lint` gövdesi */
+export const adminCoreBodySchema = z.object({ core: lessonCoreSchema });
+
+// ---------------------------------------------------------------------------
+// TTS AYARLARI — `GET/PUT /v1/admin/settings/tts`, `POST .../preview`
+// ---------------------------------------------------------------------------
+
+/**
+ * Tutor sesi sağlayıcısı. Seçim `app_settings.tts` satırında durur ve admin
+ * panelden değişir; API ANAHTARLARI yalnız sunucu .env'inde kalır — bu şemada
+ * anahtar alanı YOKTUR ve eklenmez (istemciye sızardı).
+ */
+export const TTS_PROVIDERS = ["elevenlabs", "inworld"] as const;
+export const ttsProviderSchema = z.enum(TTS_PROVIDERS);
+export type TtsProvider = z.infer<typeof ttsProviderSchema>;
+
+/** Sağlayıcı başına ayar. `voiceId: null` = .env varsayılanı kullanılsın. */
+export const ttsProviderConfigSchema = z.object({
+  voiceId: z.string().trim().min(1).nullable(),
+  modelId: z.string().trim().min(1),
+});
+export type TtsProviderConfig = z.infer<typeof ttsProviderConfigSchema>;
+
+/** `app_settings.tts` değerinin TAMAMI — okurken ve yazarken bu şemadan geçer. */
+export const ttsSettingsSchema = z.object({
+  provider: ttsProviderSchema,
+  elevenlabs: ttsProviderConfigSchema,
+  inworld: ttsProviderConfigSchema,
+});
+export type TtsSettings = z.infer<typeof ttsSettingsSchema>;
+
+/** Sağlayıcı → değer; `z.record` yerine açık nesne: iki anahtarın da gelmesi zorunlu. */
+const perProvider = <T extends z.ZodTypeAny>(v: T) => z.object({ elevenlabs: v, inworld: v });
+
+export const adminTtsSettingsResponseSchema = z.object({
+  settings: ttsSettingsSchema,
+  /** Sağlayıcının anahtarı .env'de var mı — panel anahtarsızı seçtirmez */
+  configured: perProvider(z.boolean()),
+  /** .env'den gelen varsayılan ses (panelde "boş = şu kullanılır" ipucu) */
+  defaultVoiceId: perProvider(z.string().nullable()),
+  /** Panelde model select'i için izinli liste */
+  models: perProvider(z.array(z.string().min(1)).min(1)),
+  /** Satır hiç yazılmamışsa null (env varsayılanı servis ediliyor) */
+  updatedAt: z.string().nullable(),
+});
+export type AdminTtsSettingsResponse = z.infer<typeof adminTtsSettingsResponseSchema>;
+
+/** Kaydetmeden dinleme: seçilen sağlayıcı/ses/modelle kısa metin. */
+export const adminTtsPreviewBodySchema = z.object({
+  provider: ttsProviderSchema,
+  voiceId: z.string().trim().min(1),
+  modelId: z.string().trim().min(1),
+  text: z.string().trim().min(1).max(300),
+  /** BCP-47 (normalize edilir); varsayılan İngilizce */
+  language: z.string().trim().min(2).default("en"),
+});
+export type AdminTtsPreviewBody = z.infer<typeof adminTtsPreviewBodySchema>;
+
+export const adminTtsPreviewResponseSchema = z.object({
+  /** mp3, base64 — istemci `data:audio/mpeg;base64,` ile çalar */
+  audioBase64: z.string().min(1),
+  latencyMs: z.number().int().nonnegative(),
+  /** Zaman damgası geldi mi — dudak senkronu bu sağlayıcıyla çalışır mı sorusunun cevabı */
+  hasAlignment: z.boolean(),
+});
+export type AdminTtsPreviewResponse = z.infer<typeof adminTtsPreviewResponseSchema>;
+
+// ---------------------------------------------------------------------------
+// KULLANICILAR — `GET /v1/admin/users`, `GET /v1/admin/users/:id` (salt okunur)
+// ---------------------------------------------------------------------------
+
+/**
+ * Liste satırı: auth.users (e-posta, kayıt, son giriş, rol) + profil + sayaçlar.
+ * Profil onboarding'de oluşur; `hasProfile: false` = kayıt olmuş, onboarding'i
+ * bitirmemiş hesap. Sayaçlar kullanıcıya özel tablolardan toplanır.
+ */
+export const adminUserSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().nullable(),
+  isAdmin: z.boolean(),
+  createdAt: z.string(),
+  lastSignInAt: z.string().nullable(),
+  hasProfile: z.boolean(),
+  displayName: z.string().nullable(),
+  /** BCP-47, normalize — panel adını `Intl.DisplayNames` ile çözer, sabitlemez */
+  nativeLanguage: z.string().nullable(),
+  cefrLevel: cefrLevelSchema.nullable(),
+  track: z.string().nullable(),
+  tutorLanguage: z.string().nullable(),
+  lessonsCompleted: z.number().int().nonnegative(),
+  lessonsInProgress: z.number().int().nonnegative(),
+  sessionCount: z.number().int().nonnegative(),
+  lastSessionAt: z.string().nullable(),
+  llmCostUsd: z.number().nonnegative(),
+});
+export type AdminUser = z.infer<typeof adminUserSchema>;
+
+export const adminUsersResponseSchema = z.object({
+  users: z.array(adminUserSchema),
+  generatedAt: z.string(),
+});
+export type AdminUsersResponse = z.infer<typeof adminUsersResponseSchema>;
+
+export const adminUserProgressSchema = z.object({
+  catalogLessonId: z.string(),
+  title: z.string(),
+  level: cefrLevelSchema,
+  kind: lessonKindSchema,
+  status: z.enum(["in_progress", "completed"]),
+  sessionCount: z.number().int().nonnegative(),
+  firstStartedAt: z.string(),
+  completedAt: z.string().nullable(),
+});
+export type AdminUserProgress = z.infer<typeof adminUserProgressSchema>;
+
+/**
+ * Oturum özeti — transkript turları ve `sessions.state` (hafıza bloğu, oturum
+ * script'i) BURADA YOK ve eklenmez: sistem promptu istemciye asla gitmez.
+ */
+export const adminUserSessionSchema = z.object({
+  id: z.string().uuid(),
+  kind: z.string().nullable(),
+  catalogLessonId: z.string().nullable(),
+  lessonTitle: z.string().nullable(),
+  startedAt: z.string(),
+  endedAt: z.string().nullable(),
+  summary: z.string().nullable(),
+  continuityHook: z.string().nullable(),
+  errorsObserved: z.unknown().nullable(),
+});
+export type AdminUserSession = z.infer<typeof adminUserSessionSchema>;
+
+export const adminUserMemorySchema = z.object({
+  id: z.string().uuid(),
+  kind: z.string(),
+  text: z.string(),
+  createdAt: z.string(),
+});
+
+export const adminUserCheckpointSchema = z.object({
+  level: cefrLevelSchema,
+  unitIndex: z.number().int(),
+  score: z.number().int(),
+  total: z.number().int(),
+  createdAt: z.string(),
+});
+
+export const adminUserCostSchema = z.object({
+  totalUsd: z.number().nonnegative(),
+  last30dUsd: z.number().nonnegative(),
+  byPurpose: z.array(z.object({ purpose: z.string(), calls: z.number().int().nonnegative(), usd: z.number().nonnegative() })),
+});
+
+export const adminUserDetailSchema = z.object({
+  user: adminUserSchema,
+  profile: z
+    .object({
+      occupation: z.string().nullable(),
+      interests: z.array(z.string()),
+      dailyGoalMinutes: z.number().int(),
+    })
+    .nullable(),
+  progress: z.array(adminUserProgressSchema),
+  /** Son 20 oturum, yeniden eskiye */
+  sessions: z.array(adminUserSessionSchema),
+  /** Son 30 hafıza gerçeği — öğrencinin kendi sözünden türer, salt okunur */
+  memories: z.array(adminUserMemorySchema),
+  checkpoints: z.array(adminUserCheckpointSchema),
+  cost: adminUserCostSchema,
+});
+export type AdminUserDetail = z.infer<typeof adminUserDetailSchema>;

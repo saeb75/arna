@@ -12,7 +12,7 @@ loadDotenv({ override: true });
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  PORT: z.coerce.number().int().positive().default(6566),
+  PORT: z.coerce.number().int().positive().default(6560),
 
   // Supabase — DATABASE_URL Supavisor pooler adresidir (port 6543, transaction mode)
   DATABASE_URL: z.string().url(),
@@ -24,6 +24,10 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
   ELEVENLABS_API_KEY: z.string().optional(),
   ELEVENLABS_VOICE_ID: z.string().optional(),
+  /** Inworld portal'ından kopyalanan Base64 kimlik — OLDUĞU GİBİ, tekrar kodlanmaz */
+  INWORLD_API_KEY: z.string().optional(),
+  /** Inworld ses kimliği (ad biçiminde: "Ashley", "Dennis" …) — panel boş bırakırsa bu */
+  INWORLD_VOICE_ID: z.string().optional(),
 
   /** Virgülle ayrılmış izinli origin listesi */
   CORS_ORIGINS: z.string().default("http://localhost:6567"),

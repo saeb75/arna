@@ -12,7 +12,7 @@ export function ErrorState({ code, onRetry }: { code: string; onRetry: () => voi
       <p className="text-sm">{errorLabel(code)}</p>
       <Button variant="outline" size="sm" onClick={onRetry}>
         <RotateCcw data-icon="inline-start" />
-        Tekrar dene
+        Try again
       </Button>
     </div>
   );

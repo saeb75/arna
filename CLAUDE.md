@@ -71,7 +71,7 @@ Uygulama ileride **100'lerce ana dile** İngilizce öğretecek. **Backend hiçbi
 - **Storage:** Cloudflare R2 (S3 SDK ile; public bucket + CDN: avatar GLB + TTS ses önbelleği; private: presigned URL).
 - **Backend framework:** Fastify 5 (NestJS ve Express bilinçli reddedildi). Modül deseni: `src/modules/<ad>/` içinde `routes.ts` + `service.ts` + `queries.ts`.
 - **LLM:** MVP'de yalnızca OpenAI anahtarıyla başla (sohbet: ucuz model; plan/ders üretimi: güçlü model). Gateway sağlayıcı-soyut yazılır (`src/modules/llm/`), Anthropic sonra adaptörle eklenir. Her çağrı `llm_calls` tablosuna maliyet/token/prompt-sürümüyle loglanır.
-- **TTS:** MVP'de ElevenLabs Flash v2.5 (mevcut hat çalışıyor). Hedef: Azure Neural TTS (native ARKit blendshape, ~7× ucuz) — Faz 0 spike'ıyla karar verilecek.
+- **TTS:** iki sağlayıcı, `apps/backend/src/modules/tts/` gateway'i arkasında (LLM gateway deseni): **ElevenLabs** Flash v2.5 (`with-timestamps`) ve **Inworld** Realtime TTS-2 (`/tts/v1/voice`, `timestampType: CHARACTER`). Aktif sağlayıcı + ses/model `app_settings.tts` satırından gelir ve **admin panelden** (`/settings`, `PUT /v1/admin/settings/tts`) değişir; satır yoksa env varsayılanı ElevenLabs. **API anahtarları yalnız `.env`'de**, hiçbir uç döndürmez. İstemci sözleşmesi (`AvatarClip`: mp3 base64 + KARAKTER bazlı `characters/character_start_times_seconds/character_end_times_seconds`) sağlayıcıdan bağımsız ve sabittir — her sağlayıcı kendi çıktısını buna çevirir, web/mobil/WebView sağlayıcıyı bilmez. Seçili sağlayıcı hata verirse **otomatik geçiş yok** (502 `tts_unavailable`): sesin kimliği ve maliyet sessizce kaymaz. Ses önbelleği anahtarı `provider|voiceId|modelId|lang|text`. Hedef hâlâ açık: Azure Neural TTS (native ARKit blendshape) veya Inworld WORD modu (fonem+viseme) — ikisi de `alignment.ts`/`viseme.ts`'te yeni yol ister, ayrı faz.
 - **STT:** MVP'de gpt-4o-mini-transcribe (batch); streaming gateway gelince Deepgram Nova-3/Flux.
 
 ## MVP ürün kararları (kullanıcıyla kilitlendi)
@@ -87,6 +87,8 @@ Uygulama ileride **100'lerce ana dile** İngilizce öğretecek. **Backend hiçbi
 
 **Katalog (paylaşımlı, kullanıcıdan bağımsız):** `catalog_units` · `catalog_lessons` · `lesson_cores` (İngilizce çekirdek, yayın kapılı) · `lesson_scene_sets` + `lesson_scenes` (5 track sahnesi, atomik) · `lesson_locales` (dil paketi, lazy)
 
+**Çalışma zamanı ayarı:** `app_settings` (anahtar/değer jsonb, admin panel yazar; ilk anahtar `tts`)
+
 **Kullanıcıya ait:** `user_profiles` · `programs` (seviye/track kaydı — ders satırı taşımaz) · `lesson_progress` (**SEYREK**: satır yalnızca başlanan ders için açılır, yokluğu `not_started` demek) · `sessions` (`catalog_lesson_id` = müfredat yuvası, `content_id` = oynatılan paylaşımlı satır, `state` = hafıza bloğu + oturum script'i) · `transcript_turns` · `memories` (pgvector 1536) · `session_summaries` · `llm_calls` · `unit_checkpoints` (ünite testi sonucu; testin kendisi saklanmaz)
 
 **Kaldırılacak (migration 0006, üretim doğrulamasından sonra):** `program_lessons` · `lessons` · `lesson_contents` (v6 monolit) — genişletme fazında yerlerinde duruyorlar ama artık hiçbir kod yazmıyor; `lesson_contents`'ı yalnız eski oturumların `content_id`'si okuyabilir.
@@ -97,4 +99,4 @@ Eski prototipin `/api/chat|tts|stt` route'ları auth'suz açık proxy'ydi — bu
 
 ## Gerekli ortam değişkenleri (apps/backend/.env)
 
-`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL` (pooler), `OPENAI_API_KEY`, `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`, (sonra: `R2_*`). Boot'ta Zod ile doğrulanır — eksikse süreç açılmaz.
+`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL` (pooler), `OPENAI_API_KEY`, `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`, `INWORLD_API_KEY` (portal'dan base64 kopya, aynen), `INWORLD_VOICE_ID`, (sonra: `R2_*`). Sağlayıcı anahtarları opsiyoneldir; anahtarı olmayan sağlayıcı panelde seçilemez. Boot'ta Zod ile doğrulanır — eksikse süreç açılmaz.

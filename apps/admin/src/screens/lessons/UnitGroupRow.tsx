@@ -16,7 +16,7 @@ export function UnitGroupRow({
     <>
       <TableRow className="bg-muted/40 hover:bg-muted/40">
         <TableCell colSpan={6} className="py-1.5 pl-4 text-xs font-medium text-muted-foreground">
-          Ünite {unitIndex} · <span className="text-foreground">{title}</span>
+          Unit {unitIndex} · <span className="text-foreground">{title}</span>
           <span className="ml-2 tabular-nums">({count})</span>
         </TableCell>
       </TableRow>

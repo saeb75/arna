@@ -589,3 +589,19 @@ export const unitCheckpoints = pgTable(
   },
   (t) => [index("unit_checkpoints_user_idx").on(t.userId, t.level, t.unitIndex)],
 );
+
+/**
+ * ÇALIŞMA ZAMANI AYARLARI — anahtar/değer, admin panelden yazılır.
+ *
+ * İlk anahtar `tts` (aktif sağlayıcı + ses/model; şema contracts
+ * `ttsSettingsSchema`). Değer şemasız jsonb'dir ama okuyan/yazan kod her
+ * zaman contracts şemasından geçirir — bozuk satır sağlayıcıya ulaşmaz,
+ * env varsayılanına düşer. API anahtarları BURAYA YAZILMAZ (.env).
+ */
+export const appSettings = pgTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  /** Son yazan admin (auth.users.id) — denetim izi */
+  updatedBy: uuid("updated_by"),
+});

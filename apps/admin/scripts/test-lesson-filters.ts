@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import type { AdminLesson, LayerStatus } from "@glotmate/contracts";
-import { applyFilters, groupByUnit, summarize } from "../src/lib/lessonFilters";
+import { applyFilters, groupByUnit, knownLanguages, missingLocales, summarize } from "../src/lib/lessonFilters";
 
 const layer = (status: LayerStatus) => ({
   id: "00000000-0000-0000-0000-000000000000",
@@ -49,5 +49,19 @@ assert.deepEqual(s, { lessons: 3, publishedCores: 1, publishedScenes: 1, locales
 
 const groups = groupByUnit([lessons[2]!, lessons[1]!, lessons[0]!]); // karışık sıra verilir
 assert.deepEqual(groups.map((g) => [g.unitIndex, g.lessons.map((l) => l.id)]), [[1, ["a1-one", "a1-two"]], [2, ["a1-three"]]], "pozisyona göre sıralar, üniteye gruplar");
+
+// Toplu ısıtma hedefleri: yalnız canlı (core+scene) dersler; eksik → force:false, bayat → force:true
+const targets = missingLocales(lessons, ["tr", "es", "de"]);
+assert.deepEqual(
+  targets,
+  [
+    { lessonId: "a1-one", language: "es", force: true },
+    { lessonId: "a1-one", language: "de", force: false },
+    { lessonId: "b1-one", language: "es", force: false },
+    { lessonId: "b1-one", language: "de", force: false },
+  ],
+  "ısıtma hedefleri: a1-two (sahne yok) ve a1-three (çekirdek yok) atlanır",
+);
+assert.deepEqual(knownLanguages(lessons), ["es", "tr"], "bilinen diller sıralı ve tekil");
 
 console.log("✅ lessonFilters: tüm vakalar geçti");

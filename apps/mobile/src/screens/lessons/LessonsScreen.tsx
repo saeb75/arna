@@ -16,18 +16,18 @@ import {
 } from "../../lib/lessonPath";
 import { ContinueCard } from "./ContinueCard";
 import { LessonsHeader } from "./LessonsHeader";
+import { LessonRow } from "./LessonRow";
 import { LevelBanner } from "./LevelBanner";
-import { PathNode } from "./PathNode";
-import { UnitPill } from "./UnitPill";
+import { UnitMilestone } from "./UnitMilestone";
 
 /**
  * ANA EKRAN — MOBİL UI KURALI (kök karar): kategori/jargon YOK, düz ders yolu.
- * "beat/core/checkpoint" gibi iç terimler ekranda görünmez; ünite testi düğümü
- * "Ünite testi" der.
+ * "beat/core/checkpoint" gibi iç terimler ekranda görünmez; ünite testi satırı
+ * "Ünite testi" der. Yol kıvrımlı bir S-eğrisidir: düğümler şeritlerde sağa-sola
+ * salınır, ardışık düğümler eğriyle bağlıdır (bkz. lib/lessonPath.ts).
  *
- * Yerleşim: başlık (dil/seri pilleri + devam kartı) SABİT bir katman, ders yolu
- * onun ALTINDAN kayar — tasarımda kartın üst boşluğunda arkadaki ünite pili
- * görünüyor, yani başlık opak zemin taşımıyor.
+ * Yerleşim: başlık (dil/seri pilleri + bağlam kartı) SABİT ve opak bir katman,
+ * ders yolu onun ALTINDAN kayar.
  */
 
 /** Sabit başlık katmanının yüksekliği + yolun ilk satırına bırakılan boşluk (pt) */
@@ -126,23 +126,41 @@ export function LessonsScreen() {
         windowSize={11}
         renderItem={({ item }) =>
           item.kind === "level" ? (
-            <LevelBanner level={item.level} label={item.label} state={item.state} />
+            <LevelBanner level={item.level} label={item.label} state={item.state} totals={item.totals} />
           ) : item.kind === "unit" ? (
-            <UnitPill title={item.title} />
+            <UnitMilestone
+              unitIndex={item.unitIndex}
+              title={item.title}
+              goal={item.goal}
+              done={item.done}
+              total={item.total}
+              line={item.line}
+              pos={item.pos}
+            />
           ) : item.kind === "lesson" ? (
-            <PathNode
+            <LessonRow
               kind={item.lesson.kind}
               label={item.lesson.title}
               state={item.state}
-              side={item.side}
+              line={item.line}
+              pos={item.pos}
               onPress={() => router.push(`/lesson/${item.lesson.id}`)}
             />
           ) : (
-            <PathNode
+            <LessonRow
               kind="test"
-              label={`Ünite ${item.unitIndex} testi`}
+              label="Ünite testi"
+              // Girilmiş test en iyi sonucunu gösterir; hazır test "hazır" der; gerisi sade
+              sublabel={
+                item.checkpoint
+                  ? `En iyi ${item.checkpoint.bestScore}/${item.checkpoint.total}`
+                  : item.state === "ready"
+                    ? "Hazır"
+                    : undefined
+              }
               state={item.state}
-              side={item.side}
+              line={item.line}
+              pos={item.pos}
               onPress={() => router.push(`/checkpoint/${item.level}/${item.unitIndex}`)}
             />
           )
@@ -150,7 +168,9 @@ export function LessonsScreen() {
       />
 
       <View
-        className="absolute inset-x-0 top-0 z-10 px-4"
+        // Zemin OPAK: yoğun zaman çizgisinde altından kayan seviye kartı kesik
+        // görünüyordu (eski zikzakta saydamlık pilleri göstermek içindi).
+        className="absolute inset-x-0 top-0 z-10 bg-background px-4 pb-2"
         // insets.top cihaza göre değişir — gerekçeli inline stil (yukarıdaki notla aynı)
         style={{ paddingTop: insets.top }}
       >
@@ -159,6 +179,7 @@ export function LessonsScreen() {
           <ContinueCard
             topLine={`${ctx.level} · ${ctx.label}`}
             title={ctx.unitTitle || ctx.label}
+            progress={ctx.progress}
             // Dokunuş: kaldığın derse geri kaydır — uzak seviyeye gezinmişken
             // tek dokunuşla dönüş. Ders yine düğümünden açılır.
             onPress={() => listRef.current?.scrollToIndex({ index: startIndex, animated: true })}

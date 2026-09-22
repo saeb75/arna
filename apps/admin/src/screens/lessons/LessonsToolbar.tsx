@@ -1,16 +1,25 @@
 "use client";
 
-import { LESSON_KINDS, type LessonKind } from "@glotmate/contracts";
+import { LESSON_KINDS, type AdminLesson, type LessonKind } from "@glotmate/contracts";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KIND_LABEL, LAYER_FILTER_LABEL } from "@/lib/labels";
 import { useLessonsStore, type LayerFilter } from "@/stores/useLessonsStore";
+import { WarmLocalesDialog } from "@/screens/lessons/WarmLocalesDialog";
 
 const LAYER_FILTERS = Object.keys(LAYER_FILTER_LABEL) as LayerFilter[];
 
-export function LessonsToolbar({ visibleCount, totalCount }: { visibleCount: number; totalCount: number }) {
+export function LessonsToolbar({
+  visibleCount,
+  levelLessons,
+  allLessons,
+}: {
+  visibleCount: number;
+  levelLessons: AdminLesson[];
+  allLessons: AdminLesson[];
+}) {
   const filters = useLessonsStore((s) => s.filters);
   const setFilters = useLessonsStore((s) => s.setFilters);
 
@@ -21,14 +30,14 @@ export function LessonsToolbar({ visibleCount, totalCount }: { visibleCount: num
         <Input
           value={filters.q}
           onChange={(e) => setFilters({ q: e.target.value })}
-          placeholder="Ders, focus veya ünite ara…"
+          placeholder="Search lesson, focus or unit…"
           className="pl-8"
         />
       </div>
 
       <Tabs value={filters.kind} onValueChange={(v) => setFilters({ kind: v as LessonKind | "all" })}>
         <TabsList>
-          <TabsTrigger value="all">Hepsi</TabsTrigger>
+          <TabsTrigger value="all">All</TabsTrigger>
           {LESSON_KINDS.map((k) => (
             <TabsTrigger key={k} value={k}>
               {KIND_LABEL[k]}
@@ -55,8 +64,9 @@ export function LessonsToolbar({ visibleCount, totalCount }: { visibleCount: num
       </Select>
 
       <span className="ml-auto text-xs tabular-nums text-muted-foreground">
-        {visibleCount} / {totalCount} ders
+        {visibleCount} / {levelLessons.length} lessons
       </span>
+      <WarmLocalesDialog level={filters.level} lessons={levelLessons} allLessons={allLessons} />
     </div>
   );
 }

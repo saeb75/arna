@@ -30,20 +30,20 @@ export function LoginForm() {
   return (
     <form onSubmit={submit} className="grid gap-4">
       <div className="grid gap-2">
-        <Label htmlFor="email">E-posta</Label>
+        <Label htmlFor="email">Email</Label>
         <Input
           id="email"
           type="email"
           required
           autoFocus
           autoComplete="email"
-          placeholder="sen@glotmate.com"
+          placeholder="you@glotmate.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="password">Şifre</Label>
+        <Label htmlFor="password">Password</Label>
         <Input
           id="password"
           type="password"
@@ -71,7 +71,7 @@ export function LoginForm() {
 
       <Button type="submit" disabled={busy} className="mt-1 w-full">
         {busy && <Loader2 className="animate-spin" data-icon="inline-start" />}
-        {busy ? "Giriş yapılıyor…" : "Giriş yap"}
+        {busy ? "Signing in…" : "Sign in"}
       </Button>
     </form>
   );

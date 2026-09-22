@@ -10,7 +10,7 @@ import { UnitGroupRow } from "@/screens/lessons/UnitGroupRow";
 /** Ünite ayraçlı tablo. Ebeveyn `key={level}` verir: seviye değişince stagger yeniden oynar. */
 export function LessonsTable({ lessons }: { lessons: AdminLesson[] }) {
   if (lessons.length === 0) {
-    return <EmptyState title="Filtreye uyan ders yok" hint="Arama ya da katman filtresini gevşetmeyi dene." />;
+    return <EmptyState title="No lessons match the filter" hint="Try loosening the search or the layer filter." />;
   }
 
   let index = 0;
@@ -20,11 +20,11 @@ export function LessonsTable({ lessons }: { lessons: AdminLesson[] }) {
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             <TableHead className="w-12 pl-4">#</TableHead>
-            <TableHead>Ders</TableHead>
-            <TableHead className="w-24">Tür</TableHead>
-            <TableHead className="w-32">Çekirdek</TableHead>
-            <TableHead className="w-32">Sahne seti</TableHead>
-            <TableHead>Dil paketleri</TableHead>
+            <TableHead>Lesson</TableHead>
+            <TableHead className="w-24">Type</TableHead>
+            <TableHead className="w-32">Core</TableHead>
+            <TableHead className="w-32">Scene set</TableHead>
+            <TableHead>Language packs</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

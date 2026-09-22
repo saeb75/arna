@@ -5,15 +5,19 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { STATUS_LABEL, formatDateTime } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
+/**
+ * Renk ilkesi (CLAUDE.md): tek vurgu MAVİ = yayında; gri = ara durumlar;
+ * kırmızı yalnız başarısız. Yeni durum rengi eklenmez.
+ */
 const TONE: Record<LayerStatus, string> = {
-  published: "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400",
-  ready: "bg-amber-500/12 text-amber-600 dark:text-amber-400",
-  generating: "bg-sky-500/12 text-sky-600 dark:text-sky-400",
+  published: "bg-primary/10 text-primary",
+  ready: "bg-muted text-foreground",
+  generating: "bg-muted text-muted-foreground",
   failed: "bg-destructive/10 text-destructive",
-  retired: "bg-muted text-muted-foreground",
+  retired: "text-muted-foreground",
 };
 
-/** null = bu katalog sürümü için hiç üretilmemiş → sessiz tire; durum → renkli nokta + etiket */
+/** null = bu katalog sürümü için hiç üretilmemiş → sessiz tire; durum → nokta + etiket */
 export function LayerStatusBadge({ layer }: { layer: AdminLayer | null }) {
   if (!layer) return <span className="text-xs text-muted-foreground/60">—</span>;
 

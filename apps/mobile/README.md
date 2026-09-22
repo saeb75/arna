@@ -7,7 +7,7 @@ Mimari sözleşme: `CLAUDE.md` (bağlayıcı — her özellik oradaki katmanlı 
 
 ```bash
 cp .env.example .env            # EXPO_PUBLIC_* değerlerini doldur
-npm run dev:backend             # kökten — API localhost:6566
+npm run dev:backend             # kökten — API localhost:6560
 cd apps/mobile && npx expo start
 ```
 

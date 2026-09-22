@@ -14,6 +14,7 @@ import { LessonsSummary } from "@/screens/lessons/LessonsSummary";
 import { LessonsTable } from "@/screens/lessons/LessonsTable";
 import { LessonsToolbar } from "@/screens/lessons/LessonsToolbar";
 import { LevelTabs } from "@/screens/lessons/LevelTabs";
+import { WarmProgressBar } from "@/screens/lessons/WarmProgressBar";
 
 /**
  * Ders matrisi. Skeleton YALNIZ veri yokken — yenilemede tablo yerinde kalır,
@@ -36,18 +37,18 @@ export function LessonsScreen() {
   const refresh = (
     <Button variant="outline" size="sm" onClick={() => void LessonsController.load()} disabled={loading}>
       <RefreshCw data-icon="inline-start" className={loading ? "animate-spin" : undefined} />
-      Yenile
+      Refresh
     </Button>
   );
 
   return (
     <>
       <PageHeader
-        title="Dersler"
+        title="Lessons"
         description={
           data
-            ? `${data.lessons.length} katalog dersi · son güncelleme ${formatDateTime(data.generatedAt)}`
-            : "Katalog × çekirdek · sahne seti · dil paketleri"
+            ? `${data.lessons.length} catalog lessons · updated ${formatDateTime(data.generatedAt)}`
+            : "Catalog × core · scene set · language packs"
         }
         actions={refresh}
       />
@@ -60,7 +61,8 @@ export function LessonsScreen() {
         <div className="flex flex-col gap-5">
           <LevelTabs />
           <LessonsSummary summary={summary} />
-          <LessonsToolbar visibleCount={visible.length} totalCount={levelLessons.length} />
+          <LessonsToolbar visibleCount={visible.length} levelLessons={levelLessons} allLessons={data.lessons} />
+          <WarmProgressBar />
           <LessonsTable key={filters.level} lessons={visible} />
         </div>
       )}

@@ -8,13 +8,13 @@ const geistSans = Geist({ variable: "--font-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "GlotMate Yönetim",
-  description: "GlotMate admin paneli",
+  title: "GlotMate Admin",
+  description: "GlotMate operator console",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="tr" className={`${geistSans.variable} ${geistMono.variable} dark antialiased`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
       <body className="min-h-dvh bg-background font-sans text-foreground">
         <AppBootstrap>{children}</AppBootstrap>
         <Toaster position="top-center" richColors />

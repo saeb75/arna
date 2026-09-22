@@ -28,5 +28,8 @@ Kullanıcı **yeniden giriş yapınca** claim token'a düşer. Rolsüz kullanıc
 ## Fazlar
 
 - ✅ Faz 1 — Login (Supabase), oturum geri yükleme, admin kapısı
-- ✅ Faz 2 — Dersler: katalog × çekirdek · sahne seti · dil paketleri durum matrisi (salt okunur)
-- ⏳ Faz 3 — Satır/seviye aksiyonları: çekirdek/sahne üret, yayınla, dil paketi ısıt
+- ✅ Faz 2 — Dersler: katalog × çekirdek · sahne seti · dil paketleri durum matrisi
+- ✅ Faz 3 — Ders detayı: çekirdek/sahne yeniden üret (LLM), çekirdek JSON editörü (şema + lint), yayınla,
+  dil paketi üret/yenile, seviye bazlı toplu ısıtma (istemcide orkestre)
+- ✅ Faz 4 — Kullanıcılar (liste + detay: profil, ilerleme, oturum özetleri, hafıza, maliyet; salt okunur) · arayüz İngilizce
+- ⏳ Faz 5 — Roleplay yönetimi, `llm_calls` maliyet panosu

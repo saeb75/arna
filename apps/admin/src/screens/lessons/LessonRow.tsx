@@ -1,21 +1,29 @@
 "use client";
 
 import type { AdminLesson } from "@glotmate/contracts";
+import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { Badge } from "@/components/ui/badge";
 import { TableCell } from "@/components/ui/table";
 import { KIND_LABEL } from "@/lib/labels";
 import { ease, rowDelay } from "@/lib/motion";
-import { LayerStatusBadge } from "@/screens/lessons/LayerStatusBadge";
+import { LayerStatusBadge } from "@/components/shared/LayerStatusBadge";
 import { LocaleChips } from "@/screens/lessons/LocaleChips";
 
+/** Satırın tamamı detaya gider (tıklama + Enter); tooltip/çipler tıklamayı yutmaz. */
 export function LessonRow({ lesson, index }: { lesson: AdminLesson; index: number }) {
+  const router = useRouter();
+  const open = () => router.push(`/lessons/${lesson.id}`);
   return (
     <motion.tr
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ ...ease, delay: rowDelay(index) }}
-      className="border-b transition-colors last:border-0 hover:bg-muted/30"
+      onClick={open}
+      onKeyDown={(e) => e.key === "Enter" && open()}
+      tabIndex={0}
+      role="link"
+      className="cursor-pointer border-b transition-colors outline-none last:border-0 hover:bg-muted/30 focus-visible:bg-muted/40"
     >
       <TableCell className="pl-4 text-xs tabular-nums text-muted-foreground">{lesson.position}</TableCell>
       <TableCell className="max-w-md">

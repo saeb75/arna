@@ -10,7 +10,7 @@ export function BrandMark({ className, compact = false }: { className?: string; 
       {!compact && (
         <span className="leading-tight">
           <span className="block text-sm font-semibold tracking-tight">GlotMate</span>
-          <span className="block text-[11px] text-muted-foreground">Yönetim</span>
+          <span className="block text-[11px] text-muted-foreground">Admin</span>
         </span>
       )}
     </div>

@@ -8,7 +8,7 @@ import { supabase } from "../lib/supabase";
  *   · 401 tek yerde yakalanır: authStore temizlenir, _layout login'e yönlendirir.
  */
 export const api = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:6566",
+  baseURL: process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:6560",
 });
 
 api.interceptors.request.use(async (config) => {

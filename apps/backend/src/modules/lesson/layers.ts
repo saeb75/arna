@@ -411,10 +411,23 @@ export async function warmNextLocale(userId: string, catalogLessonId: string): P
 }
 
 // ---------------------------------------------------------------------------
-// OFFLINE üretim — yalnızca scripts/ çağırır (yayın hattı)
+// OFFLINE üretim — scripts/ (yayın hattı) ve admin modülü çağırır; istek yolu ASLA
 // ---------------------------------------------------------------------------
 
-export async function generateCoreForCatalog(catalogLessonId: string): Promise<{ coreId: string; report: LintReport }> {
+/**
+ * `force`: hazır/yayınlı satır varken de yeniden üret. Satır üretim boyunca
+ * `generating`ye ÇEKİLMEZ — yayındaki ders 30 sn boyunca düşmesin; sonuç bellekte
+ * biter, tek UPDATE ile `ready` yazılır (yeniden inceleme + yayın gerekir).
+ * Başarısızlıkta eski içerik yerinde kalır, yalnız `validationReport` hatayı taşır.
+ */
+export interface GenerateOptions {
+  force?: boolean;
+}
+
+export async function generateCoreForCatalog(
+  catalogLessonId: string,
+  opts: GenerateOptions = {},
+): Promise<{ coreId: string; report: LintReport }> {
   const lesson = await getCatalogLesson(catalogLessonId);
   if (!lesson) throw new LayerError("not_found", `Katalogda yok: ${catalogLessonId}`);
 
@@ -437,7 +450,8 @@ export async function generateCoreForCatalog(catalogLessonId: string): Promise<{
       ),
     )
     .limit(1);
-  if (existing && (existing.status === "ready" || existing.status === "published")) {
+  const keepLive = !!existing && (existing.status === "ready" || existing.status === "published");
+  if (existing && keepLive && !opts.force) {
     return { coreId: existing.id, report: (existing.validationReport as LintReport) ?? { errors: [], warnings: [] } };
   }
 
@@ -493,15 +507,23 @@ export async function generateCoreForCatalog(catalogLessonId: string): Promise<{
       .where(eq(lessonCores.id, rowId));
     return { coreId: rowId, report };
   } catch (err) {
+    // force yolunda canlı içerik korunur: yalnız rapor hatayı taşır, status değişmez
     await db
       .update(lessonCores)
-      .set({ status: "failed", validationReport: { errors: [String(err).slice(0, 500)] }, updatedAt: new Date() })
+      .set({
+        ...(keepLive ? {} : { status: "failed" }),
+        validationReport: { errors: [String(err).slice(0, 500)] },
+        updatedAt: new Date(),
+      })
       .where(eq(lessonCores.id, rowId));
     throw err;
   }
 }
 
-export async function generateScenesForCore(coreId: string): Promise<{ sceneSetId: string; report: LintReport }> {
+export async function generateScenesForCore(
+  coreId: string,
+  opts: GenerateOptions = {},
+): Promise<{ sceneSetId: string; report: LintReport }> {
   const [coreRow] = await db.select().from(lessonCores).where(eq(lessonCores.id, coreId)).limit(1);
   if (!coreRow?.core) throw new LayerError("not_found", `Çekirdek yok: ${coreId}`);
   const lesson = await getCatalogLesson(coreRow.catalogLessonId);
@@ -520,7 +542,8 @@ export async function generateScenesForCore(coreId: string): Promise<{ sceneSetI
       ),
     )
     .limit(1);
-  if (existing && (existing.status === "ready" || existing.status === "published")) {
+  const keepLive = !!existing && (existing.status === "ready" || existing.status === "published");
+  if (existing && keepLive && !opts.force) {
     return { sceneSetId: existing.id, report: (existing.validationReport as LintReport) ?? { errors: [], warnings: [] } };
   }
 
@@ -574,7 +597,11 @@ export async function generateScenesForCore(coreId: string): Promise<{ sceneSetI
   } catch (err) {
     await db
       .update(lessonSceneSets)
-      .set({ status: "failed", validationReport: { errors: [String(err).slice(0, 500)] }, updatedAt: new Date() })
+      .set({
+        ...(keepLive ? {} : { status: "failed" }),
+        validationReport: { errors: [String(err).slice(0, 500)] },
+        updatedAt: new Date(),
+      })
       .where(eq(lessonSceneSets.id, rowId));
     throw err;
   }
