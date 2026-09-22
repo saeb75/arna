@@ -1,7 +1,7 @@
 "use client";
 
 import type { TtsProvider } from "@glotmate/contracts";
-import { KeyRound, Play } from "lucide-react";
+import { KeyRound, Layers, Play } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SettingsController } from "@/controllers/SettingsController";
 import { PROVIDER_LABEL } from "@/lib/labels";
 import { useSettingsStore } from "@/stores/useSettingsStore";
+
+/** Operatöre dönük tek satır özet — ürün adları çevrilmez */
+const PROVIDER_DESCRIPTION: Record<TtsProvider, string> = {
+  elevenlabs: "with-timestamps endpoint; ~32 languages. Character timing already in the client format; one clip per language switch.",
+  inworld: "Realtime TTS-2; 200+ languages. CHARACTER timestamps converted on the server; one clip per language switch.",
+  azure:
+    "Multilingual neural voice; the whole turn goes out as one SSML request (<lang> per segment). Word boundaries from the Speech SDK drive lip-sync. Markup is billable.",
+};
+
+const VOICE_PLACEHOLDER: Record<TtsProvider, string> = {
+  elevenlabs: "21m00Tcm4TlvDq8ikWAM",
+  inworld: "Ashley",
+  azure: "en-US-AvaMultilingualNeural",
+};
 
 /**
  * Tek sağlayıcının ses/model formu + "Dinle". Ses kimliği boş bırakılırsa
@@ -39,6 +53,7 @@ export function TtsProviderForm({
   const active = data.settings.provider === provider;
   const selected = draft.provider === provider;
   const models = data.models[provider];
+  const multiClip = data.capabilities[provider].multiLanguageClip;
   const canPreview = configured && Boolean(cfg.voiceId ?? defaultVoice) && previewText.trim().length > 0;
 
   return (
@@ -54,14 +69,17 @@ export function TtsProviderForm({
               No API key in .env
             </Badge>
           )}
+          {multiClip && (
+            <Badge variant="secondary">
+              <Layers data-icon="inline-start" />
+              Single clip · mixed languages
+            </Badge>
+          )}
         </CardTitle>
-        <CardDescription>
-          {provider === "elevenlabs"
-            ? "with-timestamps endpoint; ~32 languages. Character timing already in the client format."
-            : "Realtime TTS-2; 200+ languages. CHARACTER timestamps are converted to the client format on the server."}
-        </CardDescription>
+        <CardDescription>{PROVIDER_DESCRIPTION[provider]}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
+        {models.length > 1 && (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor={`${provider}-model`}>Model</Label>
           <Select
@@ -81,13 +99,14 @@ export function TtsProviderForm({
             </SelectContent>
           </Select>
         </div>
+        )}
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${provider}-voice`}>Voice ID</Label>
+          <Label htmlFor={`${provider}-voice`}>{provider === "azure" ? "Voice name" : "Voice ID"}</Label>
           <Input
             id={`${provider}-voice`}
             value={cfg.voiceId ?? ""}
-            placeholder={defaultVoice ?? (provider === "inworld" ? "Ashley" : "21m00Tcm4TlvDq8ikWAM")}
+            placeholder={defaultVoice ?? VOICE_PLACEHOLDER[provider]}
             onChange={(e) => {
               const v = e.target.value;
               SettingsController.setProviderConfig(provider, { voiceId: v.trim() === "" ? null : v });

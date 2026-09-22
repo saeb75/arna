@@ -1,4 +1,4 @@
-import type { TtsProvider, TtsProviderConfig } from "@glotmate/contracts";
+import type { AdminTtsPreviewBody, TtsProvider, TtsProviderConfig } from "@glotmate/contracts";
 import { toast } from "sonner";
 import { errorCode } from "@/api";
 import { errorLabel, PROVIDER_LABEL } from "@/lib/labels";
@@ -59,11 +59,15 @@ export class SettingsController {
   }
 
   /**
-   * Kaydetmeden dinle — taslaktaki ses/modelle. `voiceId` boşsa .env
-   * varsayılanı denenir; o da yoksa sunucu 400 döner, burada ön elenir.
-   * Sesi çalmak ekranın işi (DOM); burası yalnız store'a klip yazar.
+   * Kaydetmeden dinle — taslaktaki ses/modelle, ders akışını taklit eden parçalarla
+   * (opsiyonel ana dil cümlesi + İngilizce cümle). `voiceId` boşsa .env varsayılanı
+   * denenir; o da yoksa sunucu 400 döner, burada ön elenir.
+   * Klipleri çalmak ekranın işi (DOM); burası yalnız store'a yazar ve bildirir.
    */
-  static async preview(provider: TtsProvider, text: string): Promise<void> {
+  static async preview(
+    provider: TtsProvider,
+    input: { text: string; l1Text: string; l1Language: string },
+  ): Promise<void> {
     const store = useSettingsStore.getState();
     const { draft, data } = store;
     if (!draft || !data) return;
@@ -72,18 +76,24 @@ export class SettingsController {
       toast.error(errorLabel("voice_missing"));
       return;
     }
+    const runs: AdminTtsPreviewBody["runs"] = [];
+    if (input.l1Text.trim()) runs.push({ language: input.l1Language.trim() || "tr", text: input.l1Text.trim() });
+    runs.push({ language: "en", text: input.text.trim() });
+
     store.setPreviewing(provider);
     try {
       const res = await AdminSettingsService.previewTts({
         provider,
         voiceId,
         modelId: draft[provider].modelId,
-        text,
+        text: input.text.trim(),
         language: "en",
+        runs,
       });
       store.setPreview({ ...res, provider, at: Date.now() });
+      const aligned = res.clips.every((c) => c.hasAlignment);
       toast.success(
-        `${PROVIDER_LABEL[provider]} · ${res.latencyMs} ms${res.hasAlignment ? " · lip-sync timestamps" : " · NO timestamps"}`,
+        `${PROVIDER_LABEL[provider]} · ${res.latencyMs} ms · ${res.clips.length} clip${res.clips.length === 1 ? "" : "s"}${aligned ? " · lip-sync timestamps" : " · NO timestamps"}`,
       );
     } catch (err) {
       toast.error(errorLabel(errorCode(err)));

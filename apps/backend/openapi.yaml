@@ -415,11 +415,22 @@ paths:
               type: object
               required: [provider, voiceId, modelId, text]
               properties:
-                provider: { type: string, enum: [elevenlabs, inworld] }
+                provider: { type: string, enum: [elevenlabs, inworld, azure] }
                 voiceId: { type: string }
                 modelId: { type: string }
                 text: { type: string, maxLength: 300 }
                 language: { type: string, default: en, description: BCP-47 }
+                runs:
+                  type: array
+                  minItems: 1
+                  maxItems: 8
+                  description: Verilirse ders akışının aynısı (karışık dil parçaları); `text`/`language` yerine geçer
+                  items:
+                    type: object
+                    required: [language, text]
+                    properties:
+                      language: { type: string, description: BCP-47 }
+                      text: { type: string, maxLength: 300 }
       responses:
         "200":
           description: Klip
@@ -427,11 +438,17 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [audioBase64, latencyMs, hasAlignment]
+                required: [clips, latencyMs]
                 properties:
-                  audioBase64: { type: string, description: mp3 bayt, base64 }
+                  clips:
+                    type: array
+                    description: Ders ucuyla aynı şekil — çok dilli tek klip sağlayıcısında 1, diğerlerinde dil başına 1
+                    items:
+                      type: object
+                      properties:
+                        audioBase64: { type: string, description: mp3 bayt, base64 }
+                        hasAlignment: { type: boolean }
                   latencyMs: { type: integer }
-                  hasAlignment: { type: boolean }
         "400": { $ref: "#/components/responses/InvalidInput" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
@@ -485,16 +502,34 @@ paths:
         Bug avı yüzeyi. `state`in yalnız `track`/`tutorLanguage` alanları okunur;
         `memoryBlock` ve `script` (prompt malzemesi) hiçbir uçtan dönmez.
       parameters:
-        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 1000, default: 200 } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, enum: [25, 50, 100], default: 25 } }
+        - { name: sort, in: query, schema: { type: string, enum: [newest, oldest, longest, costliest, slowest], default: newest } }
+        - { name: q, in: query, schema: { type: string, maxLength: 120 }, description: "e-posta/ad/ders/roleplay/oturum id (ilike)" }
+        - { name: kind, in: query, schema: { type: string, enum: [all, lesson, roleplay], default: all } }
+        - { name: status, in: query, schema: { type: string, enum: [all, open, ended], default: all } }
+        - { name: level, in: query, schema: { type: string, enum: [all, A1, A2, B1, B2, C1, C2], default: all } }
+        - { name: onlyErrors, in: query, schema: { type: boolean, default: false } }
+        - { name: onlyChat, in: query, schema: { type: boolean, default: false } }
       responses:
         "200":
-          description: Oturumlar
+          description: Sayfa — süzme/sıralama/sayfalama sunucuda; `stats` süzülmemiş tüm oturumlardan
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  total: { type: integer, description: Limit'ten bağımsız toplam }
+                  page: { type: integer }
+                  pageSize: { type: integer }
+                  total: { type: integer, description: Süzülmüş toplam }
+                  stats:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      open: { type: integer }
+                      withErrors: { type: integer }
+                      avgDurationSec: { type: integer, nullable: true }
+                      totalCostUsd: { type: number }
                   generatedAt: { type: string, format: date-time }
                   sessions: { type: array, items: { type: object, description: "contracts `adminSessionSchema`" } }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -959,27 +994,41 @@ components:
         modelId: { type: string }
     TtsSettings:
       type: object
-      required: [provider, elevenlabs, inworld]
+      required: [provider, elevenlabs, inworld, azure]
       properties:
-        provider: { type: string, enum: [elevenlabs, inworld] }
+        provider: { type: string, enum: [elevenlabs, inworld, azure] }
         elevenlabs: { $ref: "#/components/schemas/TtsProviderConfig" }
         inworld: { $ref: "#/components/schemas/TtsProviderConfig" }
+        azure: { $ref: "#/components/schemas/TtsProviderConfig" }
+    TtsCapabilities:
+      type: object
+      required: [multiLanguageClip]
+      properties:
+        multiLanguageClip: { type: boolean }
     TtsSettingsResponse:
       type: object
-      required: [settings, configured, defaultVoiceId, models, updatedAt]
+      required: [settings, configured, defaultVoiceId, models, capabilities, updatedAt]
       properties:
         settings: { $ref: "#/components/schemas/TtsSettings" }
         configured:
           type: object
-          properties: { elevenlabs: { type: boolean }, inworld: { type: boolean } }
+          properties: { elevenlabs: { type: boolean }, inworld: { type: boolean }, azure: { type: boolean } }
         defaultVoiceId:
           type: object
-          properties: { elevenlabs: { type: string, nullable: true }, inworld: { type: string, nullable: true } }
+          properties: { elevenlabs: { type: string, nullable: true }, inworld: { type: string, nullable: true }, azure: { type: string, nullable: true } }
         models:
           type: object
           properties:
             elevenlabs: { type: array, items: { type: string } }
             inworld: { type: array, items: { type: string } }
+            azure: { type: array, items: { type: string }, description: Tek öğe ("neural") — Azure'da model kavramı yok }
+        capabilities:
+          type: object
+          description: Sağlayıcı → { multiLanguageClip } — bir speak çağrısının tüm dilleri tek klipte mi
+          properties:
+            elevenlabs: { $ref: "#/components/schemas/TtsCapabilities" }
+            inworld: { $ref: "#/components/schemas/TtsCapabilities" }
+            azure: { $ref: "#/components/schemas/TtsCapabilities" }
         updatedAt: { type: string, format: date-time, nullable: true }
     Error:
       type: object

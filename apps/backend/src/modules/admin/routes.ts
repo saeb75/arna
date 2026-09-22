@@ -1,4 +1,10 @@
-import { adminCoreBodySchema, adminTtsPreviewBodySchema, catalogLessonIdSchema, ttsSettingsSchema } from "@glotmate/contracts";
+import {
+  adminCoreBodySchema,
+  adminSessionsQuerySchema,
+  adminTtsPreviewBodySchema,
+  catalogLessonIdSchema,
+  ttsSettingsSchema,
+} from "@glotmate/contracts";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { buildTtsSettingsResponse, previewTts, TtsError, updateTtsSettings } from "../tts/index.js";
@@ -150,9 +156,9 @@ export default async function adminRoutes(app: FastifyInstance) {
 
   // --- Oturumlar (salt okunur; bug avı) --------------------------------------
   app.get("/admin/sessions", { preHandler: app.requireAdmin }, async (request, reply) => {
-    const q = z.object({ limit: z.coerce.number().int().min(1).max(1000).default(200) }).safeParse(request.query ?? {});
-    if (!q.success) return reply.code(400).send({ error: "invalid_params" });
-    return await getAdminSessions({ limit: q.data.limit });
+    const q = adminSessionsQuerySchema.safeParse(request.query ?? {});
+    if (!q.success) return reply.code(400).send({ error: "invalid_params", issues: q.error.issues });
+    return await getAdminSessions(q.data);
   });
 
   app.get("/admin/sessions/:id", { preHandler: app.requireAdmin }, async (request, reply) => {

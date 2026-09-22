@@ -39,7 +39,7 @@ import {
 } from "../../db/schema.js";
 import { getChrome } from "../../i18n/index.js";
 import { completeJson, completeText } from "../llm/index.js";
-import { resolveActiveTts, synthesizeClip, TtsError, type CharAlignment } from "../tts/index.js";
+import { resolveActiveTts, resolveLanguage, synthesizeRunsToClips, TtsError, type CharAlignment, type TtsRun } from "../tts/index.js";
 import { ANSWER_REVIEW_VERSION, buildAnswerReviewPrompt } from "../llm/prompts/answer-review.v1.js";
 import { openaiClient } from "../llm/openai.js";
 import { resolveLesson, LayerError } from "../lesson/layers.js";
@@ -1152,18 +1152,19 @@ export async function chatTurn(
 export interface TtsClip {
   audioBase64: string;
   alignment: CharAlignment | null;
-  /** Klibin sağlayıcı dil kodu — istemci hangi parçanın hangi dilde okunduğunu bilir */
+  /** Klibin sağlayıcı dil kodu; çok dilli tek klipte `"multi"` (istemci bu alanı okumaz) */
   lang: string;
 }
 
 /**
- * v7 girişi: dil etiketli parçalar. Ardışık aynı-dil parçalar TEK klipte
- * birleştirilir (daha az istek, daha doğal prosodi); istemci klipleri sırayla
+ * v7 girişi: dil etiketli parçalar. Sağlayıcı çok dilli tek klip üretebiliyorsa
+ * (Azure SSML) TÜM parçalar TEK klip; değilse ardışık aynı-dil parçalar
+ * birleştirilip dil başına klip (ElevenLabs/Inworld). İstemci klipleri sırayla
  * çalar ve `onEnd`'i son klipten sonra TAM BİR KEZ ateşler.
  *
- * Sağlayıcı (ElevenLabs / Inworld) ve ses/model `app_settings.tts`'ten gelir
- * (admin panel); burada sağlayıcı adı geçmez. Kapsam dışı ana dil: metin
- * ekranda kalır, o parçalar sessiz — yalnız İngilizce klipler döner.
+ * Sağlayıcı ve ses/model `app_settings.tts`'ten gelir (admin panel); burada
+ * sağlayıcı adı geçmez. Kapsam dışı ana dil: metin ekranda kalır, o parçalar
+ * sessiz — yalnız İngilizce parçalar okunur.
  *
  * Eski `{text}` gövdesi tek İngilizce parça olarak kabul edilir (geçiş uyumu).
  */
@@ -1184,30 +1185,20 @@ export async function tts(
       .where(eq(userProfiles.userId, userId))
       .limit(1);
     const native = nativeLanguageOf(profile);
-    const enCode = active.provider.languageCode("en");
-    const l1Code = active.provider.languageCode(native);
+    const enCode = await resolveLanguage(active, "en");
+    const l1Code = await resolveLanguage(active, native);
+    if (l1Code === null && runs.some((r) => r.lang === "l1")) {
+      // TTS kapsamı dışı ana dil: metin ekranda kalır, ses atlanır
+      console.warn(`[tts] "${native}" ${active.provider.name} kapsamı dışı — L1 parçaları sessiz bırakıldı`);
+    }
 
-    // Ardışık aynı-dil parçaları grupla
-    const groups: Array<{ lang: string | null; text: string }> = [];
+    const coded: TtsRun[] = [];
     for (const run of runs) {
       const code = run.lang === "en" ? enCode : l1Code;
-      const prev = groups[groups.length - 1];
-      if (prev && prev.lang === code) prev.text += ` ${run.text}`;
-      else groups.push({ lang: code, text: run.text });
+      if (code) coded.push({ languageCode: code, text: run.text });
     }
 
-    const clips: TtsClip[] = [];
-    for (const g of groups) {
-      if (g.lang === null) {
-        // TTS kapsamı dışı ana dil: metin ekranda kalır, ses atlanır
-        console.warn(`[tts] "${native}" ${active.provider.name} kapsamı dışı — L1 parçası sessiz bırakıldı`);
-        continue;
-      }
-      const clip = await synthesizeClip(active, g.text.slice(0, 600), g.lang);
-      clips.push({ ...clip, lang: g.lang });
-    }
-
-    return { clips };
+    return { clips: await synthesizeRunsToClips(active, coded) };
   } catch (err) {
     // Gateway hatası → oturum hata sözlüğü (route 502'ye çevirir); diğerleri olduğu gibi
     if (err instanceof TtsError) throw new SessionError("tts_unavailable", err.message);

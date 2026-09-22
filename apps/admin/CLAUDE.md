@@ -99,6 +99,18 @@ akmaz. Animasyon geçişi yumuşatır, dikkat çekmez; `layoutId` yalnız tek ak
 - Çekirdek editörü JSON + canlı önizleme: istemcide `lessonCoreSchema` (şema),
   sunucuda `lintCore` (pedagoji). Kayıt satırı `ready`ye düşürür — yayın ayrı buton.
 
+## Liste ekranı sözleşmesi
+
+Her tablo **sayfalıdır** — sorulmadan. Varsayılan 25, seçenekler 25/50/100; şerit
+`components/shared/TablePagination.tsx`, `Paged` şekli `lib/paginate.ts`.
+- **Sınırlı, sabit listeler** (katalog 395 ders, kullanıcılar) tek seferde gelir; süzme →
+  sıralama → sayfalama istemcide (`paginate`). Sayfa/ebat store'da, filtre değişince 1.
+- **Büyüyen listeler** (oturumlar) SUNUCU TARAFI sayfalıdır: süzgeç/sıralama/sayfa
+  `AdminSessionsQuery` ile gider, cevap `page/pageSize/total` + `stats` (süzülmemiş
+  özet) döner; istemci `pagedFromServer` ile aynı şeridi kurar. "Son N" kısıtı YOK —
+  bu bir sayfalama değil kesmedir (kullanıcı geri bildirimi). Arama 300 ms debounce,
+  bayat cevap sıra numarasıyla elenir.
+
 ## Dil ilkesi — arayüz İNGİLİZCE
 
 Kullanıcıya görünen her metin (etiket, buton, toast, placeholder, boş/hata

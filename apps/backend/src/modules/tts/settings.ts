@@ -2,6 +2,7 @@ import { ttsSettingsSchema, type TtsSettings } from "@glotmate/contracts";
 import { eq } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { appSettings } from "../../db/schema.js";
+import { AZURE_MODELS } from "./azure.js";
 import { ELEVENLABS_MODELS } from "./elevenlabs.js";
 import { INWORLD_MODELS } from "./inworld.js";
 
@@ -9,6 +10,10 @@ import { INWORLD_MODELS } from "./inworld.js";
  * `app_settings.tts` — aktif sağlayıcı + ses/model. Satır yoksa env
  * varsayılanı servis edilir (ElevenLabs, bugünkü davranış); bozuk satır da
  * varsayılana düşer ve uyarı basar — TTS hiçbir durumda ayar yüzünden kilitlenmez.
+ *
+ * Satır okunurken varsayılanla BİRLEŞTİRİLİR: yeni sağlayıcı eklendiğinde eski
+ * kayıtta o anahtar yoktur; birleştirme olmasa şema düşer ve operatörün seçimi
+ * sessizce ElevenLabs'e dönerdi.
  *
  * Süreç içi önbellek: her klip için DB'ye gitmemek. TTL kısa (15 sn) çünkü
  * çok süreçli dağıtımda bir örneğin PUT'u diğerinde ancak TTL'de görünür;
@@ -29,7 +34,16 @@ export function defaultTtsSettings(): TtsSettings {
     provider: "elevenlabs",
     elevenlabs: { voiceId: null, modelId: ELEVENLABS_MODELS[0] },
     inworld: { voiceId: null, modelId: INWORLD_MODELS[0] },
+    azure: { voiceId: null, modelId: AZURE_MODELS[0] },
   };
+}
+
+/** Saklanan (muhtemelen eksik anahtarlı) değer + varsayılan → tam ayar; şemadan geçmezse null */
+export function mergeStoredSettings(stored: unknown): TtsSettings | null {
+  const base = defaultTtsSettings();
+  const merged = typeof stored === "object" && stored !== null ? { ...base, ...(stored as Record<string, unknown>) } : base;
+  const parsed = ttsSettingsSchema.safeParse(merged);
+  return parsed.success ? parsed.data : null;
 }
 
 export function invalidateTtsSettingsCache(): void {
@@ -44,11 +58,11 @@ export async function getTtsSettings(): Promise<StoredTtsSettings> {
   if (!row) {
     value = { settings: defaultTtsSettings(), updatedAt: null };
   } else {
-    const parsed = ttsSettingsSchema.safeParse(row.value);
-    if (parsed.success) {
-      value = { settings: parsed.data, updatedAt: row.updatedAt.toISOString() };
+    const merged = mergeStoredSettings(row.value);
+    if (merged) {
+      value = { settings: merged, updatedAt: row.updatedAt.toISOString() };
     } else {
-      console.warn(`[tts] app_settings.${KEY} şemaya uymuyor, env varsayılanı kullanılıyor: ${parsed.error.message}`);
+      console.warn(`[tts] app_settings.${KEY} şemaya uymuyor, env varsayılanı kullanılıyor`);
       value = { settings: defaultTtsSettings(), updatedAt: row.updatedAt.toISOString() };
     }
   }

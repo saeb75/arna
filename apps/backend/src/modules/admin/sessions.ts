@@ -2,12 +2,14 @@ import {
   sessionPositionSchema,
   type AdminSession,
   type AdminSessionDetail,
+  type AdminSessionsQuery,
   type AdminSessionsResponse,
+  type AdminSessionsStats,
   type AdminTranscriptTurn,
   type CefrLevel,
   type RichText,
 } from "@glotmate/contracts";
-import { asc, desc, eq, inArray, sql as dsql } from "drizzle-orm";
+import { and, asc, desc, eq, exists, inArray, isNotNull, isNull, or, sql as dsql, type SQL } from "drizzle-orm";
 import { db, sql } from "../../db/client.js";
 import {
   catalogLessons,
@@ -28,8 +30,11 @@ import { AdminError } from "./queries.js";
  * `script` (prompt malzemesi) hiçbir sorguda SEÇİLMEZ. Transkript öğrencinin ve
  * hocanın söyledikleridir — admin bunu görmek için var.
  *
- * Liste: 6 sorgu (oturumlar + auth e-postaları + tur sayaçları + LLM sayaçları +
- * toplam), ders başına sorgu yok.
+ * Liste SUNUCU TARAFI SAYFALIDIR: süzme + sıralama + sayfa SQL'de (oturum sayısı
+ * büyüdükçe istemciye "son N" taşımak yanlış — kullanıcı geri bildirimi). Sıralama
+ * anahtarları tur/LLM sayaçları için korelasyonlu alt sorgular; sayfa satırları
+ * için sayaçlar ayrıca GROUP BY ile süslenir. Özet kartları (`stats`) süzülmemiş
+ * tüm oturumlar üzerinden tek sorguyla gelir.
  */
 
 const iso = (d: Date | string | null | undefined) => (d ? new Date(d).toISOString() : null);
@@ -137,13 +142,101 @@ async function decorate(rows: BaseRow[]): Promise<AdminSession[]> {
   });
 }
 
-export async function getAdminSessions(opts: { limit: number }): Promise<AdminSessionsResponse> {
-  const limit = Math.min(Math.max(1, opts.limit), 1000);
-  const [rows, totalRows] = await Promise.all([
-    baseQuery().orderBy(desc(sessions.startedAt)).limit(limit),
-    db.select({ total: dsql<number>`count(*)::int` }).from(sessions),
+const turnCountSql = dsql<number>`(select count(*) from transcript_turns tt where tt.session_id = ${sessions.id})`;
+const llmCostSql = dsql<number>`(select coalesce(sum(cost_usd), 0) from llm_calls lc where lc.session_id = ${sessions.id})`;
+const llmMaxLatencySql = dsql<number>`(select coalesce(max(latency_ms), -1) from llm_calls lc where lc.session_id = ${sessions.id})`;
+
+/** Filtreleri SQL koşuluna çevirir — istemcideki eski saf süzgeçle aynı anlam */
+function whereFor(q: AdminSessionsQuery): SQL | undefined {
+  const conds: SQL[] = [];
+  if (q.kind !== "all") conds.push(eq(sessions.sessionKind, q.kind));
+  if (q.status === "open") conds.push(isNull(sessions.endedAt));
+  if (q.status === "ended") conds.push(isNotNull(sessions.endedAt));
+  if (q.level !== "all") conds.push(eq(catalogLessons.level, q.level));
+  if (q.onlyErrors) conds.push(dsql`jsonb_typeof(${sessionSummaries.errorsObserved}) = 'array' and jsonb_array_length(${sessionSummaries.errorsObserved}) > 0`);
+  if (q.onlyChat) {
+    conds.push(exists(db.select({ one: dsql`1` }).from(transcriptTurns).where(and(eq(transcriptTurns.sessionId, sessions.id), eq(transcriptTurns.source, "chat")))));
+  }
+  if (q.q) {
+    const like = `%${q.q.replace(/[%_\\]/g, (m) => `\\${m}`)}%`;
+    conds.push(
+      or(
+        dsql`${sessions.userId} in (select id from auth.users where email ilike ${like})`,
+        dsql`${userProfiles.displayName} ilike ${like}`,
+        dsql`${catalogLessons.title} ilike ${like}`,
+        dsql`${sessions.catalogLessonId} ilike ${like}`,
+        dsql`${roleplayRevisions.roleplayId} ilike ${like}`,
+        dsql`${sessions.id}::text ilike ${like}`,
+      )!,
+    );
+  }
+  return conds.length ? and(...conds) : undefined;
+}
+
+function orderFor(sort: AdminSessionsQuery["sort"]): SQL[] {
+  switch (sort) {
+    case "newest":
+      return [desc(sessions.startedAt)];
+    case "oldest":
+      return [asc(sessions.startedAt)];
+    case "longest":
+      return [desc(turnCountSql), desc(sessions.startedAt)];
+    case "costliest":
+      return [desc(llmCostSql), desc(sessions.startedAt)];
+    case "slowest":
+      return [desc(llmMaxLatencySql), desc(sessions.startedAt)];
+  }
+}
+
+async function getStats(): Promise<AdminSessionsStats> {
+  const [row] = await db
+    .select({
+      total: dsql<number>`count(*)::int`,
+      open: dsql<number>`sum(case when ${sessions.endedAt} is null then 1 else 0 end)::int`,
+      withErrors: dsql<number>`sum(case when jsonb_typeof(${sessionSummaries.errorsObserved}) = 'array' and jsonb_array_length(${sessionSummaries.errorsObserved}) > 0 then 1 else 0 end)::int`,
+      avgDuration: dsql<string | null>`avg(extract(epoch from (${sessions.endedAt} - ${sessions.startedAt})))`,
+    })
+    .from(sessions)
+    .leftJoin(sessionSummaries, eq(sessionSummaries.sessionId, sessions.id));
+  const [cost] = await db
+    .select({ usd: dsql<string>`coalesce(sum(${llmCalls.costUsd}), 0)` })
+    .from(llmCalls)
+    .where(isNotNull(llmCalls.sessionId));
+  return {
+    total: row?.total ?? 0,
+    open: row?.open ?? 0,
+    withErrors: row?.withErrors ?? 0,
+    avgDurationSec: row?.avgDuration === null || row?.avgDuration === undefined ? null : Math.round(Number(row.avgDuration)),
+    totalCostUsd: num(cost?.usd),
+  };
+}
+
+export async function getAdminSessions(q: AdminSessionsQuery): Promise<AdminSessionsResponse> {
+  const where = whereFor(q);
+  const [rows, countRows, stats] = await Promise.all([
+    baseQuery()
+      .where(where)
+      .orderBy(...orderFor(q.sort))
+      .limit(q.pageSize)
+      .offset((q.page - 1) * q.pageSize),
+    db
+      .select({ n: dsql<number>`count(*)::int` })
+      .from(sessions)
+      .leftJoin(catalogLessons, eq(catalogLessons.id, sessions.catalogLessonId))
+      .leftJoin(roleplayRevisions, eq(roleplayRevisions.id, sessions.roleplayRevisionId))
+      .leftJoin(userProfiles, eq(userProfiles.userId, sessions.userId))
+      .leftJoin(sessionSummaries, eq(sessionSummaries.sessionId, sessions.id))
+      .where(where),
+    getStats(),
   ]);
-  return { sessions: await decorate(rows), total: totalRows[0]?.total ?? 0, generatedAt: new Date().toISOString() };
+  return {
+    sessions: await decorate(rows),
+    page: q.page,
+    pageSize: q.pageSize,
+    total: countRows[0]?.n ?? 0,
+    stats,
+    generatedAt: new Date().toISOString(),
+  };
 }
 
 export async function getAdminSessionDetail(sessionId: string): Promise<AdminSessionDetail> {

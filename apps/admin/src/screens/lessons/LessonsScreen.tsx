@@ -8,6 +8,8 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { LessonsController } from "@/controllers/LessonsController";
 import { formatDateTime } from "@/lib/labels";
 import { applyFilters, summarize } from "@/lib/lessonFilters";
+import { paginate } from "@/lib/paginate";
+import { TablePagination } from "@/components/shared/TablePagination";
 import { useLessonsStore } from "@/stores/useLessonsStore";
 import { LessonsSkeleton } from "@/screens/lessons/LessonsSkeleton";
 import { LessonsSummary } from "@/screens/lessons/LessonsSummary";
@@ -21,7 +23,7 @@ import { WarmProgressBar } from "@/screens/lessons/WarmProgressBar";
  * kaydırma sıfırlanmaz (mobil LessonsScreen kuralı). Süzme istemcide, saf fonksiyonla.
  */
 export function LessonsScreen() {
-  const { data, loading, error, filters } = useLessonsStore();
+  const { data, loading, error, filters, page, pageSize, setPage, setPageSize } = useLessonsStore();
 
   useEffect(() => {
     void LessonsController.load();
@@ -33,6 +35,7 @@ export function LessonsScreen() {
   );
   const visible = useMemo(() => (data ? applyFilters(data.lessons, filters) : []), [data, filters]);
   const summary = useMemo(() => summarize(levelLessons), [levelLessons]);
+  const paged = useMemo(() => paginate(visible, page, pageSize), [visible, page, pageSize]);
 
   const refresh = (
     <Button variant="outline" size="sm" onClick={() => void LessonsController.load()} disabled={loading}>
@@ -63,7 +66,8 @@ export function LessonsScreen() {
           <LessonsSummary summary={summary} />
           <LessonsToolbar visibleCount={visible.length} levelLessons={levelLessons} allLessons={data.lessons} />
           <WarmProgressBar />
-          <LessonsTable key={filters.level} lessons={visible} />
+          <LessonsTable key={`${filters.level}-${paged.page}`} lessons={paged.items} />
+          <TablePagination paged={paged} onPage={setPage} onPageSize={setPageSize} noun="lessons" />
         </div>
       )}
     </>

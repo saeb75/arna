@@ -1,5 +1,7 @@
 import { z } from "zod";
-import { cefrLevelSchema, lessonKindSchema } from "./levels.js";
+import { CEFR_LEVELS, cefrLevelSchema, lessonKindSchema } from "./levels.js";
+
+const CEFR_LEVELS_FOR_QUERY = CEFR_LEVELS;
 import { lessonCoreSchema, sceneVariantSchema } from "./lessonLayers.js";
 import { sessionPositionSchema, transcriptTurnSchema } from "./sessionResume.js";
 
@@ -124,7 +126,7 @@ export const adminCoreBodySchema = z.object({ core: lessonCoreSchema });
  * panelden değişir; API ANAHTARLARI yalnız sunucu .env'inde kalır — bu şemada
  * anahtar alanı YOKTUR ve eklenmez (istemciye sızardı).
  */
-export const TTS_PROVIDERS = ["elevenlabs", "inworld"] as const;
+export const TTS_PROVIDERS = ["elevenlabs", "inworld", "azure"] as const;
 export const ttsProviderSchema = z.enum(TTS_PROVIDERS);
 export type TtsProvider = z.infer<typeof ttsProviderSchema>;
 
@@ -135,16 +137,29 @@ export const ttsProviderConfigSchema = z.object({
 });
 export type TtsProviderConfig = z.infer<typeof ttsProviderConfigSchema>;
 
-/** `app_settings.tts` değerinin TAMAMI — okurken ve yazarken bu şemadan geçer. */
+/**
+ * `app_settings.tts` değerinin TAMAMI — okurken ve yazarken bu şemadan geçer.
+ * Yeni sağlayıcı eklenince eski satırda anahtarı yoktur: okuyan taraf satırı
+ * env varsayılanıyla BİRLEŞTİRİP parse eder (`settings.ts`), aksi hâlde eski
+ * kayıt düşer ve sessizce varsayılana dönülürdü.
+ */
 export const ttsSettingsSchema = z.object({
   provider: ttsProviderSchema,
   elevenlabs: ttsProviderConfigSchema,
   inworld: ttsProviderConfigSchema,
+  azure: ttsProviderConfigSchema,
 });
 export type TtsSettings = z.infer<typeof ttsSettingsSchema>;
 
-/** Sağlayıcı → değer; `z.record` yerine açık nesne: iki anahtarın da gelmesi zorunlu. */
-const perProvider = <T extends z.ZodTypeAny>(v: T) => z.object({ elevenlabs: v, inworld: v });
+/** Sağlayıcı → değer; `z.record` yerine açık nesne: her anahtarın gelmesi zorunlu. */
+const perProvider = <T extends z.ZodTypeAny>(v: T) => z.object({ elevenlabs: v, inworld: v, azure: v });
+
+/** Sağlayıcının yapabildikleri — panel rozet gösterir, gateway yolu seçer. */
+export const ttsCapabilitiesSchema = z.object({
+  /** Bir speak çağrısının TÜM dil parçaları TEK klipte (Azure SSML `<lang>`); değilse dil başına klip */
+  multiLanguageClip: z.boolean(),
+});
+export type TtsCapabilities = z.infer<typeof ttsCapabilitiesSchema>;
 
 export const adminTtsSettingsResponseSchema = z.object({
   settings: ttsSettingsSchema,
@@ -152,14 +167,25 @@ export const adminTtsSettingsResponseSchema = z.object({
   configured: perProvider(z.boolean()),
   /** .env'den gelen varsayılan ses (panelde "boş = şu kullanılır" ipucu) */
   defaultVoiceId: perProvider(z.string().nullable()),
-  /** Panelde model select'i için izinli liste */
+  /** Panelde model select'i için izinli liste; TEK öğeyse panel alanı gizler (Azure'da model kavramı yok) */
   models: perProvider(z.array(z.string().min(1)).min(1)),
+  capabilities: perProvider(ttsCapabilitiesSchema),
   /** Satır hiç yazılmamışsa null (env varsayılanı servis ediliyor) */
   updatedAt: z.string().nullable(),
 });
 export type AdminTtsSettingsResponse = z.infer<typeof adminTtsSettingsResponseSchema>;
 
-/** Kaydetmeden dinleme: seçilen sağlayıcı/ses/modelle kısa metin. */
+/** Önizleme parçası: `language` BCP-47 (sunucu normalize edip sağlayıcı koduna çevirir). */
+export const adminTtsPreviewRunSchema = z.object({
+  language: z.string().trim().min(2).max(12),
+  text: z.string().trim().min(1).max(300),
+});
+
+/**
+ * Kaydetmeden dinleme: seçilen sağlayıcı/ses/modelle kısa metin. `runs` verilirse
+ * ders akışının aynısı (karışık dil parçaları) çalınır — çok dilli tek klip
+ * yeteneği burada kıyaslanır; yoksa tek `text` + `language`.
+ */
 export const adminTtsPreviewBodySchema = z.object({
   provider: ttsProviderSchema,
   voiceId: z.string().trim().min(1),
@@ -167,15 +193,23 @@ export const adminTtsPreviewBodySchema = z.object({
   text: z.string().trim().min(1).max(300),
   /** BCP-47 (normalize edilir); varsayılan İngilizce */
   language: z.string().trim().min(2).default("en"),
+  runs: z.array(adminTtsPreviewRunSchema).min(1).max(8).optional(),
 });
 export type AdminTtsPreviewBody = z.infer<typeof adminTtsPreviewBodySchema>;
 
+/** Önizleme cevabı ders ucuyla aynı şekli taşır: klip listesi — panel sırayla çalar, sayısını gösterir. */
 export const adminTtsPreviewResponseSchema = z.object({
-  /** mp3, base64 — istemci `data:audio/mpeg;base64,` ile çalar */
-  audioBase64: z.string().min(1),
+  clips: z
+    .array(
+      z.object({
+        /** mp3, base64 — istemci `data:audio/mpeg;base64,` ile çalar */
+        audioBase64: z.string().min(1),
+        /** Zaman damgası geldi mi — dudak senkronu bu sağlayıcıyla çalışır mı sorusunun cevabı */
+        hasAlignment: z.boolean(),
+      }),
+    )
+    .min(1),
   latencyMs: z.number().int().nonnegative(),
-  /** Zaman damgası geldi mi — dudak senkronu bu sağlayıcıyla çalışır mı sorusunun cevabı */
-  hasAlignment: z.boolean(),
 });
 export type AdminTtsPreviewResponse = z.infer<typeof adminTtsPreviewResponseSchema>;
 
@@ -329,10 +363,50 @@ export const adminSessionSchema = z.object({
 });
 export type AdminSession = z.infer<typeof adminSessionSchema>;
 
+/**
+ * Query-string boolean. `z.coerce.boolean()` KULLANILMAZ: "false" metnini de true
+ * yapar (boş olmayan string truthy) — canlıda liste varsayılan olarak yalnız hatalı
+ * oturumları getirdi. Yalnız "true"/"1" (ya da gerçek true) açık sayılır.
+ */
+const queryBool = z
+  .union([z.boolean(), z.string()])
+  .transform((v) => v === true || v === "true" || v === "1")
+  .default(false);
+
+/** Sunucu tarafı sayfalama sorgusu — istemci ve route AYNI şemayı kullanır */
+export const SESSION_SORTS = ["newest", "oldest", "longest", "costliest", "slowest"] as const;
+export const SESSION_PAGE_SIZES = [25, 50, 100] as const;
+export const adminSessionsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().refine((n) => (SESSION_PAGE_SIZES as readonly number[]).includes(n), "page size").default(25),
+  sort: z.enum(SESSION_SORTS).default("newest"),
+  /** kullanıcı e-postası/adı, ders başlığı/slug'ı, roleplay slug'ı ya da oturum id'si (ilike) */
+  q: z.string().trim().max(120).default(""),
+  kind: z.enum(["all", "lesson", "roleplay"]).default("all"),
+  status: z.enum(["all", "open", "ended"]).default("all"),
+  level: z.enum(["all", ...CEFR_LEVELS_FOR_QUERY]).default("all"),
+  onlyErrors: queryBool,
+  onlyChat: queryBool,
+});
+export type AdminSessionsQuery = z.infer<typeof adminSessionsQuerySchema>;
+
+/** Özet kartları — SÜZÜLMEMİŞ tüm oturumlar üzerinden */
+export const adminSessionsStatsSchema = z.object({
+  total: z.number().int().nonnegative(),
+  open: z.number().int().nonnegative(),
+  withErrors: z.number().int().nonnegative(),
+  avgDurationSec: z.number().int().nonnegative().nullable(),
+  totalCostUsd: z.number().nonnegative(),
+});
+export type AdminSessionsStats = z.infer<typeof adminSessionsStatsSchema>;
+
 export const adminSessionsResponseSchema = z.object({
   sessions: z.array(adminSessionSchema),
-  /** Tüm oturum sayısı (limit'ten bağımsız) */
+  page: z.number().int().min(1),
+  pageSize: z.number().int().min(1),
+  /** Süzülmüş toplam — sayfa sayısı bundan türer */
   total: z.number().int().nonnegative(),
+  stats: adminSessionsStatsSchema,
   generatedAt: z.string(),
 });
 export type AdminSessionsResponse = z.infer<typeof adminSessionsResponseSchema>;

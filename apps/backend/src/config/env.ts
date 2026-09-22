@@ -28,6 +28,11 @@ const envSchema = z.object({
   INWORLD_API_KEY: z.string().optional(),
   /** Inworld ses kimliği (ad biçiminde: "Ashley", "Dennis" …) — panel boş bırakırsa bu */
   INWORLD_VOICE_ID: z.string().optional(),
+  /** Azure Speech kaynağı anahtarı + bölgesi (`westeurope` gibi) — ikisi birlikte yoksa sağlayıcı kapalı */
+  AZURE_SPEECH_KEY: z.string().optional(),
+  AZURE_SPEECH_REGION: z.string().optional(),
+  /** Çok dilli ses adı; boşsa `en-US-AvaMultilingualNeural` */
+  AZURE_SPEECH_VOICE: z.string().optional(),
 
   /** Virgülle ayrılmış izinli origin listesi */
   CORS_ORIGINS: z.string().default("http://localhost:6567"),

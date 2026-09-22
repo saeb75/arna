@@ -32,6 +32,7 @@ export const LAYER_FILTER_LABEL: Record<LayerFilter, string> = {
 export const PROVIDER_LABEL: Record<TtsProvider, string> = {
   elevenlabs: "ElevenLabs",
   inworld: "Inworld AI",
+  azure: "Azure Speech",
 };
 
 export const TRACK_LABEL: Record<string, string> = {

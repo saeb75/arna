@@ -1,48 +1,44 @@
-import type { AdminSessionsResponse, CefrLevel } from "@glotmate/contracts";
+import type { AdminSessionsQuery, AdminSessionsResponse } from "@glotmate/contracts";
 import { create } from "zustand";
 
-export type SessionSort = "newest" | "oldest" | "longest" | "costliest" | "slowest";
+export type SessionSort = AdminSessionsQuery["sort"];
+export type SessionFilters = Pick<AdminSessionsQuery, "q" | "kind" | "status" | "level" | "onlyErrors" | "onlyChat">;
 
-export interface SessionFilters {
-  q: string;
-  kind: "all" | "lesson" | "roleplay";
-  status: "all" | "open" | "ended";
-  level: CefrLevel | "all";
-  /** Özetinde en az bir gözlenen hata */
-  onlyErrors: boolean;
-  /** En az bir LLM yolu (chat) turu — script-only oturumları gizler */
-  onlyChat: boolean;
-}
-
-export const SESSION_LIMITS = [200, 500, 1000] as const;
-
-/** Oturum listesi. Yalnız SessionsController yazar; filtre/sıralama/limit store'da. */
+/**
+ * Oturum listesi — SUNUCU TARAFI sayfalı. Sorgu (süzgeç/sıralama/sayfa/ebat) store'da
+ * durur, her değişimde SessionsController yeniden çeker. Yalnız controller yazar.
+ * Veri eldeyken tablo yerinde kalır (skeleton yalnız ilk yüklemede).
+ */
 interface SessionsState {
   data: AdminSessionsResponse | null;
   loading: boolean;
   error: string | null;
-  limit: (typeof SESSION_LIMITS)[number];
-  filters: SessionFilters;
-  sort: SessionSort;
+  query: AdminSessionsQuery;
   setData: (d: AdminSessionsResponse) => void;
   setLoading: (v: boolean) => void;
   setError: (e: string | null) => void;
-  setLimit: (n: (typeof SESSION_LIMITS)[number]) => void;
-  setFilters: (p: Partial<SessionFilters>) => void;
-  setSort: (s: SessionSort) => void;
+  setQuery: (p: Partial<AdminSessionsQuery>) => void;
 }
+
+export const DEFAULT_SESSIONS_QUERY: AdminSessionsQuery = {
+  page: 1,
+  pageSize: 25,
+  sort: "newest",
+  q: "",
+  kind: "all",
+  status: "all",
+  level: "all",
+  onlyErrors: false,
+  onlyChat: false,
+};
 
 export const useSessionsStore = create<SessionsState>((set) => ({
   data: null,
   loading: false,
   error: null,
-  limit: 200,
-  filters: { q: "", kind: "all", status: "all", level: "all", onlyErrors: false, onlyChat: false },
-  sort: "newest",
+  query: DEFAULT_SESSIONS_QUERY,
   setData: (data) => set({ data, error: null }),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
-  setLimit: (limit) => set({ limit }),
-  setFilters: (p) => set((s) => ({ filters: { ...s.filters, ...p } })),
-  setSort: (sort) => set({ sort }),
+  setQuery: (p) => set((s) => ({ query: { ...s.query, ...p } })),
 }));

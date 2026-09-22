@@ -14,10 +14,22 @@ export interface CharAlignment {
   character_end_times_seconds: number[];
 }
 
+/** Dil kodu çözülmüş parça — `languageCode` sağlayıcının kendi kodu (Azure: `tr-TR`, ElevenLabs: `tr`) */
+export interface TtsRun {
+  languageCode: string;
+  text: string;
+}
+
 export interface SynthesizeRequest {
   text: string;
   /** Sağlayıcının kendi dil kodu — `provider.languageCode()` çıktısı */
   languageCode: string;
+  voiceId: string;
+  modelId: string;
+}
+
+export interface SynthesizeRunsRequest {
+  runs: TtsRun[];
   voiceId: string;
   modelId: string;
 }
@@ -30,7 +42,7 @@ export interface SynthesizeResult {
 
 export interface TtsProvider {
   name: TtsProviderName;
-  /** Panelde seçilebilecek modeller; ilki varsayılan */
+  /** Panelde seçilebilecek modeller; ilki varsayılan. TEK öğe = sağlayıcıda model kavramı yok */
   models: readonly string[];
   /** API anahtarı .env'de var mı */
   configured(): boolean;
@@ -42,6 +54,17 @@ export interface TtsProvider {
    */
   languageCode(normalized: string): string | null;
   synthesize(req: SynthesizeRequest): Promise<SynthesizeResult>;
+  /**
+   * Bir speak çağrısının TÜM parçalarını (karışık dil) TEK klipte üretir —
+   * tek istek, kesintisiz prosodi, tek alignment. Yoksa gateway dil başına
+   * gruplayıp `synthesize`i çağırır (ElevenLabs/Inworld yolu).
+   */
+  synthesizeRuns?(req: SynthesizeRunsRequest): Promise<SynthesizeResult>;
+  /**
+   * Sesin konuşabildiği dil kodları (sağlayıcı biçiminde); `null` = bilinmiyor,
+   * gateway hepsine izin verir. `languageCode` saf kalır; kapsam ağdan gelir.
+   */
+  coverage?(voiceId: string): Promise<ReadonlySet<string> | null>;
 }
 
 export class TtsError extends Error {
