@@ -15,7 +15,7 @@ buradaki desene uyar. Desen tartışılacaksa önce bu dosya güncellenir, sonra
 | Axios | 1.x | tek instance, `src/api/index.ts` |
 | @supabase/supabase-js | 2.x | + `@react-native-async-storage/async-storage` (oturum kalıcılığı) |
 | @glotmate/contracts | workspace | tüm response tipleri ve zod şemaları BURADAN |
-| react-native-svg | 15.x | YALNIZ ders yolu eğrisi (`screens/lessons/PathCurve.tsx`); ikon için @expo/vector-icons kullanılır |
+| react-native-svg | 15.x | kurulu, şu an tüketicisi yok — ileride vektör çizim için; ikon için @expo/vector-icons kullanılır |
 
 Kurulum kuralı: Expo'ya bağlı her paket **`npx expo install`** ile eklenir —
 sürüm uyumunu Expo çözer, elle sürüm sabitlenmez. Expo dışı paketler (zustand,
@@ -177,13 +177,6 @@ apps/mobile/src/
 └── global.css                  # @tailwind direktifleri — _layout.tsx import eder
 apps/mobile/colors.js           # PALET — tek renk kaynağı (tailwind.config.js + bileşenler)
 ```
-
-**Ders yolu geometrisi:** yol satırları FlatList'te SABİT yükseklikli (`lib/lessonPath.ts`
-`NODE_ROW_H`/`UNIT_ROW_H`/`LEVEL_ROW_H`, `getItemLayout` ölçüm yapmadan kaydırır).
-Düğüm ve kilometre taşı satırları aynı yükseklikte ve düğüm merkezi aynı `NODE_CY`'de
-olduğu için her satır komşusuna giden eğrinin TAMAMINI kendi SVG'sinde çizer; görünüm
-alanı satırla sınırlı olduğundan yalnız kendi payı görünür, komşu aynı eğriyi kendi
-payıyla tamamlar. Şerit/parça kararları (`pos`, `line`) saf lib'de; bileşen yalnız çizer.
 
 **Renk kuralı (light tema, marka moru `primary` sabit):** her renk
 `colors.js`'teki bir token'dır. Sınıf olarak (`bg-background`, `text-foreground`,

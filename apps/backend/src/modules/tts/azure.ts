@@ -16,9 +16,9 @@ import {
  *     parçaları TEK istek, TEK ses, TEK alignment. Kullanıcı test etti, prosodi kopmuyor.
  *   · `<lang>` yalnız çok dilli seslerde çalışır ve TAM locale ister (`tr-TR`; `tr` yetmez).
  *     Ses o dili konuşamıyorsa ses üretilmez → `coverage()` ses listesinden kapsam çeker.
- *   · FATURA: `<speak>`/`<voice>` hariç TÜM işaretleme karakter sayılır — bu yüzden
- *     kök `xml:lang` en çok karakteri olan dil olur, yalnız DİĞER diller `<lang>` ile
- *     sarılır, SSML girintisiz üretilir, ardışık aynı-dil parçalar tek blokta.
+ *   · FATURA: `<speak>`/`<voice>` hariç TÜM işaretleme karakter sayılır — SSML girintisiz
+ *     üretilir, ardışık aynı-dil parçalar tek blokta. Her grup `<lang>` ile sarılır
+ *     (+31 karakter/grup): kulak testinde sarmalsız kısa L1 parçası yanlış dilde okundu.
  *   · Zaman damgası REST'te YOK; Speech SDK `wordBoundary` olayları (tick = 100 ns)
  *     karakter bazlı istemci biçimine çevrilir. Viseme/blendshape yolu (55 ARKit
  *     benzeri, yalnız en-US) sonraki faz.
@@ -27,6 +27,20 @@ import {
 export const AZURE_MODELS = ["neural"] as const;
 export const AZURE_DEFAULT_VOICE = "en-US-AvaMultilingualNeural";
 const REQUEST_TIMEOUT_MS = 30_000;
+/** Öğrenciye dönük tempo: varsayılan biraz yavaş (Azure prosody rate; "-10%" ≈ 0.9×) — .env `AZURE_SPEECH_RATE` ile ezilir */
+export const AZURE_DEFAULT_RATE = "-10%";
+
+/**
+ * Hız değeri → prosody için kullanılacak değer ya da `null` (etiket yok = sesin
+ * doğal hızı). "0", "0%", "1", "1.0", "default", "medium" NÖTR sayılır: operatör
+ * .env'e 0 yazınca "sınır yok" demek ister, `rate="0%"` etiketi üretmek anlamsız.
+ */
+export function normalizeRate(raw: string | undefined): string | null {
+  const v = (raw ?? AZURE_DEFAULT_RATE).trim();
+  if (v === "") return AZURE_DEFAULT_RATE;
+  if (/^[+-]?0+(\.0+)?%?$/.test(v) || /^1(\.0+)?$/.test(v) || /^(default|medium)$/i.test(v)) return null;
+  return v;
+}
 const VOICE_LIST_TTL_MS = 24 * 60 * 60 * 1000;
 
 /**
@@ -51,19 +65,14 @@ export function escapeXml(text: string): string {
   );
 }
 
-/** En çok karaktere sahip dil kök olur → en az `<lang>` sarmalı, en az fatura */
+/**
+ * Kök dil = ANA DİL (İngilizce olmayan ilk grup); hiç yoksa en-US. Kök en-US
+ * iken canlıda yanlış çıktı: `</lang>` sonrası sarmalsız İngilizce Türkçe okundu.
+ * Kök L1 + her grup açık `<lang>` kulak testinde tutarlı doğru (bkz. buildSsml).
+ */
 export function dominantLocale(runs: TtsRun[]): string {
-  const total = new Map<string, number>();
-  for (const r of runs) total.set(r.languageCode, (total.get(r.languageCode) ?? 0) + r.text.length);
-  let best = runs[0]?.languageCode ?? "en-US";
-  let bestN = -1;
-  for (const [code, n] of total) {
-    if (n > bestN) {
-      best = code;
-      bestN = n;
-    }
-  }
-  return best;
+  const l1 = runs.find((r) => !/^en(-|$)/i.test(r.languageCode));
+  return l1?.languageCode ?? runs[0]?.languageCode ?? "en-US";
 }
 
 /** Ardışık aynı-dil parçaları birleştirir (tek `<lang>` bloğu, daha doğal prosodi) */
@@ -77,15 +86,40 @@ export function mergeRuns(runs: TtsRun[]): TtsRun[] {
   return out;
 }
 
-/** Girintisiz, kaçışlı SSML; kök dil sarılmaz, diğerleri `<lang>` ile */
-export function buildSsml(runs: TtsRun[], voiceId: string, rootLocale = dominantLocale(runs)): string {
-  const body = mergeRuns(runs)
-    .map((g) =>
-      g.languageCode === rootLocale
-        ? escapeXml(g.text)
-        : `<lang xml:lang="${escapeXml(g.languageCode)}">${escapeXml(g.text)}</lang>`,
-    )
-    .join(" ");
+const EDGE_LETTER = /[\p{L}\p{N}]/u;
+
+/** `___` boşluk işareti seslendirilmez: kısa durak (alıştırma maddesi "My brother ___ a doctor.") */
+function ssmlText(text: string): string {
+  return escapeXml(text).replace(/_{2,}/g, '<break strength="medium"/>');
+}
+
+/**
+ * Girintisiz, kaçışlı SSML. Kök `xml:lang` = ana dil; HER grup (kök dahil)
+ * `<lang xml:lang>` ile açıkça sarılır; hız (`prosody`) her grubun içinde
+ * (`prosody` `lang` içeremez, `lang` `prosody` içerir).
+ * Gruplar arası boşluk: sonraki grup harf/rakamla başlıyorsa tek boşluk,
+ * apostrof/noktalama ile başlıyorsa bitişik (`are</lang>'ı`).
+ */
+export function buildSsml(
+  runs: TtsRun[],
+  voiceId: string,
+  rootLocale = dominantLocale(runs),
+  rate: string | undefined = env.AZURE_SPEECH_RATE,
+): string {
+  const groups = mergeRuns(runs);
+  // `prosody` `lang` içeremez ama `lang` `prosody` içerir → hız her grubun içinde; nötr değerde etiket yok
+  const effective = normalizeRate(rate);
+  const open = effective ? `<prosody rate="${escapeXml(effective)}">` : "";
+  const close = effective ? "</prosody>" : "";
+  let body = "";
+  groups.forEach((g, i) => {
+    if (i > 0 && EDGE_LETTER.test(g.text[0] ?? "") && !/\s$/.test(groups[i - 1]!.text)) body += " ";
+    // HER GRUP AÇIKÇA ETİKETLİ, kök dil dahil. Kulak testi (23 Eyl 2026, 10 varyant):
+    // tek başına kısa L1 parçası ("Tam isabet!") sarmalsız gidince ses dili kendi tahmin
+    // edip İngilizce sanıyor (A/B/E yanlış, C doğru); karışık paragrafta sarılı Türkçe de
+    // sarmalsız Türkçe de doğru (G/H/I). Kesişim: hepsini sar. Kök xml:lang yine L1.
+    body += `<lang xml:lang="${escapeXml(g.languageCode)}">${open}${ssmlText(g.text)}${close}</lang>`;
+  });
   return (
     `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${escapeXml(rootLocale)}">` +
     `<voice name="${escapeXml(voiceId)}">${body}</voice></speak>`
@@ -98,6 +132,8 @@ export interface WordBoundary {
   audioOffsetTicks: number;
   durationTicks: number;
   kind: "word" | "punctuation" | "sentence";
+  /** SDK'nın SSML içindeki metin konumu; -1 = eşleyemedi (canlıda `<break>` sonrası "brother  a doctor." gibi çok kelimeli sahte metin) */
+  textOffset?: number;
 }
 
 /**
@@ -105,10 +141,17 @@ export interface WordBoundary {
  * penceresine eşit paylaştırılır; kelimeler arasına bir boşluk karakteri girer
  * (istemci `alignment.ts` kelimeleri boşluktan ayırır), noktalama boşluksuz
  * önceki kelimeye yaslanır. Cümle olayları tüm cümle metnini taşıdığı için atlanır.
+ *
+ * SDK, `<break/>` gibi işaretlerin ardındaki kelimeyi SSML'de eşleyemeyince
+ * `textOffset: -1` ve kelime yerine metnin devamını ("brother  a doctor.") veriyor;
+ * zaman değerleri yine o tek kelimeye ait. Böyle olayın yalnız İLK sözcüğü alınır —
+ * aksi hâlde "a doctor." iki kez alignment'a giriyordu (canlıda ölçüldü).
  */
 export function wordBoundariesToAlignment(events: WordBoundary[]): CharAlignment | null {
   const evs = events
     .filter((e) => e.kind !== "sentence" && e.text.length > 0)
+    .map((e) => (e.kind === "word" && /\s/.test(e.text.trim()) ? { ...e, text: e.text.trim().split(/\s+/)[0]! } : e))
+    .filter((e) => e.text.length > 0)
     .sort((a, b) => a.audioOffsetTicks - b.audioOffsetTicks);
   if (evs.length === 0) return null;
 
@@ -216,7 +259,13 @@ export const azureProvider: TtsProvider = {
     const synth = new sdk.SpeechSynthesizer(config, null);
     const events: WordBoundary[] = [];
     synth.wordBoundary = (_s, e) => {
-      events.push({ text: e.text, audioOffsetTicks: e.audioOffset, durationTicks: e.duration, kind: boundaryKind(e.boundaryType) });
+      events.push({
+        text: e.text,
+        audioOffsetTicks: e.audioOffset,
+        durationTicks: e.duration,
+        kind: boundaryKind(e.boundaryType),
+        textOffset: e.textOffset,
+      });
     };
 
     try {

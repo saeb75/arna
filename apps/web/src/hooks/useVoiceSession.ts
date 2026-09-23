@@ -118,7 +118,7 @@ export function useVoiceSession(sessionId: string | null) {
    * her callback dersi kilitler, bu disiplin klip sayısından bağımsızdır.
    */
   const speak = useCallback(
-    async (input: string | Array<{ lang: "en" | "l1"; text: string }>, onEnd?: () => void) => {
+    async (input: Array<{ lang: "en" | "l1"; text: string }>, onEnd?: () => void) => {
       const gen = genRef.current;
       const sid = sessionRef.current;
       if (!sid) return;
@@ -133,7 +133,9 @@ export function useVoiceSession(sessionId: string | null) {
       }
 
       try {
-        const runs = typeof input === "string" ? [{ lang: "en" as const, text: input }] : input;
+        // Düz metin KABUL EDİLMEZ: eskiden string gelince "İngilizce" sayılıyordu ve ana dil
+        // chrome'u İngilizce aksanla okunuyordu. Her çağıran dil etiketli parça verir.
+        const runs = input;
         const data = await api<{
           clips: Array<{ audioBase64: string; alignment: ElevenAlignment | null; lang: string }>;
         }>(`/v1/sessions/${sid}/tts`, { method: "POST", body: JSON.stringify({ runs }) });
@@ -241,6 +243,8 @@ export function useVoiceSession(sessionId: string | null) {
           segmentDone?: boolean;
           beatDone?: boolean;
           isAttempt?: boolean;
+          progress?: { done: number; total: number };
+          newHits?: Array<{ objectiveId: string; evidence: string }>;
         }>(
           `/v1/sessions/${sid}/chat`,
           { method: "POST", body: JSON.stringify({ text, ...ctx }) },
@@ -253,10 +257,15 @@ export function useVoiceSession(sessionId: string | null) {
         // beatDone: açık uçlu adımda "bu adım tamam" (rubrik kabul etti ya da hak bitti)
         return {
           text: data.text,
+          // Dil etiketli parçalar SES İÇİN ŞART: bu alan düşürüldüğünde tüm LLM cevapları
+          // `enRuns(text)` yedeğine düşüp ana dil geri bildirimi İngilizce aksanla okunuyordu.
+          runs: data.runs,
           segmentDone: data.segmentDone === true,
           beatDone: data.beatDone === true,
           // Sunucu bu alanı yollamadıysa (ask/practice turları) deneme sayılır
           isAttempt: data.isAttempt !== false,
+          progress: data.progress,
+          newHits: data.newHits,
         };
       } catch (err) {
         if (gen === genRef.current) {

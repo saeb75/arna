@@ -17,7 +17,6 @@ module.exports = {
   card: "#ffffff", // balon, giriş, şık, sıralama kutucuğu
   surface: "#eeedf5", // pil, yüzen kart, sekme barı
   nodeIdle: "#e2e1ea", // başlanmamış düğüm, ilerleme rayı, kilitli mikrofon
-  track: "#cfcdd9", // yolun henüz yürünmemiş kısmı (noktalı eğri) — nodeIdle zeminde kayboluyordu
   border: "#e4e3ec", // çerçeve/ayraç — light'ta yüzeyler zeminden çizgiyle ayrılır
   foreground: "#15131f", // birincil metin
   muted: "#6b7280", // ikincil metin — gray-500 (gray-400 beyazda 2.5:1 kalıyordu)

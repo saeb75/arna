@@ -33,6 +33,8 @@ const envSchema = z.object({
   AZURE_SPEECH_REGION: z.string().optional(),
   /** Çok dilli ses adı; boşsa `en-US-AvaMultilingualNeural` */
   AZURE_SPEECH_VOICE: z.string().optional(),
+  /** Konuşma hızı (SSML prosody rate: "-10%", "0.9"); boşsa biraz yavaş varsayılan, "0" = doğal hız (etiket yok) */
+  AZURE_SPEECH_RATE: z.string().optional(),
 
   /** Virgülle ayrılmış izinli origin listesi */
   CORS_ORIGINS: z.string().default("http://localhost:6567"),

@@ -712,7 +712,8 @@ export class LessonSessionController {
     else if (awaiting === "practice") {
       this.store().set({
         hint: [
-          { lang: "l1", text: lesson.ui.labels.practiceHint },
+          // Chrome etiketi tutor diline göre: english modda bu etiket İngilizce'dir
+          { lang: lesson.tutorLanguage === "native" ? ("l1" as const) : ("en" as const), text: lesson.ui.labels.practiceHint },
           ...lesson.practice.mustUse.map((m) => ({ lang: "en" as const, text: m, emphasis: true })),
         ],
       });

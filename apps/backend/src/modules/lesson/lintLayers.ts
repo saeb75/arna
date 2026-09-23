@@ -277,7 +277,7 @@ export function lintScenes(set: SceneSet, ctx: LayerLintContext): LintReport {
  * 2. Stopword oranı yüksek — Latin yazılı ama İngilizce olmayan diller
  *    (Endonezce, Türkçe) "the/and/is" kullanmaz.
  */
-const EN_STOPWORDS = new Set([
+export const EN_STOPWORDS = new Set([
   "the", "and", "is", "are", "you", "to", "of", "for", "with", "that", "this", "it", "in", "we", "use",
 ]);
 function looksEnglish(text: string): { english: boolean; detail: string } {

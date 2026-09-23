@@ -219,6 +219,8 @@ export default async function sessionRoutes(app: FastifyInstance) {
         return reply.code(400).send({ error: "invalid_input" });
       }
       try {
+        // Eski `{text}` gövdesi İNGİLİZCE sayılır (geçiş uyumu; web/mobil artık kullanmıyor).
+        // Ana dil metni bu yoldan gelirse İngilizce aksanla okunur — yeni kod daima `runs` yollar.
         const runs = "runs" in body.data ? body.data.runs : [{ lang: "en" as const, text: body.data.text }];
         return await tts(request.userId, params.data.sessionId, runs);
       } catch (err) {

@@ -40,6 +40,7 @@ import {
 import { getChrome } from "../../i18n/index.js";
 import { completeJson, completeText } from "../llm/index.js";
 import { resolveActiveTts, resolveLanguage, synthesizeRunsToClips, TtsError, type CharAlignment, type TtsRun } from "../tts/index.js";
+import { refineRunsForInlineEnglish } from "../tts/inlineEnglish.js";
 import { ANSWER_REVIEW_VERSION, buildAnswerReviewPrompt } from "../llm/prompts/answer-review.v1.js";
 import { openaiClient } from "../llm/openai.js";
 import { resolveLesson, LayerError } from "../lesson/layers.js";
@@ -644,7 +645,7 @@ const openResponseVerdictSchema = z.object({
 /** Modelin dil kuralı — judge prompt'larına ortak eklenen blok. */
 function judgeLanguageRule(tutorLanguage: "native" | "english", l1Name: string): string {
   return tutorLanguage === "native"
-    ? `LANGUAGE: give feedback in warm, natural ${l1Name} ("l1" runs). The correct/model ENGLISH sentence goes in its OWN "en" run. Never say "you are wrong".`
+    ? `LANGUAGE: give feedback in warm, natural ${l1Name} ("l1" runs). The correct/model ENGLISH sentence goes in its OWN "en" run. This includes single English words you MENTION inside a ${l1Name} sentence (a pronoun, a verb form): each is its own "en" run, the ${l1Name} words around it stay "l1". Never say "you are wrong".`
     : `LANGUAGE: simple spoken English only — all runs use "en".`;
 }
 
@@ -1192,8 +1193,15 @@ export async function tts(
       console.warn(`[tts] "${native}" ${active.provider.name} kapsamı dışı — L1 parçaları sessiz bırakıldı`);
     }
 
+    // Tek-klip sağlayıcıda L1 düzyazının içindeki İngilizce anmalar ("am, is veya
+    // are'ı") çekirdek sözlüğüyle kendi `en` parçasına ayrılır → SSML'de doğru dil.
+    // Dil-başına-klip yolunda YAPILMAZ: mikro klipler prosodiyi parçalar.
+    const source = active.provider.synthesizeRuns
+      ? refineRunsForInlineEnglish(runs, owned.core, getChrome(native))
+      : runs;
+
     const coded: TtsRun[] = [];
-    for (const run of runs) {
+    for (const run of source) {
       const code = run.lang === "en" ? enCode : l1Code;
       if (code) coded.push({ languageCode: code, text: run.text });
     }

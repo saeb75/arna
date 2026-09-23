@@ -618,7 +618,10 @@ function exerciseInstruction(format: ExerciseFormat, chrome: ChromeBundle): stri
 
 export function assembleLesson(input: AssembleInput): LessonContentV7 {
   const { core, scene, pack, chrome } = input;
-  const native = pack !== null;
+  // Chrome paketi desteklenmeyen dilde sessizce İngilizce'ye düşer (getChrome). O zaman
+  // yönerge/etiket metinleri İngilizce'dir ve `l1` etiketi alırsa L1 sesiyle okunur —
+  // session/script.ts ile aynı koruma: chrome İngilizce ise native sayılmaz.
+  const native = pack !== null && chrome.language !== "en";
 
   // core_ref hedefleri: örnek kimlikleri → cümle, NOKTA kimlikleri → formEn.
   // formIds ayrı tutulur: kalıp+örnek bitişmesinde `:` yalnız KALIBA eklenir.

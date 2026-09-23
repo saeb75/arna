@@ -114,7 +114,7 @@ export default function RoleplayPage({ params }: { params: Promise<{ slug: strin
       setStage("play");
       // Açılış spec'ten gelir — LLM yok, deterministik. Ses bitince söz öğrencide.
       window.setTimeout(() => {
-        void voice.speak(res.opening, () => setAwaiting(true));
+        void voice.speak([{ lang: "en", text: res.opening }], () => setAwaiting(true));
       }, 200);
     } catch {
       toast.error("Oturum açılamadı");
@@ -139,7 +139,7 @@ export default function RoleplayPage({ params }: { params: Promise<{ slug: strin
           });
         }
         setBubbles((b) => [...b, { role: "assistant", text: res.text }]);
-        void voice.speak(res.runs ?? res.text, () => setAwaiting(true));
+        void voice.speak(res.runs?.length ? res.runs : [{ lang: "en", text: res.text }], () => setAwaiting(true));
       } catch {
         toast.error("Gönderilemedi");
         setAwaiting(true);

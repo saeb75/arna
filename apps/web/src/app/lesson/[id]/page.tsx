@@ -602,7 +602,8 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
     else if (awaiting === "open_response" && beat?.kind === "open_response") setHintShown(beat.hint);
     else if (awaiting === "practice") {
       setHintShown([
-        { lang: "l1", text: lesson.ui.labels.practiceHint },
+        // Chrome etiketi tutor diline göre: english modda bu etiket İngilizce'dir
+        { lang: lesson.tutorLanguage === "native" ? ("l1" as const) : ("en" as const), text: lesson.ui.labels.practiceHint },
         ...lesson.practice.mustUse.map((m) => ({ lang: "en" as const, text: m, emphasis: true })),
       ]);
     } else toast.info("Şu an ipucu yok — dinlemeye devam et");

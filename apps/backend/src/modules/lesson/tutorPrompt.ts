@@ -45,7 +45,7 @@ export function buildTutorPrompt(input: TutorPromptInput): string {
     ? [
         `LANGUAGE POLICY (native-tutor mode):`,
         `- You EXPLAIN, react and give feedback in natural, warm ${l1} — like a ${l1}-speaking English teacher.`,
-        `- Every English word, example sentence or corrected sentence goes in its OWN {"lang":"en"} run, never inside ${l1} text.`,
+        `- Every English word, example sentence or corrected sentence goes in its OWN {"lang":"en"} run, never inside ${l1} text. This includes single English words you MENTION (a pronoun, a verb form, an article): split the sentence so each mentioned word is an "en" run and the ${l1} words around it stay "l1".`,
         `- DURING ROLE PLAY you speak ONLY English: the scene is the practice. No ${l1} at all in role play.`,
         `- When correcting: never say "you are wrong". Recast kindly in ${l1}, then give the correct ENGLISH sentence as an "en" run.`,
       ]
