@@ -61,12 +61,13 @@ src/
 │       ├── lessons/page.tsx · lessons/[id]/page.tsx
 │       ├── users/page.tsx · users/[id]/page.tsx     # salt okunur; auth.users + profil + sayaçlar
 │       ├── sessions/page.tsx · sessions/[id]/page.tsx # bug avı: transkript + imleç + LLM çağrıları
-│       └── settings/page.tsx
+│       └── settings/            # /settings → /settings/voice; avatar/ ve voice/ AYRI sayfalar,
+│                                #   voice/[provider] sağlayıcı detayı (ses/model/önizleme)
 ├── api/index.ts            # TEK axios instance + JWT interceptor + errorCode()
 ├── services/               # AuthService, AdminLessonsService…
 ├── controllers/            # AuthController, LessonsController…
 ├── stores/                 # useAuthStore, useLessonsStore…
-├── screens/<ekran>/        # lessons/, lesson-detail/, users/, user-detail/, sessions/, session-detail/, settings/, login/, forbidden/
+├── screens/<ekran>/        # lessons/, lesson-detail/, users/, user-detail/, sessions/, session-detail/, settings/ (avatar+voice), tts-provider/, login/, forbidden/
 ├── components/ui/          # shadcn (dokunulmaz, CLI ile güncellenir)
 ├── components/shared/      # 2+ ekranda kullanılan: PanelShell, Sidebar, ErrorState…
 └── lib/                    # supabase.ts, labels.ts, motion.ts, saf yardımcılar

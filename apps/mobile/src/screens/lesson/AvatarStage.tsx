@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 import { AvatarBridge } from "../../lib/avatarBridge";
+import { useLessonSessionStore } from "../../stores/useLessonSessionStore";
 import colors from "../../../colors";
 import { SpeakingIndicator } from "./SpeakingIndicator";
 
@@ -16,7 +17,11 @@ import { SpeakingIndicator } from "./SpeakingIndicator";
  * gösterilir — avatar bir süs, ders onsuz da aynen çalışır.
  */
 export function AvatarStage({ speaking }: { speaking: boolean }) {
-  const url = process.env.EXPO_PUBLIC_AVATAR_URL;
+  const base = process.env.EXPO_PUBLIC_AVATAR_URL;
+  const avatarId = useLessonSessionStore((s) => s.avatarId);
+  // Aktif avatar YETKİLİ istemcide çözüldü (controller GET /v1/avatar) — embed
+  // sayfası auth'suz olduğundan kimlik URL parametresiyle taşınır.
+  const url = base ? `${base}${base.includes("?") ? "&" : "?"}avatar=${avatarId}` : undefined;
   const webviewRef = useRef<WebView>(null);
   const [failed, setFailed] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);

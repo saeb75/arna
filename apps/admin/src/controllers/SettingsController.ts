@@ -1,4 +1,4 @@
-import type { AdminTtsPreviewBody, TtsProvider, TtsProviderConfig } from "@glotmate/contracts";
+import type { AdminTtsPreviewBody, AvatarId, TtsProvider, TtsProviderConfig } from "@glotmate/contracts";
 import { toast } from "sonner";
 import { errorCode } from "@/api";
 import { errorLabel, PROVIDER_LABEL } from "@/lib/labels";
@@ -16,11 +16,43 @@ export class SettingsController {
     const store = useSettingsStore.getState();
     store.setLoading(true);
     try {
-      store.setData(await AdminSettingsService.fetchTts());
+      const [tts, avatar] = await Promise.all([
+        AdminSettingsService.fetchTts(),
+        AdminSettingsService.fetchAvatar(),
+      ]);
+      store.setData(tts);
+      store.setAvatarData(avatar);
     } catch (err) {
       store.setError(errorCode(err));
     } finally {
       store.setLoading(false);
+    }
+  }
+
+  static setAvatar(activeId: AvatarId): void {
+    const store = useSettingsStore.getState();
+    store.setAvatarDraft({ activeId });
+  }
+
+  static resetAvatarDraft(): void {
+    const store = useSettingsStore.getState();
+    if (store.avatarData) store.setAvatarDraft(store.avatarData.settings);
+  }
+
+  static async saveAvatar(): Promise<void> {
+    const store = useSettingsStore.getState();
+    const draft = store.avatarDraft;
+    if (!draft) return;
+    store.setAvatarSaving(true);
+    try {
+      const data = await AdminSettingsService.saveAvatar(draft);
+      store.setAvatarData(data);
+      const label = data.avatars.find((a) => a.id === data.settings.activeId)?.label ?? data.settings.activeId;
+      toast.success(`Saved · active avatar: ${label}`);
+    } catch (err) {
+      toast.error(errorLabel(errorCode(err)));
+    } finally {
+      store.setAvatarSaving(false);
     }
   }
 

@@ -24,17 +24,15 @@ import {
   isSpeaking,
   type Timeline,
 } from "@/lib/viseme";
-import { VISEME_TO_ARKIT } from "@/lib/arkitVisemes";
+import type { AvatarProfile } from "@/lib/avatarProfiles";
 
 // Draco decoder yerelden servis edilir (drei'nin varsayılanı gstatic CDN'i);
 // tüm useGLTF çağrılarında aynı path kullanılmalı ki loader tutarlı kalsın
 const DRACO_PATH = "/draco/";
-useGLTF.preload("/fatman.glb", DRACO_PATH);
 
 type SceneProps = {
-  avatarUrl: string;
-  animationUrl: string;
-  animate: boolean;
+  /** Avatarın sahneye bakan TÜM bilgisi — kemik/morph eşlemeleri, kadraj, poz (bkz. lib/avatarProfiles) */
+  profile: AvatarProfile;
   timeline: Timeline | null;
   // Oynatma saati: ses çalıyorsa currentTime, sessiz önizlemedeyse geçen süre, yoksa null (idle)
   getTime: () => number | null;
@@ -92,12 +90,23 @@ const REST_AIM: Array<[string, string, [number, number, number]]> = [
  * yerine kemiğin mevcut dünya yönünü ölçüp hedef yöne çeviren dönüşü hesaplar —
  * böylece rig'in eksen düzeninden bağımsız çalışır ve tekrar uygulanabilir.
  */
-function applyRestPose(scene: THREE.Object3D) {
+function applyRestPose(
+  scene: THREE.Object3D,
+  restAim: Array<[string, string, [number, number, number]]>,
+  flatArm: boolean,
+  resetToBind: boolean,
+) {
   // Poz HER ZAMAN bind pozundan kurulur: aynı sahne nesnesi useGLTF
   // önbelleğinden tekrar gelebilir, burulma adımı ise ölçüme dayanır — sıfırlama
   // olmadan ikinci çağrı pozu kolun üstüne bindirirdi.
-  const skeleton = findSkeleton(scene);
-  if (skeleton) skeleton.pose();
+  // CC (cm tabanlı, 0.01 ölçekli Armature) rig'inde skeleton.pose() bind
+  // ölçeğini İKİNCİ kez uygulayıp karakteri 100 kat küçültüyordu (canlıda
+  // 1.7 cm'lik model — kadraj boş kaldı). CC yolu bind'e sıfırlamaz: model
+  // zaten bind pozunda gelir, ölçülü-nişan mevcut duruştan da yakınsar.
+  if (resetToBind) {
+    const skeleton = findSkeleton(scene);
+    if (skeleton) skeleton.pose();
+  }
   scene.updateMatrixWorld(true);
 
   const from = new THREE.Vector3();
@@ -108,7 +117,7 @@ function applyRestPose(scene: THREE.Object3D) {
   const parentQ = new THREE.Quaternion();
   const boneQ = new THREE.Quaternion();
 
-  for (const [boneName, childName, dir] of REST_AIM) {
+  for (const [boneName, childName, dir] of restAim) {
     const bone = scene.getObjectByName(boneName);
     const child = scene.getObjectByName(childName);
     if (!bone || !child || !bone.parent) continue;
@@ -127,7 +136,7 @@ function applyRestPose(scene: THREE.Object3D) {
     bone.quaternion.copy(parentQ.invert().multiply(rot.multiply(boneQ)));
   }
   scene.updateMatrixWorld(true);
-  applyFlatArmRest(scene);
+  if (flatArm) applyFlatArmRest(scene); // ARP düz-kardeş hiyerarşisine özgü elle FK
 }
 
 // Kolun duruşu: dikeyden gövdeden DIŞA açı + ÖNE salınım. Şişman karakterde
@@ -376,7 +385,6 @@ type BoneName = (typeof BONE_NAMES)[number];
 // poz değiştirmeyi istemedi; tek poz sabit tutulur, canlılığı nefes/salınım/
 // bakış katmanları verir. (Birden çok ad verilirse aralarında yumuşak geçişli
 // döngü kurulur; ilki bones memo'sundaki bake ile aynı olmalı.)
-const TEACHER_POSES = ["Pose_19"];
 const POSE_FADE = 0.9; // pozlar arası geçiş süresi (s)
 
 // aimFace scratch'leri — her frame alloc yapmamak için
@@ -452,42 +460,40 @@ function prepareClip(source: THREE.AnimationClip, scene: THREE.Object3D): THREE.
 }
 
 function Avatar({
-  url,
-  animationUrl,
-  animate,
+  profile,
   timeline,
   getTime,
   getLevel,
   greet,
   onHead,
 }: {
-  url: string;
-  animationUrl: string;
-  animate: boolean;
+  profile: AvatarProfile;
   timeline: Timeline | null;
   getTime: () => number | null;
   getLevel: () => number | null;
   greet?: boolean;
   onHead: (pos: THREE.Vector3) => void;
 }) {
-  const { scene, animations } = useGLTF(url, DRACO_PATH);
-  const fbx = useFBX(animationUrl);
+  const { scene, animations } = useGLTF(profile.modelUrl, DRACO_PATH);
+  const fbx = useFBX(profile.animationUrl);
   const gl = useThree((s) => s.gl);
+  // idle.fbx yolu şimdilik tüm profillerde kapalı (eski `animate` prop'u hep false geliyordu)
+  const animate = false;
 
-  // Kendi poz klipleri olan model (Fat Man): bind pose T-pose'dur, doğal duruş
-  // kliplerden birinde. Mevcut diğer avatarlarda hiç animasyon yok.
-  const ownPose = animations.length > 0;
+  // Poz modeli olup olmadığını PROFİL söyler, klip varlığı DEĞİL: Emma'nın
+  // gömülü "Default" klipleri poz sanılıp Fat Man dalına girmesin (canlı tuzak).
+  const ownPose = profile.poseClips.length > 0 && animations.length > 0;
 
   // Morph adı -> onu barındıran tüm mesh/index çiftleri (yüz birkaç mesh'e bölünmüş olabilir)
   const morphMap = useMemo(() => {
-    const map = new Map<string, Array<[THREE.Mesh, number]>>();
+    const map = new Map<string, Array<[THREE.Mesh, number, number]>>();
     scene.traverse((obj) => {
       const mesh = obj as THREE.Mesh;
       if (!mesh.isMesh || !mesh.morphTargetDictionary || !mesh.morphTargetInfluences) return;
       for (const [name, idx] of Object.entries(mesh.morphTargetDictionary)) {
         const list = map.get(name);
-        if (list) list.push([mesh, idx]);
-        else map.set(name, [[mesh, idx]]);
+        if (list) list.push([mesh, idx, 1]);
+        else map.set(name, [[mesh, idx, 1]]);
       }
     });
     // Bazı üreticiler Oculus viseme'lerini önek olmadan adlandırır ("viseme_aa"
@@ -520,15 +526,27 @@ function Avatar({
         }
       }
     }
+    // Profil köprüsü: motorun kanonik adları (jawOpen, eyeBlinkLeft, eyeLook*…)
+    // rig'in gerçek morph'larına AĞIRLIKLI bağlanır — downstream addGoal
+    // çağrıları hiçbir şeyden habersiz çalışır (ör. Emma: mouthFunnel → 4 çeyrek
+    // Mouth_Funnel_*). Modelde kanonik ad zaten varsa profil karışmaz.
+    for (const [canonical, targets] of Object.entries(profile.morphAliases)) {
+      if (map.has(canonical)) continue;
+      const entries: Array<[THREE.Mesh, number, number]> = [];
+      for (const [real, weight] of Object.entries(targets)) {
+        for (const [mesh, idx] of map.get(real) ?? []) entries.push([mesh, idx, weight]);
+      }
+      if (entries.length) map.set(canonical, entries);
+    }
     return map;
-  }, [scene]);
+  }, [scene, profile]);
 
   const setMorph = useCallback(
     (name: string, value: number) => {
       const list = morphMap.get(name);
       if (!list) return;
       const v = Math.min(1, Math.max(0, value));
-      for (const [mesh, idx] of list) mesh.morphTargetInfluences![idx] = v;
+      for (const [mesh, idx, scale] of list) mesh.morphTargetInfluences![idx] = v * scale;
     },
     [morphMap],
   );
@@ -552,7 +570,11 @@ function Avatar({
     () => morphMap.has("viseme_aa") || morphMap.has("viseme_PP"),
     [morphMap],
   );
-  const hasJoy = useMemo(() => morphMap.has("Joy"), [morphMap]);
+  // Tüm-yüz duygu morph'u profilden (Fat Man "Joy"); modelde yoksa katman kapalı
+  const emotionMorph = useMemo(
+    () => (profile.emotionMorph && morphMap.has(profile.emotionMorph) ? profile.emotionMorph : null),
+    [morphMap, profile],
+  );
 
   // Kalite geçişi: gölgeler, yakın planda morph'lu mesh'in culling'i, doku
   // keskinliği ve ortam haritası şiddeti. doubleSided materyalde gölge acne'si
@@ -586,7 +608,7 @@ function Avatar({
   // memo'su pozu yeniden bake eder (deps'i bunun üst kümesi, sıra garanti).
   const face = useMemo(() => {
     if (!ownPose) return null;
-    const headB = scene.getObjectByName("headx");
+    const headB = scene.getObjectByName(profile.headBone);
     if (!headB) return null;
     let skeleton: THREE.Skeleton | null = null;
     scene.traverse((o) => {
@@ -599,7 +621,7 @@ function Avatar({
     const qBind = headB.getWorldQuaternion(new THREE.Quaternion());
     const fwdLocal = new THREE.Vector3(0, 0, 1).applyQuaternion(qBind.invert());
     return { fwdLocal };
-  }, [scene, ownPose]);
+  }, [scene, ownPose, profile.headBone]);
 
   const bones = useMemo(() => {
     // Duruş, idle hareketlerin bindirileceği temel açılar okunmadan önce
@@ -614,19 +636,20 @@ function Avatar({
       // olarak yakalanır. Mixer bilerek durdurulmaz: stop/uncache PropertyMixer
       // üzerinden orijinal T-pose'u geri yükleyebilir; örnekleme mutlak değer
       // yazdığından cache'li sahnede tekrar çalışması güvenlidir.
+      const wanted = profile.poseClips[0]!.toLowerCase();
       const poseClip =
-        animations.find((a) => /^pose_19$/i.test(a.name)) ??
+        animations.find((a) => a.name.toLowerCase() === wanted) ??
         animations.reduce((a, b) => (b.duration > a.duration ? b : a));
       const poser = new THREE.AnimationMixer(scene);
       poser.clipAction(poseClip).play();
       poser.update(poseClip.duration - 1e-3);
     } else {
-      applyRestPose(scene);
+      applyRestPose(scene, profile.restAim ?? REST_AIM, profile.flatArmRest, profile.rigMode !== "cc4");
     }
     scene.updateMatrixWorld(true);
     const found: Partial<Record<BoneName, BoneState>> = {};
     for (const name of BONE_NAMES) {
-      for (const alias of BONE_ALIASES[name]) {
+      for (const alias of profile.boneAliases[name]) {
         const bone = scene.getObjectByName(alias);
         if (bone) {
           found[name] = {
@@ -640,15 +663,28 @@ function Avatar({
       }
     }
     return found;
-  }, [scene, animations, ownPose, face]);
+  }, [scene, animations, ownPose, face, profile]);
 
   // Kol zincirleri dinlenme poz(u) bake edildikten SONRA yakalanır (bones memo'su
   // yapıyor); selamlama her kare bu poza sıfırlanıp yeniden kurulur.
   const arms = useMemo(() => {
     void bones;
-    return collectArms(scene);
-  }, [scene, bones]);
-  const greetArm = useMemo(() => arms.find((a) => a.sx === GREET_SIDE) ?? null, [arms]);
+    return profile.flatArmRest ? collectArms(scene) : []; // kol zinciri adları ARP'ye özgü
+  }, [scene, bones, profile.flatArmRest]);
+
+  // Çene kemiği (CC): dinlenme açısı duruş kurulduktan SONRA yakalanır; her kare
+  // dinlenmeden mutlak kurulur (drift imkânsız — Fat Man poz katmanıyla aynı ilke).
+  const jaw = useMemo(() => {
+    void bones;
+    if (!profile.jawBone) return null;
+    const bone = scene.getObjectByName(profile.jawBone.name);
+    if (!bone) return null;
+    return { bone, rest: bone.rotation.clone(), axis: profile.jawBone.axis, openRad: profile.jawBone.openRad };
+  }, [scene, bones, profile.jawBone]);
+  const greetArm = useMemo(
+    () => (profile.greetEnabled ? (arms.find((a) => a.sx === GREET_SIDE) ?? null) : null),
+    [arms, profile.greetEnabled],
+  );
 
 
   // Selam ders açılışında YALNIZCA BİR KEZ oynar: `greet` her konuşmada
@@ -729,7 +765,7 @@ function Avatar({
 
   useEffect(() => {
     if (!ownPose) return;
-    const clips = TEACHER_POSES.map((n) => animations.find((a) => a.name === n)).filter(
+    const clips = profile.poseClips.map((n) => animations.find((a) => a.name === n)).filter(
       (c): c is THREE.AnimationClip => Boolean(c),
     );
     if (!clips.length) return;
@@ -745,7 +781,7 @@ function Avatar({
       poseCycle.current = null;
       for (const a of actions) mixer.uncacheAction(a.getClip());
     };
-  }, [mixer, ownPose, animations]);
+  }, [mixer, ownPose, animations, profile.poseClips]);
 
   // Klibin sürdüğü kemikler — bunlara kendi salınımımı eklemem gerekmez
   const clipDriven = useMemo(
@@ -919,8 +955,8 @@ function Avatar({
       if (hasOculusVisemes) {
         addGoal(VISEME_MORPHS[i], w[i]);
       } else if (w[i] > 0.001) {
-        const combo = VISEME_TO_ARKIT[i];
-        for (const name in combo) addGoal(name, w[i] * combo[name]);
+        const combo = profile.visemeCombos[i]!;
+        for (const name in combo) addGoal(name, w[i] * combo[name]!);
       }
     }
 
@@ -928,8 +964,14 @@ function Avatar({
     // Çene açıklığı = viseme'in üst sınırı × sesin o anki enerjisi
     m.jaw += (jawGoal * unit - m.jaw) * (1 - Math.exp(-30 * dt));
     m.round += (roundGoal * shape - m.round) * (1 - Math.exp(-20 * dt));
-    addGoal("jawOpen", m.jaw);
+    addGoal("jawOpen", m.jaw); // morph'suz rig'de alias yok → zararsız no-op
     addGoal("mouthFunnel", m.round);
+    if (jaw) {
+      // Kemik çene: dişler ve dil gerçekten açılır (CC'de Jaw_Open morph'u boş)
+      const r = jaw.rest;
+      jaw.bone.rotation.set(r.x, r.y, r.z);
+      jaw.bone.rotation[jaw.axis] += jaw.openRad * m.jaw;
+    }
 
     // ---- Onaylama başı sallaması: yalnızca dinlerken. Konuşurken hiç darbe
     // verilmez, çünkü vurgu sallamaları konuşmayı sarsıntılı gösteriyordu.
@@ -1018,8 +1060,8 @@ function Avatar({
     // duygu morph'u varsa ana yükü o taşır, ağız-bölgesi morph'ları yarıya iner
     // (Joy ≤ ~0.16 kalmalı, yoksa visemelerle çatışır).
     const smile = 0.09 + 0.03 * Math.max(0, wobble(clock, 5.5));
-    const smileOut = hasJoy ? smile * 0.5 : smile;
-    if (hasJoy) addGoal("Joy", 0.12 + 0.04 * Math.max(0, wobble(clock, 5.5)));
+    const smileOut = emotionMorph ? smile * 0.5 : smile;
+    if (emotionMorph) addGoal(emotionMorph, 0.12 + 0.04 * Math.max(0, wobble(clock, 5.5)));
     addGoal("mouthSmile", smileOut);
     addGoal("mouthSmileLeft", smileOut);
     addGoal("mouthSmileRight", smileOut);
@@ -1113,7 +1155,7 @@ class LoadBoundary extends Component<{ resetKey: string; children: ReactNode }, 
     if (this.state.error) {
       return (
         <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center text-sm text-red-300">
-          <p>{"Avatar yüklenemedi — .glb yolunu/URL'sini kontrol et (varsayılan: /avatar.glb)."}</p>
+          <p>{"Avatar yüklenemedi — profil model URL'sini kontrol et."}</p>
           <p className="text-xs text-red-400/70">({this.state.error})</p>
         </div>
       );
@@ -1200,42 +1242,31 @@ function StudioEnvironment() {
 // önce kutu 3:4 dikeyken bu mesafe denenmiş ve ±0,26 m'de dirsekler kenardan
 // taşmış, selamlarken el (x ≈ 0,33) yarısı ekran dışında kalmıştı. Kutuyu
 // dikeye çeviren biri bu sabitleri de geri almalı.
-const FRAMING_DISTANCE = 1.36;
-// Kadraj merkezinin kafa kemiğinden SAPMASI (aşağı +). Göğüs kadrajında
-// merkez kafanın tam hizası: 0. Sabit duruyor çünkü başka bir avatarın
-// duruşu (kafayı öne eğen poz) yeniden ayar isteyebilir.
-const FRAMING_DROP = 0;
-
-function HeadFraming({ head }: { head: THREE.Vector3 | null }) {
+// (Sabitler artık profilde: framing.distance / framing.drop — avatar başına ayar.)
+function HeadFraming({ head, framing }: { head: THREE.Vector3 | null; framing: AvatarProfile["framing"] }) {
   const camera = useThree((s) => s.camera);
   useEffect(() => {
     if (head == null) return;
-    camera.position.set(head.x, head.y - FRAMING_DROP, head.z + FRAMING_DISTANCE);
-    camera.lookAt(head.x, head.y - FRAMING_DROP, head.z);
-  }, [head, camera]);
+    camera.position.set(head.x, head.y - framing.drop, head.z + framing.distance);
+    camera.lookAt(head.x, head.y - framing.drop, head.z);
+  }, [head, camera, framing]);
   return null;
 }
 
-export default function AvatarScene({
-  avatarUrl,
-  animationUrl,
-  animate,
-  timeline,
-  getTime,
-  getLevel,
-  greet,
-}: SceneProps) {
+export default function AvatarScene({ profile, timeline, getTime, getLevel, greet }: SceneProps) {
   const [head, setHead] = useState<THREE.Vector3 | null>(null);
 
   // Avatar değiştiğinde eski kadraj değerini bırak, yenisi ölçülene kadar bekle
-  useEffect(() => setHead(null), [avatarUrl]);
+  useEffect(() => setHead(null), [profile.modelUrl]);
+  // Preload artık modül yüklemesinde değil profile göre (eskiden /fatman.glb gömülüydü)
+  useMemo(() => useGLTF.preload(profile.modelUrl, DRACO_PATH), [profile.modelUrl]);
 
   return (
-    <LoadBoundary resetKey={avatarUrl}>
-      {/* Başlangıç kamerası ölçüm gelene kadar geçerli — HeadFraming'in Fat Man
-          için hesapladığı yere yakın dursun ki ilk karede sıçrama olmasın */}
+    <LoadBoundary resetKey={profile.modelUrl}>
+      {/* Başlangıç kamerası ölçüm gelene kadar geçerli — profilin bilinen kafa
+          yüksekliğine yakın dursun ki ilk karede sıçrama olmasın */}
       <Canvas
-        camera={{ position: [0, 1.59, 1.36], fov: 28 }}
+        camera={{ position: [0, profile.framing.initialHeadY, profile.framing.distance], fov: 28 }}
         dpr={2}
         shadows
         gl={{ antialias: false, powerPreference: "high-performance" }}
@@ -1264,10 +1295,8 @@ export default function AvatarScene({
         <ambientLight intensity={0.3} />
         <Suspense fallback={null}>
           <Avatar
-            key={avatarUrl}
-            url={avatarUrl}
-            animationUrl={animationUrl}
-            animate={animate}
+            key={profile.modelUrl}
+            profile={profile}
             timeline={timeline}
             getTime={getTime}
             getLevel={getLevel}
@@ -1276,7 +1305,7 @@ export default function AvatarScene({
           />
         </Suspense>
         <ContactShadows position={[0, 0.001, 0]} opacity={0.5} scale={3} blur={2.6} far={1.5} resolution={1024} color="#06060f" />
-        <HeadFraming head={head} />
+        <HeadFraming head={head} framing={profile.framing} />
         <EffectComposer multisampling={8}>
           <N8AO aoRadius={0.18} intensity={1.2} distanceFalloff={0.6} quality="high" halfRes={false} color="black" />
           <Bloom mipmapBlur intensity={0.18} luminanceThreshold={0.9} luminanceSmoothing={0.2} />

@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import type { AvatarCommand, AvatarEvent } from "@glotmate/contracts";
 import AvatarScene from "@/components/AvatarScene";
+import { resolveAvatarProfile } from "@/lib/avatarProfiles";
 import { createClipPlayer, type ClipPlayer } from "@/lib/clipPlayer";
 import { alignmentToLine } from "@/lib/alignment";
 import { buildTimeline, isSpeaking, type Timeline } from "@/lib/viseme";
@@ -33,6 +34,11 @@ function post(event: AvatarEvent): void {
 }
 
 export default function AvatarEmbed() {
+  // RN, WebView URL'ine ?avatar=<id> ekler (aktif kimliği YETKİLİ istemci çözer;
+  // bu sayfa auth'suz kalır — parametre sır değil, bilinmeyen id Fat Man'e düşer).
+  const [profile] = useState(() =>
+    resolveAvatarProfile(typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("avatar")),
+  );
   const playerRef = useRef<ClipPlayer | null>(null);
   const [timeline, setTimeline] = useState<Timeline | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -120,9 +126,7 @@ export default function AvatarEmbed() {
   return (
     <div className="h-dvh w-full">
       <AvatarScene
-        avatarUrl="/fatman.glb"
-        animationUrl="/idle.fbx"
-        animate={false}
+        profile={profile}
         timeline={timeline}
         getTime={getTime}
         getLevel={getLevel}

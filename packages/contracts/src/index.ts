@@ -423,5 +423,6 @@ export * from "./checkpoint.js";
 export * from "./answerReview.js";
 export * from "./roleplay.js";
 export * from "./avatarProtocol.js";
+export * from "./avatars.js";
 export * from "./sessionResume.js";
 export * from "./admin.js";

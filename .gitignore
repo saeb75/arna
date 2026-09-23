@@ -112,3 +112,6 @@ apps/backend/tmp/
 
 # --- Nested repo devre disi (EAS monorepo tespiti icin) ---
 apps/mobile/.git.disabled/
+
+# Avatar kaynak varlıkları git dışı — prod hedefi R2/CDN (392MB kaynak asla commit edilmez)
+docs/*.glb

@@ -12,6 +12,7 @@ import healthRoutes from "./modules/health/routes.js";
 import lessonRoutes from "./modules/lesson/routes.js";
 import onboardingRoutes from "./modules/onboarding/routes.js";
 import curriculumRoutes from "./modules/curriculum/routes.js";
+import avatarRoutes from "./modules/avatar/routes.js";
 import sessionRoutes from "./modules/session/routes.js";
 import roleplayRoutes from "./modules/roleplay/routes.js";
 import adminRoutes from "./modules/admin/routes.js";
@@ -55,6 +56,7 @@ export async function buildApp() {
   await app.register(lessonRoutes, { prefix: "/v1" });
   await app.register(sessionRoutes, { prefix: "/v1" });
   await app.register(roleplayRoutes, { prefix: "/v1" });
+  await app.register(avatarRoutes, { prefix: "/v1" });
   await app.register(adminRoutes, { prefix: "/v1" });
 
   return app;

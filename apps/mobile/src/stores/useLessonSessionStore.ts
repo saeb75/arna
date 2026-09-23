@@ -47,6 +47,8 @@ interface LessonSessionState {
   loadError: string | null;
   /** Açık oturum varsa devam paketi — kart "Devam et / Baştan başla" gösterir */
   resume: LessonResume | null;
+  /** Admin'in seçtiği aktif avatar — AvatarStage WebView URL'ine ?avatar= ekler */
+  avatarId: string;
 
   started: boolean;
   phase: SessionPhase;
@@ -100,6 +102,7 @@ const initial = {
   script: null,
   loadError: null,
   resume: null as LessonResume | null,
+  avatarId: "fatman",
   started: false,
   phase: "lecture" as SessionPhase,
   beatIndex: 0,

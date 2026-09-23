@@ -258,14 +258,17 @@ export class LessonSessionController {
     store.set({ catalogLessonId });
     await VoiceService.init();
     try {
-      const [lessonRes, resumeRes] = await Promise.all([
+      const [lessonRes, resumeRes, avatarRes] = await Promise.all([
         api.get(`/v1/lessons/${catalogLessonId}`),
         // Devam sorgusu düşerse ders yine açılır — sadece "Devam et" sunulmaz
         api.get(`/v1/lessons/${catalogLessonId}/resume`).catch(() => null),
+        // Aktif avatar (admin ayarı) — düşerse varsayılan fatman kalır
+        api.get(`/v1/avatar`).catch(() => null),
       ]);
       const { lesson } = lessonRes.data as { lesson: LessonContentV7 };
       const resume = (resumeRes?.data as { resume: LessonResume | null } | undefined)?.resume ?? null;
-      this.store().set({ lesson, resume });
+      const avatarId = (avatarRes?.data as { activeId?: string } | undefined)?.activeId ?? "fatman";
+      this.store().set({ lesson, resume, avatarId });
     } catch (err) {
       this.store().set({ loadError: errorCode(err) });
     }

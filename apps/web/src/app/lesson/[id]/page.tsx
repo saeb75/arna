@@ -36,6 +36,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { api } from "@/lib/api";
+import { AVATAR_PROFILES, DEFAULT_AVATAR_ID, type AvatarProfile } from "@/lib/avatarProfiles";
 import { useVoiceSession } from "@/hooks/useVoiceSession";
 
 const AvatarScene = dynamic(() => import("@/components/AvatarScene"), { ssr: false });
@@ -216,6 +217,25 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
    */
   const pendingInputRef = useRef<string | null>(null);
   const enteredRef = useRef<string | null>(null);
+
+  // Aktif avatar admin ayarindan (app_settings.avatar) — hata/gecikmede Fat Man:
+  // ders avatar ayarini BEKLEMEZ, yanlis avatarla acilmaktansa varsayilanla acilir.
+  const [avatarProfile, setAvatarProfile] = useState<AvatarProfile>(AVATAR_PROFILES[DEFAULT_AVATAR_ID]);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const { activeId } = await api<{ activeId: string }>("/v1/avatar");
+        const p = AVATAR_PROFILES[activeId as keyof typeof AVATAR_PROFILES];
+        if (alive && p) setAvatarProfile(p);
+      } catch {
+        /* varsayilan kalir */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // --- ders içeriğini getir -------------------------------------------------
   useEffect(() => {
@@ -709,9 +729,7 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
       <div className="relative flex shrink-0 justify-center bg-gradient-to-b from-indigo-950 to-neutral-900 py-3">
         <div className="aspect-[4/3] h-[34dvh] max-w-full overflow-hidden rounded-2xl ring-1 ring-white/10">
           <AvatarScene
-            avatarUrl="/fatman.glb"
-            animationUrl="/idle.fbx"
-            animate={false}
+            profile={avatarProfile}
             timeline={timeline}
             getTime={getTime}
             getLevel={getLevel}

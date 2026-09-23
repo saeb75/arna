@@ -1,9 +1,12 @@
 import {
+  adminAvatarSettingsResponseSchema,
   adminTtsPreviewResponseSchema,
   adminTtsSettingsResponseSchema,
   type AdminTtsPreviewBody,
   type AdminTtsPreviewResponse,
+  type AdminAvatarSettingsResponse,
   type AdminTtsSettingsResponse,
+  type AvatarSettings,
   type TtsSettings,
 } from "@glotmate/contracts";
 import { api } from "@/api";
@@ -27,5 +30,15 @@ export class AdminSettingsService {
   static async previewTts(body: AdminTtsPreviewBody): Promise<AdminTtsPreviewResponse> {
     const res = await api.post("/v1/admin/settings/tts/preview", body);
     return adminTtsPreviewResponseSchema.parse(res.data);
+  }
+
+  static async fetchAvatar(): Promise<AdminAvatarSettingsResponse> {
+    const res = await api.get("/v1/admin/settings/avatar");
+    return adminAvatarSettingsResponseSchema.parse(res.data);
+  }
+
+  static async saveAvatar(settings: AvatarSettings): Promise<AdminAvatarSettingsResponse> {
+    const res = await api.put("/v1/admin/settings/avatar", settings);
+    return adminAvatarSettingsResponseSchema.parse(res.data);
   }
 }

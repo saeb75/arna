@@ -1,4 +1,7 @@
 import {
+  AVATAR_IDS,
+  AVATAR_LABELS,
+  avatarSettingsSchema,
   adminCoreBodySchema,
   adminSessionsQuerySchema,
   adminTtsPreviewBodySchema,
@@ -8,6 +11,7 @@ import {
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { buildTtsSettingsResponse, previewTts, TtsError, updateTtsSettings } from "../tts/index.js";
+import { getAvatarSettings, saveAvatarSettings } from "../avatar/settings.js";
 import { AdminError, getAdminLessonDetail, getAdminLessonMatrix } from "./queries.js";
 import { getAdminUserDetail, getAdminUsers } from "./users.js";
 import { getAdminSessionDetail, getAdminSessions } from "./sessions.js";
@@ -184,6 +188,27 @@ export default async function adminRoutes(app: FastifyInstance) {
     } catch (err) {
       return sendTtsError(reply, err);
     }
+  });
+
+  // --- Ayarlar: Avatar (tts deseninin aynası; kayıt listesi koddan gelir) ------
+  app.get("/admin/settings/avatar", { preHandler: app.requireAdmin }, async () => {
+    const stored = await getAvatarSettings();
+    return {
+      settings: stored.settings,
+      avatars: AVATAR_IDS.map((id) => ({ id, label: AVATAR_LABELS[id] })),
+      updatedAt: stored.updatedAt,
+    };
+  });
+
+  app.put("/admin/settings/avatar", { preHandler: app.requireAdmin }, async (request, reply) => {
+    const body = avatarSettingsSchema.safeParse(request.body);
+    if (!body.success) return reply.code(400).send({ error: "invalid_input" });
+    const stored = await saveAvatarSettings(body.data, request.userId ?? null);
+    return {
+      settings: stored.settings,
+      avatars: AVATAR_IDS.map((id) => ({ id, label: AVATAR_LABELS[id] })),
+      updatedAt: stored.updatedAt,
+    };
   });
 
   // Kaydetmeden dinleme — gerçek sağlayıcı çağrısı, önbellek yok; kötüye kullanım için düşük tavan
