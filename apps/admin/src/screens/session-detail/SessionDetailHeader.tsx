@@ -8,8 +8,17 @@ import { Badge } from "@/components/ui/badge";
 import { PHASE_LABEL, SESSION_KIND_LABEL, TRACK_LABEL, TUTOR_LANGUAGE_LABEL, formatDateTime, formatDuration } from "@/lib/labels";
 import { fadeUp } from "@/lib/motion";
 
-export function SessionDetailHeader({ session: s, layers }: { session: AdminSessionDetail["session"]; layers: AdminSessionDetail["layers"] }) {
-  const title = s.lessonTitle ?? s.roleplayId ?? "Untitled session";
+export function SessionDetailHeader({
+  session: s,
+  layers,
+  roleplay,
+}: {
+  session: AdminSessionDetail["session"];
+  layers: AdminSessionDetail["layers"];
+  roleplay: AdminSessionDetail["roleplay"];
+}) {
+  const title = s.lessonTitle ?? roleplay?.title ?? s.roleplayId ?? "Untitled session";
+  const href = s.catalogLessonId ? `/lessons/${s.catalogLessonId}` : roleplay ? `/roleplays/${roleplay.roleplayId}` : s.roleplayId ? `/roleplays/${s.roleplayId}` : null;
   return (
     <motion.header variants={fadeUp} initial="hidden" animate="show" className="flex flex-col gap-3">
       <Link href="/sessions" className="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
@@ -24,12 +33,14 @@ export function SessionDetailHeader({ session: s, layers }: { session: AdminSess
             {s.phase && <span className="text-xs text-muted-foreground">{PHASE_LABEL[s.phase]}{s.awaiting ? ` · awaiting ${s.awaiting}` : ""}</span>}
           </div>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-            {s.catalogLessonId ? (
-              <Link href={`/lessons/${s.catalogLessonId}`} className="hover:underline">{title}</Link>
+            {href ? (
+              <Link href={href} className="hover:underline">{title}</Link>
             ) : (
               title
             )}
-            {s.level && <span className="ml-2 font-mono text-base text-muted-foreground">{s.level}</span>}
+            {(s.level ?? roleplay?.playedLevel) && (
+              <span className="ml-2 font-mono text-base text-muted-foreground">{s.level ?? roleplay?.playedLevel}</span>
+            )}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             <Link href={`/users/${s.userId}`} className="font-medium text-foreground hover:underline">

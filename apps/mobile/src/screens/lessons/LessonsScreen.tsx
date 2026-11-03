@@ -1,9 +1,17 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { FlatList, Pressable, Text, View } from "react-native";
+import { FlatList, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { QuotaBanner } from "../../components/shared/QuotaBanner";
+import { FadeFill } from "../../components/ui/FadeFill";
+import { LoadFailed } from "../../components/ui/LoadFailed";
+import { Skeleton } from "../../components/ui/Skeleton";
 import { CurriculumController } from "../../controllers/CurriculumController";
-import { useCurriculumStore } from "../../stores/useCurriculumStore";
+import { MeController } from "../../controllers/MeController";
+import { PaywallController } from "../../controllers/PaywallController";
+import { usePro } from "../../hooks/usePro";
+import { useQuota } from "../../hooks/useQuota";
+import { tr } from "../../i18n/tr";
 import {
   buildPathRows,
   indexAtOffset,
@@ -14,157 +22,212 @@ import {
   type PathContext,
   type PathRow,
 } from "../../lib/lessonPath";
-import { ContinueCard } from "./ContinueCard";
-import { LessonsHeader } from "./LessonsHeader";
+import { useCurriculumStore } from "../../stores/useCurriculumStore";
+import { useMeStore } from "../../stores/useMeStore";
+import { useTabBarSpace } from "../../theme/layout";
+import { useThemeColors } from "../../theme/useThemeColors";
+import { HomeHeader } from "./HomeHeader";
 import { LevelBanner } from "./LevelBanner";
-import { PathNode } from "./PathNode";
-import { UnitPill } from "./UnitPill";
+import { NodePopover } from "./NodePopover";
+import { PathNode, type NodeRect } from "./PathNode";
+import { TodayCard } from "./TodayCard";
+import { UnitCard } from "./UnitCard";
 
 /**
- * ANA EKRAN — MOBİL UI KURALI (kök karar): kategori/jargon YOK, düz ders yolu.
- * "beat/core/checkpoint" gibi iç terimler ekranda görünmez; ünite testi düğümü
- * "Ünite testi" der.
+ * ANA EKRAN — MOBİL UI KURALI: kategori/jargon YOK, düz ders yolu.
  *
- * Yerleşim: başlık (dil/seri pilleri + devam kartı) SABİT bir katman, ders yolu
- * onun ALTINDAN kayar — tasarımda kartın üst boşluğunda arkadaki ünite pili
- * görünüyor, yani başlık opak zemin taşımıyor.
+ * Yerleşim: üst katman (selam + seri + bugün kartı [+ kota]) SABİT; ders yolu
+ * onun ALTINDAN kayar. Yol (3 Kas 2026, kullanıcı kararı): her ünite soft 3D
+ * illüstrasyonlu kapak kartıyla açılır; altındaki düğümlerin YAPISI Duolingo'ya
+ * benzer (dudaklı düz düğümler yumuşak dalgada, etiket yok, dokununca kart),
+ * renkler bizim. Başlık yükseklikleri SABİT (52/84/52): yolun
+ * üst boşluğu = başlık yüksekliği olduğundan getItemLayout ölçüm beklemeden
+ * kaldığı düğüme açılır.
  */
 
-/** Sabit başlık katmanının yüksekliği + yolun ilk satırına bırakılan boşluk (pt) */
-const HEADER_H_WITH_CARD = 134;
-const HEADER_H_BARE = 62;
-/** Yüzen sekme barının içerikten çaldığı alan */
-const TAB_BAR_CLEARANCE = 110;
+const HEADER_TOP = 52;
+const CARD_H = 84;
+const QUOTA_H = 52;
+const GAP = 10;
 
 export function LessonsScreen() {
-  const { curriculum, error } = useCurriculumStore();
+  const colors = useThemeColors();
   const insets = useSafeAreaInsets();
+  const bottom = useTabBarSpace();
+  const { curriculum, error } = useCurriculumStore();
+  const me = useMeStore((s) => s.me);
+  const stats = useMeStore((s) => s.stats);
+  const pro = usePro();
+  const quota = useQuota();
 
-  // ODAKLANMADA tazele, mount'ta değil. Sekme ekranı, üstüne tam ekran ders ya
-  // da ünite testi itildiğinde SÖKÜLMÜYOR; `useEffect(…, [])` geri dönüşte
-  // yeniden koşmadığı için bitirilen ders yeşile dönmüyor, kazanılan rozet
-  // görünmüyordu. Bekleme ekranı yalnız elde hiç veri yokken çıktığından
-  // tazeleme göze çarpmaz.
+  // Sunumsal yerel durum: açık düğüm kartı (hangi satır, ekranda nerede)
+  const [popover, setPopover] = useState<{ row: PathRow; rect: NodeRect } | null>(null);
+
+  // ODAKLANMADA tazele: sekme ekranı üstüne ders itildiğinde sökülmüyor — dönüşte
+  // biten ders yeşile dönsün, kota ve bugünkü dakika güncellensin.
   useFocusEffect(
     useCallback(() => {
       void CurriculumController.getCurriculum();
+      void MeController.loadStats();
+      void MeController.load();
+      return () => setPopover(null); // ekrandan çıkınca açık kart kalmasın
     }, []),
   );
 
   const rows = useMemo<PathRow[]>(() => (curriculum ? buildPathRows(curriculum) : []), [curriculum]);
-
-  /** Satır yükseklikleri sabit → ölçüm beklemeden kaldığı düğüme kaydırabiliyoruz */
   const offsets = useMemo(() => rowOffsets(rows), [rows]);
-  /** Satır → o an geçerli seviye/ünite (başlık kartı kaydırmayı bununla izler) */
   const contexts = useMemo(() => rowContexts(rows), [rows]);
-
   const listRef = useRef<FlatList<PathRow>>(null);
-  // Sunumsal yerel durum (store kuralını bozmaz): kartta görünen bağlam.
-  // rowContexts ardışık satırlarda AYNI nesneyi paylaşır → referans kıyası
-  // yeter, kaydırma başına gereksiz render yok.
+  // Sunumsal yerel durum: kartta görünen bağlam (ardışık satırlar aynı nesneyi paylaşır)
   const [scrollCtx, setScrollCtx] = useState<PathContext | null>(null);
 
-  if (error) {
+  const showQuota = !!quota && quota.lessons === 0;
+  const headerH = HEADER_TOP + GAP + CARD_H + (showQuota ? GAP + QUOTA_H : 0) + 14;
+
+  if (error && !curriculum) {
     return (
-      <View className="flex-1 items-center justify-center gap-3 bg-background px-6">
-        <Text className="text-center text-sm text-danger">Dersler yüklenemedi ({error})</Text>
-        <Pressable onPress={() => void CurriculumController.getCurriculum()}>
-          <Text className="text-primary">Tekrar dene</Text>
-        </Pressable>
+      <View className="flex-1 justify-center bg-canvas px-6">
+        <LoadFailed onRetry={() => void CurriculumController.getCurriculum()} />
       </View>
     );
   }
 
-  // Yalnız ELDE VERİ YOKKEN tam ekran bekleme. Dersten dönünce müfredat yeniden
-  // çekiliyor; o anda listeyi söküp takmak hem ekranı yakıp söndürüyor hem de
-  // kullanıcının kaydırma konumunu sıfırlıyordu.
   if (!curriculum) {
     return (
-      <View className="flex-1 items-center justify-center bg-background">
-        <Text className="text-muted">Yükleniyor…</Text>
+      // Güvenli alan ÇALIŞMA ZAMANI değeri — gerekçeli inline stil
+      <View className="flex-1 gap-3 bg-canvas px-4" style={{ paddingTop: insets.top + 8 }}>
+        <Skeleton className="h-[52px] w-2/3 rounded-xl" />
+        <Skeleton className="h-[84px] rounded-3xl" />
+        <View className="items-center gap-10 pt-10">
+          <Skeleton className="size-24 rounded-full" />
+          <Skeleton className="size-24 -translate-x-12 rounded-full" />
+          <Skeleton className="size-24 rounded-full" />
+        </View>
       </View>
     );
   }
 
   const startIndex = initialRowIndex(rows, curriculum.level);
   const ctx = scrollCtx ?? contexts[startIndex] ?? null;
-  const headerH = ctx ? HEADER_H_WITH_CARD : HEADER_H_BARE;
+  const goal = me?.profile?.dailyGoalMinutes ?? 10;
 
   return (
-    <View className="flex-1 bg-background">
+    <View className="flex-1 bg-canvas">
       <FlatList
         ref={listRef}
         data={rows}
         keyExtractor={(row) => row.key}
         showsVerticalScrollIndicator={false}
-        // Güvenli alan ÇALIŞMA ZAMANI değeri — NativeWind sınıfıyla ifade edilemez
-        // (cihaza göre değişir), bu yüzden gerekçeli inline stil.
-        contentContainerStyle={{
-          paddingTop: insets.top + headerH,
-          paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
-        }}
-        getItemLayout={(_, index) => ({
-          length: rowHeight(rows[index]!),
-          offset: offsets[index] ?? 0,
-          index,
-        })}
+        // Güvenli alan + sabit başlık ÇALIŞMA ZAMANI değerleri — gerekçeli inline stil
+        contentContainerStyle={{ paddingTop: insets.top + headerH, paddingBottom: bottom }}
+        getItemLayout={(_, index) => ({ length: rowHeight(rows[index]!), offset: offsets[index] ?? 0, index })}
         initialScrollIndex={startIndex}
-        // getItemLayout sabit yüksekliklerle çalışıyor; yine de listeyi kilitleme
         onScrollToIndexFailed={() => {}}
-        // Başlık kartı kaydırmayı izler: paddingTop === başlık yüksekliği
-        // olduğundan başlığın hemen altındaki satır, satır-uzayında tam
-        // contentOffset.y konumundadır — ölçüm yok, ikili arama yeter.
+        // Başlığın hemen altındaki satır, satır-uzayında tam contentOffset.y konumunda
         scrollEventThrottle={32}
+        onScrollBeginDrag={() => setPopover(null)}
         onScroll={(e) => {
           const i = indexAtOffset(offsets, e.nativeEvent.contentOffset.y);
           const next = contexts[i];
           if (next) setScrollCtx((prev) => (prev === next ? prev : next));
         }}
-        // ~510 satırlık altı-seviye listesi derin initialScrollIndex ile açılıyor —
-        // pencereyi dar tut ki açılışta yol boyu her düğüm render edilmesin
         initialNumToRender={16}
         windowSize={11}
         renderItem={({ item }) =>
           item.kind === "level" ? (
             <LevelBanner level={item.level} label={item.label} state={item.state} />
           ) : item.kind === "unit" ? (
-            <UnitPill title={item.title} />
+            <UnitCard
+              level={item.level}
+              unitIndex={item.unitIndex}
+              title={item.title}
+              goal={item.goal}
+              done={item.done}
+              total={item.total}
+            />
           ) : item.kind === "lesson" ? (
             <PathNode
               kind={item.lesson.kind}
-              label={item.lesson.title}
+              title={item.lesson.title}
               state={item.state}
-              side={item.side}
-              onPress={() => router.push(`/lesson/${item.lesson.id}`)}
+              step={item.step}
+              inProgress={item.lesson.status === "in_progress"}
+              onPress={(rect) => setPopover({ row: item, rect })}
             />
           ) : (
             <PathNode
               kind="test"
-              label={`Ünite ${item.unitIndex} testi`}
+              title={tr.home.unitTest(item.unitIndex)}
               state={item.state}
-              side={item.side}
-              onPress={() => router.push(`/checkpoint/${item.level}/${item.unitIndex}`)}
+              step={item.step}
+              onPress={(rect) => setPopover({ row: item, rect })}
             />
           )
         }
       />
 
-      <View
-        className="absolute inset-x-0 top-0 z-10 px-4"
-        // insets.top cihaza göre değişir — gerekçeli inline stil (yukarıdaki notla aynı)
-        style={{ paddingTop: insets.top }}
-      >
-        <LessonsHeader streak={0} />
-        {ctx && (
-          <ContinueCard
-            topLine={`${ctx.level} · ${ctx.label}`}
-            title={ctx.unitTitle || ctx.label}
-            // Dokunuş: kaldığın derse geri kaydır — uzak seviyeye gezinmişken
-            // tek dokunuşla dönüş. Ders yine düğümünden açılır.
+      {/* Sabit başlık katmanı: opak zemin + alttan yolun içine yumuşak solma */}
+      <View pointerEvents="box-none" className="absolute inset-x-0 top-0 z-10" style={{ height: insets.top + headerH + 24 }}>
+        <View className="absolute inset-x-0 top-0 bg-canvas" style={{ height: insets.top + headerH - 14 }} />
+        <View className="absolute inset-x-0" style={{ top: insets.top + headerH - 14, height: 38 }}>
+          <FadeFill color={colors.canvas} from={1} to={0} />
+        </View>
+        <View className="gap-2.5 px-4" style={{ paddingTop: insets.top }}>
+          <HomeHeader
+            name={me?.profile?.displayName ?? ""}
+            streak={stats?.streak ?? 0}
+            showPro={!pro}
+            onPro={() => PaywallController.open("home")}
+          />
+          <TodayCard
+            minutes={stats?.todayMinutes ?? 0}
+            goal={goal}
+            topLine={ctx ? `${ctx.level} · ${ctx.label}` : curriculum.label}
+            title={ctx?.unitTitle || ctx?.label || curriculum.label}
+            // Dokunuş: kaldığın derse geri kaydır — uzak seviyeye gezinmişken tek dokunuşla dönüş
             onPress={() => listRef.current?.scrollToIndex({ index: startIndex, animated: true })}
           />
-        )}
+          {showQuota ? (
+            <View className="h-[52px] justify-center">
+              <QuotaBanner used label={tr.quota.lessonUsed} onPro={() => PaywallController.open("quota_lesson")} />
+            </View>
+          ) : null}
+        </View>
       </View>
+
+      {popover?.row.kind === "lesson" ? (
+        <NodePopover
+          rect={popover.rect}
+          title={popover.row.lesson.title}
+          subtitle={tr.home.lessonOf(popover.row.step + 1, popover.row.unitSize)}
+          action={
+            popover.row.lesson.status === "completed"
+              ? tr.home.actionReview
+              : popover.row.lesson.status === "in_progress"
+                ? tr.home.actionContinue
+                : tr.home.actionStart
+          }
+          onAction={() => {
+            const id = popover.row.kind === "lesson" ? popover.row.lesson.id : "";
+            setPopover(null);
+            router.push(`/lesson/${id}`);
+          }}
+          onClose={() => setPopover(null)}
+        />
+      ) : popover?.row.kind === "test" ? (
+        <NodePopover
+          rect={popover.rect}
+          title={tr.home.unitTest(popover.row.unitIndex)}
+          subtitle={tr.home.testSub}
+          action={popover.row.state === "completed" ? tr.home.actionReview : tr.home.actionStart}
+          onAction={() => {
+            const r = popover.row;
+            setPopover(null);
+            if (r.kind === "test") router.push(`/checkpoint/${r.level}/${r.unitIndex}`);
+          }}
+          onClose={() => setPopover(null)}
+        />
+      ) : null}
     </View>
   );
 }

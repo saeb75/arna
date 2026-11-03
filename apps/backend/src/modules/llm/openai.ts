@@ -5,6 +5,7 @@ import type {
   EmbedResult,
   JsonRequest,
   LLMProvider,
+  ReasoningEffort,
   ProviderResult,
   TextRequest,
 } from "./types.js";
@@ -21,15 +22,25 @@ export { client as openaiClient };
  * Bu yüzden çağrı gövdesi model ailesine göre kurulur. Aile büyüdükçe tek yerden
  * genişler; çağıranların (`completeJson`/`completeText`) imzası değişmez.
  */
-function isNewTier(model: string): boolean {
-  return /^(gpt-5|o[1-9])/.test(model);
+export function isNewTier(model: string): boolean {
+  // "*-chat-latest" sohbet takma adları eski parametreleri kabul eder
+  return /^(gpt-[5-9]|o[1-9])/.test(model) && !/chat-latest$/.test(model);
 }
 
-/** Token tavanı + sıcaklık — modelin kabul ettiği adlarla. */
-function tuning(model: string, maxTokens: number, temperature: number) {
-  return isNewTier(model)
-    ? { max_completion_tokens: maxTokens }
-    : { max_tokens: maxTokens, temperature };
+/**
+ * Akıl yürütme payı: yeni nesilde düşünme jetonları `max_completion_tokens`
+ * bütçesinden yenir. Düzey "none" değilse cevap için istenen tavanın ÜSTÜNE pay
+ * eklenir — yoksa model bütçeyi düşünmeye harcayıp BOŞ cevap döndürür.
+ */
+const REASONING_HEADROOM = 4000;
+
+/** Token tavanı + sıcaklık + akıl yürütme düzeyi — modelin kabul ettiği adlarla. */
+function tuning(model: string, maxTokens: number, temperature: number, effort?: ReasoningEffort) {
+  if (!isNewTier(model)) return { max_tokens: maxTokens, temperature };
+  return {
+    max_completion_tokens: effort && effort !== "none" ? maxTokens + REASONING_HEADROOM : maxTokens,
+    ...(effort ? { reasoning_effort: effort } : {}),
+  };
 }
 
 export const openaiProvider: LLMProvider = {
@@ -43,8 +54,8 @@ export const openaiProvider: LLMProvider = {
         { role: "user", content: req.user },
       ],
       response_format: { type: "json_object" },
-      ...tuning(req.model, req.maxTokens ?? 8000, req.temperature ?? 0.7),
-    });
+      ...tuning(req.model, req.maxTokens ?? 8000, req.temperature ?? 0.7, req.reasoningEffort),
+    } as Parameters<typeof client.chat.completions.create>[0]) as OpenAI.Chat.Completions.ChatCompletion;
 
     const text = res.choices[0]?.message?.content ?? "";
     return {

@@ -1,8 +1,14 @@
 import {
   AVATAR_IDS,
   AVATAR_LABELS,
+  AVATAR_SYSTEM_OF,
   avatarSettingsSchema,
   adminCoreBodySchema,
+  adminOverviewQuerySchema,
+  adminPageQuerySchema,
+  adminProGrantBodySchema,
+  adminRoleplayCreateBodySchema,
+  adminRoleplaySpecBodySchema,
   adminSessionsQuerySchema,
   adminTtsPreviewBodySchema,
   catalogLessonIdSchema,
@@ -13,7 +19,27 @@ import { z } from "zod";
 import { buildTtsSettingsResponse, previewTts, TtsError, updateTtsSettings } from "../tts/index.js";
 import { getAvatarSettings, saveAvatarSettings } from "../avatar/settings.js";
 import { AdminError, getAdminLessonDetail, getAdminLessonMatrix } from "./queries.js";
-import { getAdminUserDetail, getAdminUsers } from "./users.js";
+import {
+  getAdminUserDetail,
+  getAdminUserMemories,
+  getAdminUsers,
+  getAdminUserSessions,
+  setUserProGrant,
+} from "./users.js";
+import { getAdminOverview } from "./overview.js";
+import {
+  createRoleplay,
+  discardDraft,
+  duplicateAsDraft,
+  getAdminRoleplayDetail,
+  getRoleplayAttempts,
+  lintSpec,
+  listAdminRoleplays,
+  publishDraft,
+  RoleplayAdminError,
+  saveDraft,
+  setRoleplayStatus,
+} from "./roleplays.js";
 import { getAdminSessionDetail, getAdminSessions } from "./sessions.js";
 import {
   AdminActionError,
@@ -51,6 +77,18 @@ function sendActionError(reply: FastifyReply, err: unknown) {
   }
   throw err;
 }
+
+function sendRoleplayError(reply: FastifyReply, err: unknown) {
+  if (err instanceof AdminError) return reply.code(404).send({ error: err.code });
+  if (err instanceof RoleplayAdminError) {
+    const status = err.code === "lint_failed" ? 422 : err.code === "not_found" ? 404 : 409;
+    return reply.code(status).send({ error: err.code, ...(err.report ? { report: err.report } : {}) });
+  }
+  throw err;
+}
+
+const roleplayParams = z.object({ id: z.string().regex(/^[a-z0-9][a-z0-9-]{1,63}$/) });
+const userParams = z.object({ id: z.string().uuid() });
 
 function sendTtsError(reply: FastifyReply, err: unknown) {
   if (err instanceof TtsError) {
@@ -143,7 +181,107 @@ export default async function adminRoutes(app: FastifyInstance) {
     }
   });
 
-  // --- Kullanıcılar (salt okunur) ---------------------------------------------
+  // --- Overview (maliyet panosu) ---------------------------------------------
+  app.get("/admin/overview", { preHandler: app.requireAdmin }, async (request, reply) => {
+    const q = adminOverviewQuerySchema.safeParse(request.query ?? {});
+    if (!q.success) return reply.code(400).send({ error: "invalid_params" });
+    return await getAdminOverview(q.data.days);
+  });
+
+  // --- Roleplay yönetimi -----------------------------------------------------
+  app.get("/admin/roleplays", { preHandler: app.requireAdmin }, async () => {
+    return await listAdminRoleplays();
+  });
+
+  // Kuru koşu: şema (400) + kapı raporu — yazmaz. Editör her değişiklikte çağırır.
+  app.post("/admin/roleplays/lint", { preHandler: app.requireAdmin }, async (request, reply) => {
+    const body = adminRoleplaySpecBodySchema.safeParse(request.body);
+    if (!body.success) return reply.code(400).send({ error: "invalid_input", issues: body.error.issues });
+    return { report: lintSpec(body.data.spec) };
+  });
+
+  app.post("/admin/roleplays", { preHandler: app.requireAdmin }, async (request, reply) => {
+    const body = adminRoleplayCreateBodySchema.safeParse(request.body);
+    if (!body.success) return reply.code(400).send({ error: "invalid_input", issues: body.error.issues });
+    try {
+      return reply.code(201).send(await createRoleplay(body.data.id, body.data.spec));
+    } catch (err) {
+      return sendRoleplayError(reply, err);
+    }
+  });
+
+  app.get("/admin/roleplays/:id", { preHandler: app.requireAdmin }, async (request, reply) => {
+    const p = roleplayParams.safeParse(request.params);
+    if (!p.success) return reply.code(400).send({ error: "invalid_params" });
+    try {
+      return await getAdminRoleplayDetail(p.data.id);
+    } catch (err) {
+      return sendRoleplayError(reply, err);
+    }
+  });
+
+  app.put("/admin/roleplays/:id/draft", { preHandler: app.requireAdmin }, async (request, reply) => {
+    const p = roleplayParams.safeParse(request.params);
+    const body = adminRoleplaySpecBodySchema.safeParse(request.body);
+    if (!p.success) return reply.code(400).send({ error: "invalid_params" });
+    if (!body.success) return reply.code(400).send({ error: "invalid_input", issues: body.error.issues });
+    try {
+      return await saveDraft(p.data.id, body.data.spec);
+    } catch (err) {
+      return sendRoleplayError(reply, err);
+    }
+  });
+
+  app.delete("/admin/roleplays/:id/draft", { preHandler: app.requireAdmin }, async (request, reply) => {
+    const p = roleplayParams.safeParse(request.params);
+    if (!p.success) return reply.code(400).send({ error: "invalid_params" });
+    try {
+      return await discardDraft(p.data.id);
+    } catch (err) {
+      return sendRoleplayError(reply, err);
+    }
+  });
+
+  app.post("/admin/roleplays/:id/draft/publish", { preHandler: app.requireAdmin }, async (request, reply) => {
+    const p = roleplayParams.safeParse(request.params);
+    if (!p.success) return reply.code(400).send({ error: "invalid_params" });
+    try {
+      return await publishDraft(p.data.id);
+    } catch (err) {
+      return sendRoleplayError(reply, err);
+    }
+  });
+
+  app.post("/admin/roleplays/:id/revisions/:revisionId/duplicate", { preHandler: app.requireAdmin }, async (request, reply) => {
+    const p = roleplayParams.extend({ revisionId: z.string().uuid() }).safeParse(request.params);
+    if (!p.success) return reply.code(400).send({ error: "invalid_params" });
+    try {
+      return await duplicateAsDraft(p.data.id, p.data.revisionId);
+    } catch (err) {
+      return sendRoleplayError(reply, err);
+    }
+  });
+
+  app.post("/admin/roleplays/:id/status", { preHandler: app.requireAdmin }, async (request, reply) => {
+    const p = roleplayParams.safeParse(request.params);
+    const body = z.object({ status: z.enum(["active", "retired"]) }).safeParse(request.body);
+    if (!p.success) return reply.code(400).send({ error: "invalid_params" });
+    if (!body.success) return reply.code(400).send({ error: "invalid_input" });
+    try {
+      return await setRoleplayStatus(p.data.id, body.data.status);
+    } catch (err) {
+      return sendRoleplayError(reply, err);
+    }
+  });
+
+  app.get("/admin/roleplays/:id/attempts", { preHandler: app.requireAdmin }, async (request, reply) => {
+    const p = roleplayParams.safeParse(request.params);
+    const q = adminPageQuerySchema.safeParse(request.query ?? {});
+    if (!p.success || !q.success) return reply.code(400).send({ error: "invalid_params" });
+    return await getRoleplayAttempts(p.data.id, q.data);
+  });
+
+  // --- Kullanıcılar ------------------------------------------------------------
   app.get("/admin/users", { preHandler: app.requireAdmin }, async () => {
     return await getAdminUsers();
   });
@@ -153,6 +291,33 @@ export default async function adminRoutes(app: FastifyInstance) {
     if (!p.success) return reply.code(400).send({ error: "invalid_params" });
     try {
       return await getAdminUserDetail(p.data.id);
+    } catch (err) {
+      return sendActionError(reply, err);
+    }
+  });
+
+  app.get("/admin/users/:id/sessions", { preHandler: app.requireAdmin }, async (request, reply) => {
+    const p = userParams.safeParse(request.params);
+    const q = adminPageQuerySchema.safeParse(request.query ?? {});
+    if (!p.success || !q.success) return reply.code(400).send({ error: "invalid_params" });
+    return await getAdminUserSessions(p.data.id, q.data);
+  });
+
+  app.get("/admin/users/:id/memories", { preHandler: app.requireAdmin }, async (request, reply) => {
+    const p = userParams.safeParse(request.params);
+    const q = adminPageQuerySchema.safeParse(request.query ?? {});
+    if (!p.success || !q.success) return reply.code(400).send({ error: "invalid_params" });
+    return await getAdminUserMemories(p.data.id, q.data);
+  });
+
+  // Ücretsiz Pro tanıma/geri alma — mağaza aboneliğine dokunmaz
+  app.post("/admin/users/:id/pro", { preHandler: app.requireAdmin }, async (request, reply) => {
+    const p = userParams.safeParse(request.params);
+    const body = adminProGrantBodySchema.safeParse(request.body);
+    if (!p.success) return reply.code(400).send({ error: "invalid_params" });
+    if (!body.success) return reply.code(400).send({ error: "invalid_input" });
+    try {
+      return await setUserProGrant(p.data.id, body.data);
     } catch (err) {
       return sendActionError(reply, err);
     }
@@ -195,7 +360,7 @@ export default async function adminRoutes(app: FastifyInstance) {
     const stored = await getAvatarSettings();
     return {
       settings: stored.settings,
-      avatars: AVATAR_IDS.map((id) => ({ id, label: AVATAR_LABELS[id] })),
+      avatars: AVATAR_IDS.map((id) => ({ id, label: AVATAR_LABELS[id], system: AVATAR_SYSTEM_OF[id] })),
       updatedAt: stored.updatedAt,
     };
   });
@@ -206,7 +371,7 @@ export default async function adminRoutes(app: FastifyInstance) {
     const stored = await saveAvatarSettings(body.data, request.userId ?? null);
     return {
       settings: stored.settings,
-      avatars: AVATAR_IDS.map((id) => ({ id, label: AVATAR_LABELS[id] })),
+      avatars: AVATAR_IDS.map((id) => ({ id, label: AVATAR_LABELS[id], system: AVATAR_SYSTEM_OF[id] })),
       updatedAt: stored.updatedAt,
     };
   });

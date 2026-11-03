@@ -9,8 +9,13 @@ import {
   decideAfterTutorReply,
   decideInWrapup,
   decideOnStudentInput,
+  hasWordContent,
+  isAttemptKind,
   isLastExchange,
   isSurrender,
+  judgedBeatDone,
+  outcomeOfVerdict,
+  TURN_KINDS,
   MAX_BEAT_EXCHANGES,
   MAX_QUESTION_INVITES,
   type AckKind,
@@ -79,7 +84,9 @@ console.log("— ask · readiness —");
 
 expect("evet → ilerle", decideOnStudentInput(readiness, input({ ack: "yes" })), { kind: "advance" });
 expect("tamam → ilerle", decideOnStudentInput(readiness, input({ ack: "proceed" })), { kind: "advance" });
-expect("hayır → ilerle", decideOnStudentInput(readiness, input({ ack: "no" })), { kind: "advance" });
+// "Hazır mısın?" → "hayır": ders tek kelime etmeden başlıyordu. Hoca güven verir,
+// SONRA ilerler (readiness'te hoca cevabından sonra akış zaten ilerler).
+expect("hayır → hoca bir cümle söyler (sessizce başlamaz)", decideOnStudentInput(readiness, input({ ack: "no" })), { kind: "askTutor" });
 expect("gerçek soru → hocaya sor", decideOnStudentInput(readiness, input()), { kind: "askTutor" });
 // readiness bağlamı hocaya soru sormayı yasaklıyor; script hemen devam eder
 expect("cevap sonrası → ilerle", decideAfterTutorReply(readiness, reply()), { kind: "advance" });
@@ -309,6 +316,81 @@ for (const s of ["Hey!", "merhaba", "how are you", "İlişkiler çoğulduğu anl
   expectTrue(`"${s}" pes etme DEĞİL`, !isSurrender(s));
 }
 
+// CANLI HATA (3 Kas 2026): alıştırmada ",," judge'a gitti, hoca "Merhaba!" dedi.
+// Yalnız noktalama/boşluk/emoji boş girdidir; her yazı sisteminin harfi ve
+// rakam ise sözdür (dil ilkesi: Latin'e özgü test yok).
+console.log("— hasWordContent (boş girdi kapısı) —");
+for (const s of [",,", "..", ".", "...", "?!", " , . ", "''", "—", "", "   ", "👍"]) {
+  expectTrue(`${JSON.stringify(s)} söz DEĞİL → gönderilmez`, !hasWordContent(s));
+}
+for (const s of ["a", "5", "Hello, my name is Ana.", "merhaba", "привет", "你好", "مرحبا", "नमस्ते", "..ok"]) {
+  expectTrue(`${JSON.stringify(s)} sözdür`, hasWordContent(s));
+}
+
+// TAVAN TUTARLILIĞI (3 Kas 2026 denetimi): iki konu dışı turdan sonra gelen yanlış
+// cevap tavan turudur. Prompt "son tur, cevabı söyle" diyordu, akış BEKLİYORDU —
+// hoca cevabı verip soruyu yeniden sordu. Artık tavan her denemede kapatır.
+console.log("— tavan tutarlılığı —");
+expect(
+  "alıştırma · konu dışı ×2 sonra İLK yanlış → ilerle (cevap söylendi)",
+  decideAfterTutorReply(exercise, reply({ exchanges: MAX_BEAT_EXCHANGES, attempt: 0, isAttempt: true })),
+  { kind: "advance" },
+);
+expect(
+  "açık uçlu · tavanda yanlış deneme → ilerle",
+  decideAfterTutorReply(openResponse, reply({ exchanges: MAX_BEAT_EXCHANGES, attempt: 0, isAttempt: true })),
+  { kind: "advance" },
+);
+
+// SÖZ ↔ AKIŞ: outcomeOfVerdict, istemcinin decideAfterTutorReply'ıyla HER durumda
+// aynı sonucu vermeli — sunucu modele bu sonuca göre konuşmasını söylüyor.
+console.log("— söz ↔ akış bağı —");
+{
+  let mismatches = 0;
+  let cases = 0;
+  for (const beat of [exercise, openResponse]) {
+    for (let exchanges = 0; exchanges < MAX_BEAT_EXCHANGES; exchanges++) {
+      for (let attempt = 0; attempt <= 1; attempt++) {
+        for (const kind of TURN_KINDS) {
+          for (const ok of [true, false]) {
+            const surrendered = kind === "give_up";
+            const v = { isAttempt: isAttemptKind(kind), ok: kind === "answer" && ok, surrendered };
+            const said = outcomeOfVerdict(beat, { exchanges, attempt }, v);
+            const flow = decideAfterTutorReply(beat, {
+              exchanges: exchanges + 1,
+              attempt,
+              beatDone: judgedBeatDone(beat, attempt, v),
+              isAttempt: v.isAttempt,
+            }).kind;
+            cases++;
+            if ((said === "advance") !== (flow === "advance")) mismatches++;
+          }
+        }
+      }
+    }
+  }
+  expectTrue(`söz ile akış ${cases} durumda da aynı (${mismatches} ayrışma)`, mismatches === 0);
+}
+expectTrue("selam/rica deneme DEĞİL", !isAttemptKind("other") && !isAttemptKind("ask_help") && !isAttemptKind("repeat"));
+expectTrue("cevap ve pes DENEMEDİR", isAttemptKind("answer") && isAttemptKind("give_up"));
+expectTrue(
+  "pes eden doğru SAYILMAZ (model ok=true dese bile)",
+  !judgedBeatDone(exercise, 0, { isAttempt: true, ok: true, surrendered: true }),
+);
+expectTrue(
+  "açık uçlu · son hakta yanlış → adım kapanır",
+  judgedBeatDone(openResponse, 1, { isAttempt: true, ok: false, surrendered: false }),
+);
+expectTrue(
+  "konu dışı söz adımı ASLA kapatmaz",
+  !judgedBeatDone(openResponse, 5, { isAttempt: false, ok: true, surrendered: false }),
+);
+expect(
+  "alıştırma · 1. yanlış, tavan uzak → aynı soruda bekle",
+  { kind: outcomeOfVerdict(exercise, { exchanges: 0, attempt: 0 }, { isAttempt: true, ok: false, surrendered: false }) === "wait" ? "advance" : "invite" },
+  { kind: "advance" },
+);
+
 // CANLI HATA 1: "Yok, bu kadar yeterli." tam-dize eşleşmesine takılıp LLM'e gitti,
 // hoca soru penceresinde boş turlar döndü. classifyAck ≤4 kelimede kelime-sınırlı
 // İÇERME de yapar.
@@ -356,7 +438,14 @@ expect("gerçek soru → hocaya sor", decideInWrapup(null), { kind: "askTutor" }
 // EN KRİTİK GÜVENCE: hiçbir girdi dersi bitiremez. Kullanıcının açık kararı buydu —
 // practice fazında sayaç konuşmanın ortasında kapattığı için kondu.
 const everyAck: (AckKind | null)[] = ["yes", "no", "proceed", null];
-const kinds = everyAck.map((a) => decideInWrapup(a).kind);
+// AYNI ŞABLON İKİ KEZ OKUNMAZ: ikinci "tamam"/"evet" hocaya (LLM, geçmişi görür) gider.
+expect("2. 'tamam' → aynı veda TEKRAR okunmaz", decideInWrapup("proceed", { farewells: 1 }), { kind: "askTutor" });
+expect("2. 'evet' → aynı davet TEKRAR okunmaz", decideInWrapup("yes", { invites: 1 }), { kind: "askTutor" });
+expect("veda sonrası 'evet' → davet hâlâ ilk kez", decideInWrapup("yes", { farewells: 1 }), { kind: "invite" });
+
+const kinds = everyAck.flatMap((a) =>
+  [{}, { invites: 3, farewells: 3 }].map((c) => decideInWrapup(a, c).kind),
+);
 expect(
   `hiçbir kapanış dalı dersi bitirmiyor (${kinds.join(", ")})`,
   { kind: kinds.some((k) => (k as string) === "finish") ? "askTutor" : "advance" },

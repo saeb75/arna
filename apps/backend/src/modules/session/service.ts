@@ -1,16 +1,14 @@
 import {
   answerReviewModelSchema,
   decideInWrapup,
-  isSurrender,
+  MAX_BEAT_EXCHANGES,
   normalizeUtterance,
   PRACTICE_MIN_MAX_TURNS,
   PRACTICE_MIN_TURNS_BEFORE_GOAL,
   roleplaySpecSchema,
   sessionPositionSchema,
-  spokenRunsSchema,
   triageAnswer,
   type AnswerReview,
-  type CoreBeat,
   type LessonContentV7,
   type LessonCore,
   type LessonPhase,
@@ -44,10 +42,12 @@ import { refineRunsForInlineEnglish } from "../tts/inlineEnglish.js";
 import { ANSWER_REVIEW_VERSION, buildAnswerReviewPrompt } from "../llm/prompts/answer-review.v1.js";
 import { openaiClient } from "../llm/openai.js";
 import { resolveLesson, LayerError } from "../lesson/layers.js";
-import { buildTutorPrompt } from "../lesson/tutorPrompt.js";
 import { extractSessionMemory } from "../memory/extract.js";
-import { buildMemoryBlock } from "../memory/retrieve.js";
+import { buildMemoryBlock, MEMORY_RECALL_ENABLED } from "../memory/retrieve.js";
 import { renderSessionScript } from "./script.js";
+import { appendToBeatLog, historyFor, runLectureTurn, type BeatLog, type Learner, type TurnLlm } from "./turn/index.js";
+import { runConversationTurn } from "./turn/conversation.js";
+import { replyRunsSchema } from "./turn/prompt.js";
 import { roleplayDebrief, roleplayTurn, type RoleplayDebrief } from "../roleplay/service.js";
 
 export class SessionError extends Error {
@@ -343,6 +343,8 @@ interface SessionState {
    * sayaç olsaydı iki kez artardı. İndeks kümesi tekrar işlemeye karşı bağışık.
    */
   practice?: { hitTurns?: number[] };
+  /** O anki lecture adımının diyaloğu — konuşma motoru modele bunu gösterir */
+  beatLog?: BeatLog;
 }
 
 /** RichText → düz metin (transkript ve prompt bağlamı için). */
@@ -360,6 +362,9 @@ async function sessionMemoryBlock(
   state: SessionState | null,
   lesson: { topic: string; focus: string; theme: string },
 ): Promise<string | null> {
+  // Kapalıyken önbellek de okunmaz: kapatmadan ÖNCE açılmış oturumların state'inde
+  // blok duruyor olabilir, onlar da hafızasız devam etsin.
+  if (!MEMORY_RECALL_ENABLED) return null;
   if (state && "memoryBlock" in state) return state.memoryBlock ?? null;
 
   let block: string | null = null;
@@ -424,6 +429,8 @@ export interface ChatOptions {
   turnIndex?: number;
   /** Alıştırmada kaçıncı deneme (0-tabanlı) */
   attempt?: number;
+  /** Bu adımda bu sözden ÖNCE kaç LLM turu geçti (istemci sayacı) */
+  exchanges?: number;
   /**
    * Soru penceresinin İZİN VERİLEN SON turu. İstemci sayaçtan hesaplar; hoca
    * bu turda "başka sorun var mı?" DEMEZ, kapanış yapar. Yoksa Emma soru sorarken
@@ -432,201 +439,10 @@ export interface ChatOptions {
   lastExchange?: boolean;
 }
 
-/** Anlatılanların özeti — cevaplar bununla çelişemez (form + iddialar). */
-function taughtLines(core: LessonCore): string {
-  return core.lecture.beats
-    .filter((b) => b.kind === "teach")
-    .flatMap((b) => (b.kind === "teach" ? b.points : []))
-    .map((p) => `  - ${p.formEn}: ${p.claimsEn.join(" · ")}`)
-    .join("\n");
-}
-
-/** O anki beat/faz için hocaya verilen kesin davranış kuralı. */
-function momentContext(
-  core: LessonCore,
-  scene: SceneVariant,
-  opts: ChatOptions,
-  script: SessionScript | null,
-  goalMet = false,
-): string {
-  // Davranış kuralı — bitiş KARARI değil. Kararı sunucu sayaçla verir.
-  const closingRule = `Finish with ONE short closing sentence and ask NO new question.`;
-
-  // KAPANIŞ — ders bitti, hoca rol karakterinden çıktı. Ders buradan SAYAÇLA
-  // bitmez; yalnızca öğrenci "Dersi Bitir"e basınca biter.
-  if (opts.phase === "wrapup") {
-    return [
-      `THE LESSON IS OVER. You are Emma the teacher again — you are NOT ${scene.persona.name} or any role-play character. Never speak in character here.`,
-      `The student may ask anything about today's lesson (${core.focus}).`,
-      `WHAT YOU TAUGHT TODAY (your answer must agree with this, never contradict it):`,
-      taughtLines(core),
-      `LANGUAGE OF THIS MOMENT: your normal language policy applies (explain in the student's language in native mode). English examples stay English, as their own "en" runs.`,
-      `Answer their question in 1-3 short sentences, with ONE concrete example if it helps.`,
-      `Then ask whether there is anything else they would like to ask.`,
-      `HARD RULES:`,
-      `- NEVER start a new exercise, activity or role play. The lesson is finished.`,
-      `- Do NOT re-teach the whole topic; answer only what was asked.`,
-      `- If they ask about something unrelated, answer in one clause and gently bring it back to today's lesson.`,
-      `- Never tell them to press a button or mention the app's interface.`,
-    ].join("\n");
-  }
-
-  if (opts.phase === "practice") {
-    const p = core.practice;
-    const turnIndex = opts.turnIndex ?? 0;
-    // Tavan koddaki tabanla birlikte hesaplanır; prompt'a da AYNI sayı gitmeli,
-    // yoksa hoca "son tur" sanıp erken kapatır.
-    const turnCap = effectiveMaxTurns(core);
-    const isLast = turnIndex + 1 >= turnCap;
-    return [
-      `ROLE PLAY. You are NOT the teacher right now — you are a character in a scene.`,
-      `You are ${scene.persona.name} (${scene.persona.role}${scene.persona.mood ? ", " + scene.persona.mood : ""}).`,
-      `What you want out of this conversation: ${scene.persona.goal}`,
-      `Scene: ${scene.scene}`,
-      `The student's goal: ${scene.objective}`,
-      `A successful scene looks like: ${p.successCriteria}`,
-      `You opened the scene with: "${scene.avatarOpening}"`,
-      `LANGUAGE OF THIS MOMENT: ENGLISH ONLY — the role play IS the practice. All runs are "en", whatever the tutor-language mode is.`,
-      `NEVER refer to exercises, multiple-choice options, "the correct answer", or anything from the earlier lecture — that part of the lesson is over. Stay inside the scene at all times.`,
-      `If the student says something short, off-topic or unhelpful, react naturally AS THE CHARACTER (surprised, curious, mildly persistent) and keep the scene going.`,
-      `Keep replies short and natural. Gently create openings for the student to use: ${p.mustUse.join(", ")}.`,
-      `This is exchange ${turnIndex + 1} of ${turnCap}.`,
-      ``,
-      `ALSO REPORT, in the same JSON: did the STUDENT'S LAST MESSAGE use today's target?`,
-      `- "usedTarget": true only if THEIR last message used ${p.mustUse.join(" / ")} or expressed`,
-      `  the same structure in their own words. Their own wording counts; a different topic does not.`,
-      `- "evidence": copy their exact words that show it, word for word from THEIR message.`,
-      `  If nothing shows it, use "" and set usedTarget to false.`,
-      `NEVER count your own lines, and never invent evidence — a quote that is not in their`,
-      `message is discarded and the turn scores nothing. When unsure, answer false.`,
-      isLast
-        ? `This is the LAST exchange — wrap the scene up warmly and praise their use of today's target. ${closingRule}`
-        : goalMet
-          ? `The student has now used today's target enough times — they succeeded. Wrap the scene up warmly and praise them. ${closingRule}`
-          : `If the student has achieved their goal, wrap the scene up. ${closingRule} Otherwise continue the scene with one short reply.`,
-    ].join("\n");
-  }
-
-  const beat = core.lecture.beats.find((b) => b.id === opts.beatId);
-
-  // Not: `exercise` beat'i buraya DÜŞMEZ — yapısal değerlendirmeye (judgeExercise)
-  // yönlendirilir, çünkü "bu bir cevap denemesi miydi?" kararı gerekiyor.
-
-  if (beat?.kind === "ask") {
-    // Soru metni içerikte DEĞİL, oturum script'inde — bu öğrenci için üretilmişti
-    const asked = runsToPlain(script?.beats[beat.id]);
-    const opener = asked
-      ? `You asked the student: "${asked}" — they just replied.`
-      : `You just asked the student a short question and they replied.`;
-
-    // "Sorum var mı?" penceresi GERÇEK bir soru-cevap anıdır: burada öğrenciye
-    // örnekle açıklama yapılır. (readiness'in katı "sadece onayla" kuralı buraya
-    // uygulanınca hoca soruyu geçiştiriyordu.)
-    if (beat.purpose === "questions") {
-      // Anlatılan iddialar bağlama GİRER: yoksa model dersin kuralıyla çelişen
-      // cevaplar verebiliyor ("put 'always' before 'be'" gibi — tam tersi).
-      return [
-        opener,
-        `THIS IS THE STUDENT'S QUESTION WINDOW — they are allowed to ask about today's target (${core.focus}).`,
-        `WHAT YOU JUST TAUGHT THEM (your answer must agree with this, never contradict it):`,
-        taughtLines(core),
-        `LANGUAGE OF THIS MOMENT: your normal language policy applies — in native mode explain in the student's language ("l1" runs) EVEN IF they wrote in English; example sentences stay English as their own "en" runs.`,
-        // Örnek şartı KOŞULLU: canlıda "yok, yeterli" diyen öğrenciye bile örnek
-        // cümle dayatılıyordu ("alıştırmalara geçelim" derken örnek verdi).
-        `If they ASKED something: answer it clearly in 1-3 short sentences AND give ONE concrete example sentence that uses the target.`,
-        `If they said they are done / have no more questions: reply with a few warm words ONLY — no example, no new explanation.`,
-        opts.lastExchange
-          ? `This is the LAST question you can take. After answering, say warmly that you will move on to some practice questions now. Do NOT ask whether they have another question — the lesson continues right after you.`
-          : `If you answered a question, end by asking whether they have another one. If they said they are done, end with the same short check ("anything else?") in their language — nothing more.`,
-        `HARD RULES:`,
-        `- If they said they have a question but did not say what it is yet, just invite them to ask it and stop. Do NOT guess what they want to know.`,
-        `- NEVER start an exercise, activity or task — the lesson does that next by itself.`,
-        `- Do NOT re-teach the whole topic; answer only what was asked.`,
-        `- Stay on ${core.focus}. If they ask about something else, answer in one clause and steer back.`,
-      ].join("\n");
-    }
-
-    return [
-      opener,
-      `YOUR ONLY JOB HERE IS TO ACKNOWLEDGE. A scripted teaching message runs IMMEDIATELY after your reply.`,
-      // Canlı hata: öğrenci "yes" yazınca model İngilizce'ye kaydı — dil kuralı
-      // her moment bağlamında AÇIKÇA tekrarlanır (wrapup/practice'te zaten vardı).
-      `LANGUAGE OF THIS MOMENT: your normal language policy applies — in native mode reply in the student's language ("l1" runs), EVEN IF they replied in English.`,
-      `HARD RULES:`,
-      `- NEVER ask a question of any kind.`,
-      `- NEVER start an exercise, activity or task ("What did you do yesterday?", "Try a sentence" — forbidden).`,
-      `- NEVER begin explaining or teaching the topic — the script does that next.`,
-      `- Maximum TWO short sentences.`,
-      `If the student asked a genuine question about the lesson, answer just that question plainly, then stop.`,
-      `If they simply agreed or said they have no questions, reply with at most a few warm words.`,
-    ].join("\n");
-  }
-
-  return `The student said something during the lesson. Reply in one short sentence and stay on ${core.focus}.`;
-}
 
 /**
- * "Öğrencinin sözü bir CEVAP DENEMESİ miydi?" — akış kararının girdisi.
- *
- * Selamlama, konu dışı laf, "tekrar eder misin" gibi girdiler yanlış cevap DEĞİLDİR
- * ve deneme hakkı yakmamalıdır. Canlıda "Hey!" + konu dışı bir cümle iki denemeyi de
- * yakıp soruyu atlatmıştı. Karar yapısaldır (şemayla doğrulanmış boolean), düzyazıdan
- * çıkarılmaz.
- */
-// CANLI HATA (21 Eyl 2026): "help" ve "soruyu tekrar soramısın" DENEME sayıldı —
-// tek-kelime/gibberish kuralı meta-ricaları yutuyordu (model sıralı okuyup ilk
-// eşleşen kurala takılıyor). Haklar ricalarla eridi, son-hak dalı "model cevabı"
-// diye saçmaladı ve soru hiç cevaplanmadan practice'e geçildi. Meta-rica maddesi
-// artık EN BAŞTA ve tek kelimelik hali açıkça kapsanıyor.
-const attemptRule = [
-  `First decide: did the student TRY TO ANSWER, or were they talking about something else?`,
-  `- CHECK THIS FIRST — isAttempt=false for META-REQUESTS: asking for help, a hint, a repeat,`,
-  `  an explanation or a translation, in ANY language and even as a SINGLE WORD ("help",`,
-  `  "hint", "repeat", "what?", or their native-language equivalents). A single word that ASKS`,
-  `  for something is a REQUEST, not gibberish and not an answer.`,
-  `- isAttempt=true — anything aimed at ANSWERING the question, however bad. A right answer, a`,
-  `  wrong answer, a single letter, a guess, a half sentence, or random letters that do not ask`,
-  `  for anything ("erf", "kloi", "asdf"), or GIVING UP. "I don't know", "no idea", "pass",`,
-  `  "skip" are ATTEMPTS — surrendering is an answer and the student deserves to be told the`,
-  `  answer once their tries run out. Nonsense is still an ANSWER, just a poor one; it is not a`,
-  `  change of subject. (Whether it is RIGHT is a separate decision, made below.)`,
-  `- isAttempt=false also covers clearly engaging with something else: a greeting ("hey",`,
-  `  "hello"), small talk, a remark about another topic. If in doubt between a bad answer and a`,
-  `  request, treat a question-shaped message as a REQUEST.`,
-  `Your words must match your flag: if you set isAttempt=false, do NOT say they tried to answer.`,
-  `When isAttempt=false: respond WARMLY in one short sentence (never scold), correct nothing,`,
-  `NEVER say which answer is correct. If they asked for help or a hint, give ONE small hint that`,
-  `points toward the target (never the answer itself). Do NOT restate, reword or INVENT the`,
-  `task — the app shows the EXACT task again right after your reply; a reworded task misleads`,
-  `the student (live bug: the model asked its own made-up question instead). Stay on the lesson.`,
-].join("\n");
-
-/**
- * Yanıt PARÇALARI: native modda geri bildirim L1, düzeltilen İngilizce cümle
- * ayrı "en" parçası. Akış kararları bu metne yine BAKMAZ.
- *
- * `spokenRunsSchema` süslü parantezli metni reddeder: selamlamada modelin yapıyı
- * metnin içine yazdığı canlı hata (73 oturumun 24'ü) buradan da geçebilirdi.
- * Ölçümde bu üç uçta sızıntı çıkmadı ama sınıf aynı, koruma da aynı.
- */
-const replyRunsSchema = spokenRunsSchema.max(6);
-
-/**
- * Alıştırma değerlendirmesi — deneme miydi + ASLINDA doğru muydu + hocanın yanıtı.
- *
- * `ok`: LLM emniyet ağı. Deterministik eşleyicinin ıskaladığı cevap yine de doğru
- * olabilir (yazım sürçmesi "schoool", kabul listesinde unutulan geçerli varyant,
- * MCQ'da "the first one"). Karar yapısal boolean'dır; ilerleme kodda verilir.
- */
-const exerciseVerdictSchema = z.object({
-  isAttempt: z.boolean(),
-  ok: z.boolean(),
-  reply: replyRunsSchema,
-});
-
-/**
- * Sohbet turu. `usedTarget`/`evidence` YALNIZCA rol yapmada istenir (prompt orada
- * sorar); diğer fazlarda model bunları atlar, bu yüzden opsiyoneller.
+ * Sohbet turu (practice / wrapup). `usedTarget`/`evidence` YALNIZCA rol yapmada
+ * istenir (prompt orada sorar); diğer fazlarda model bunları atlar.
  */
 const chatVerdictSchema = z.object({
   reply: replyRunsSchema,
@@ -635,315 +451,86 @@ const chatVerdictSchema = z.object({
   evidence: z.string().optional(),
 });
 
-/** Açık uçlu cevabın rubrik değerlendirmesi — kabul/ret + kısa geri bildirim. */
-const openResponseVerdictSchema = z.object({
-  isAttempt: z.boolean(),
-  ok: z.boolean(),
-  feedback: replyRunsSchema,
-});
-
-/** Modelin dil kuralı — judge prompt'larına ortak eklenen blok. */
-function judgeLanguageRule(tutorLanguage: "native" | "english", l1Name: string): string {
-  return tutorLanguage === "native"
-    ? `LANGUAGE: give feedback in warm, natural ${l1Name} ("l1" runs). The correct/model ENGLISH sentence goes in its OWN "en" run. This includes single English words you MENTION inside a ${l1Name} sentence (a pronoun, a verb form): each is its own "en" run, the ${l1Name} words around it stay "l1". Never say "you are wrong".`
-    : `LANGUAGE: simple spoken English only — all runs use "en".`;
-}
-
 /**
- * Yeniden-sor dalında doğru cevabın sızıp sızmadığını kelime sınırıyla arar.
- * Bu bir AKIŞ kararı değildir (attempt/beatDone'a dokunmaz) — içerik
- * redaksiyonudur: canlıda model "cevabı henüz söyleme" kuralına uymayıp
- * cevabı verdikten sonra soruyu yeniden sordu (saçma akış, 25 Ağu 2026).
+ * Lecture adımı turu — konuşma motoru + kalıcılık. Motor saftır (DB'siz, taramayla
+ * birebir aynı kod); burada yalnız G/Ç yapılır:
+ *  - adımın diyaloğu `sessions.state.beatLog`tan okunur ve tur sonunda eklenir
+ *    (model kendi az önce dediğini ve öğrencinin önceki denemelerini GÖRÜR);
+ *  - transkripte öğrenci + hoca satırı yazılır.
+ * Akış kararı yine istemcide: dönen `beatDone`/`isAttempt`, istemcinin
+ * `decideAfterTutorReply`ına girer ve sunucunun modele verdiği talimatla AYNI
+ * sonucu verir (contracts `outcomeOfVerdict`).
  */
-function leaksAnswer(replyPlain: string, answers: readonly string[]): boolean {
-  const norm = (s: string) =>
-    s
-      .toLowerCase()
-      .replace(/[’‘]/g, "'")
-      .replace(/[^\p{L}\p{N}' ]/gu, " ")
-      // Kesme yalnız harf ARASINDA kalır ("i'm"); tırnak görevindeki kesme
-      // boşluğa döner — yoksa "'yes i am'" kelime sınırını bozup sızıntıyı gizler
-      .replace(/'/g, (q, i: number, str: string) =>
-        /\p{L}/u.test(str[i - 1] ?? "") && /\p{L}/u.test(str[i + 1] ?? "") ? "'" : " ",
-      )
-      .replace(/\s+/g, " ")
-      .trim();
-  const hay = ` ${norm(replyPlain)} `;
-  return answers.some((a) => {
-    const n = norm(a);
-    return n.length >= 2 && hay.includes(` ${n} `);
-  });
-}
-
-/**
- * Deterministik eşleyicinin TUTTURAMADIĞI alıştırma girdisini değerlendirir.
- * Birebir eşleşen doğrular buraya HİÇ gelmez — istemci onları LLM'siz kutlar.
- * Buraya düşen cevap yine de doğru olabilir (yazım sürçmesi, listede olmayan
- * geçerli varyant) — judge yapısal `ok` ile karar verir, akış kodda ilerler.
- */
-async function judgeExercise(
-  userId: string,
-  sessionId: string,
-  text: string,
-  beat: Extract<CoreBeat, { kind: "exercise" }>,
-  ctx: JudgeContext,
-  opts: ChatOptions,
-  phase: LessonPhase,
-): Promise<{ text: string; runs: RichText; segmentDone: boolean; beatDone: boolean; isAttempt: boolean }> {
-  const attempt = opts.attempt ?? 0;
-  const accepted =
-    beat.answerSpec.kind === "choice"
-      ? [beat.options?.[beat.answerSpec.correctIndex] ?? beat.exampleAnswer]
-      : beat.answerSpec.accepted;
-  const surrendered = isSurrender(text, ctx.surrenderTokens);
-
-  const t0 = Date.now();
-  const verdict = await completeJson({
-    purpose: "chat",
-    system: [
-      `You are Emma, a warm English teacher. The student is answering a practice question.`,
-      `The question item: "${beat.item}"`,
-      // Şıklar HARFLİ verilir ve doğru şıkkın harfi AÇIKÇA söylenir: canlıda model
-      // harfi kendi eşleştirmeye çalışıp yanlış şıkkı "doğru" diye ilan etti.
-      ...(beat.options?.length
-        ? [
-            `Options: ${beat.options.map((o, i) => `${String.fromCharCode(65 + i)}) ${o}`).join("  ")}`,
-            beat.answerSpec.kind === "choice"
-              ? `The correct option is ${String.fromCharCode(65 + beat.answerSpec.correctIndex)}. Never call any other letter correct.`
-              : "",
-          ]
-        : []),
-      `Example answer(s) the author wrote down: ${accepted.join(" / ")}`,
-      `Today's target: ${ctx.core.focus}`,
-      `What the lesson is measuring: ${ctx.core.tutorNotes.target}`,
-      ``,
-      judgeLanguageRule(ctx.tutorLanguage, ctx.l1Name),
-      ``,
-      attemptRule,
-      // Pes etme deterministik biliniyor — modele SÖYLENİR, yoksa "konu dışı" sanıp
-      // "lütfen cevaplamayı dene" diyor ve öğrenci doğru cevabı hiç duymuyor.
-      surrendered
-        ? `IMPORTANT: the student has GIVEN UP on this question. That IS an attempt — isAttempt=true, ok=false.`
-        : "",
-      // Tavana gelindiğinde "konu dışı girdiye cevabı söyleme" kuralı geçersizdir:
-      // beat kapanıyor, öğrenci cevabı öğrenmeden gitmemeli.
-      opts.lastExchange
-        ? `THIS BEAT IS ENDING after your reply, whatever they wrote. Even if isAttempt=false, give them the correct answer once, warmly, and do not ask again.`
-        : "",
-      ``,
-      `If it IS an attempt, decide "ok" in TWO STEPS.`,
-      ``,
-      `STEP 1 — repair obvious typing slips before you judge anything. If the letters are one or`,
-      `two characters away from a word that would fit, it is a typing slip: "Doo" is "Do",`,
-      `"schoool" is "school", "teh" is "the". Casing, punctuation and contractions are noise too.`,
-      `Judge the REPAIRED answer; you may still show the correct spelling kindly.`,
-      `Letters that resemble no fitting word at all ("erf", "kloi", "asdf") are NOT slips — repair`,
-      `nothing and judge them as the wrong answer they are.`,
-      ``,
-      `STEP 2 — judge the repaired answer against WHAT THIS LESSON TEACHES, not against the list.`,
-      `The example answers above are what one author happened to write down; many blanks take`,
-      `several different words.`,
-      `ok=true when the answer fits the sentence naturally and uses the target correctly, even`,
-      `  with a different word than the examples ("draw" where the list says "write").`,
-      `ok=false when the answer breaks the taught target (wrong tense, form or agreement, such as`,
-      `  "studies" after I where the lesson teaches the plain verb), when it does not fit the`,
-      `  sentence, or when the exercise is about ONE specific expression and they used another.`,
-      `For multiple-choice, naming the correct option in other words ("the first one") is ok=true.`,
-      ``,
-      `If ok=true: praise in ONE short sentence. If they misspelled, you may gently show the`,
-      `correct written form in its own "en" run. Do NOT ask the question again.`,
-      `If ok=false:`,
-      // CANLI HATA: öğrenci üç kez anlamsız cevap yazdı, model üçünü de "deneme değil"
-      // saydı, tur tavanı dolunca ders doğru cevabı HİÇ söylemeden geçti. Beat'ten
-      // çıkarken cevap her hâlükârda verilir — bayrağı istemci hesaplar.
-      opts.lastExchange || attempt >= 1
-        ? `This is the LAST time you can respond on this question. Kindly GIVE the correct answer in a full ENGLISH sentence (its own "en" run), whatever they wrote, and add one word of encouragement. Do NOT ask the question again.`
-        : [
-            `Reply in 1-2 short sentences: encourage, give a small HINT that points at today's target,`,
-            `then invite them to try again in one warm clause. Do NOT restate or reword the task —`,
-            `it is already on screen, and a reworded task misleads (live bug: the model invented`,
-            `its own question and the student answered the wrong thing).`,
-            `CRITICAL: the student gets another real try, so your reply must NOT contain the correct`,
-            `answer in ANY form — not the sentence, not the option letter, not a quote of it.`,
-            `Revealing the answer and then asking again is absurd; such a reply is WRONG.`,
-          ].join("\n"),
-      ``,
-      `Reply with STRICT JSON: {"isAttempt": <true|false>, "ok": <true|false>, "reply": [{"lang":"l1"|"en","text":"..."}]}`,
-      `Plain speech only: no markdown, no emojis, no stage directions.`,
-    ]
-      .filter(Boolean)
-      .join("\n"),
-    user: `The student said: "${text}"`,
-    schema: exerciseVerdictSchema,
-    promptVersion: "exercise-check.v7",
-    userId,
-    sessionId,
-    maxTokens: 250,
-    temperature: 0.2,
-  });
-
-  // Sızıntı guard'ı — yalnız yeniden-sor dalında (prompt'taki dal koşulunun
-  // aynası). Yapısal karar (ok/isAttempt) İLK karardan gelir ve DEĞİŞMEZ;
-  // yeniden üretim yalnız metni tazeler. Mutlu yolda sıfır ek çağrı.
-  const revealAllowed = surrendered || opts.lastExchange || attempt >= 1;
-  const closesWithSuccess = verdict.ok && verdict.isAttempt && !surrendered;
-  let reply = verdict.reply;
-  if (!revealAllowed && !closesWithSuccess && leaksAnswer(runsToPlain(reply), accepted)) {
-    console.warn(`[judge] cevap sızıntısı yakalandı (${sessionId}) — metin bir kez yeniden üretiliyor`);
-    try {
-      const retry = await completeJson({
-        purpose: "chat",
-        system: [
-          `Your previous draft revealed the correct answer — that is FORBIDDEN on this turn, the`,
-          `student still has a try left. Rewrite the reply: encourage, give a hint about today's`,
-          `target, re-ask the question. The reply must NOT contain the correct answer or its letter.`,
-          ``,
-          `Original task follows for context:`,
-          `The question item: "${beat.item}"`,
-          `Today's target: ${ctx.core.focus}`,
-          judgeLanguageRule(ctx.tutorLanguage, ctx.l1Name),
-          `Reply with STRICT JSON: {"isAttempt": <true|false>, "ok": <true|false>, "reply": [{"lang":"l1"|"en","text":"..."}]}`,
-        ].join("\n"),
-        user: `The student said: "${text}"`,
-        schema: exerciseVerdictSchema,
-        promptVersion: "exercise-check.v7",
-        userId,
-        sessionId,
-        maxTokens: 250,
-        temperature: 0.2,
-      });
-      reply = retry.reply;
-    } catch {
-      /* yeniden üretim düşerse aşağıdaki deterministik geri düşüş devreye girer */
-    }
-    if (leaksAnswer(runsToPlain(reply), accepted)) {
-      console.warn(`[judge] ikinci taslak da sızdırdı (${sessionId}) — deterministik yeniden-sorma`);
-      reply = [{ lang: "en" as const, text: `Let's try once more: ${beat.item}` }];
-    }
-  }
-  const latencyMs = Date.now() - t0;
-
-  const plain = runsToPlain(reply);
-  await db.insert(transcriptTurns).values([
-    { sessionId, role: "user", text, phase },
-    { sessionId, role: "assistant", text: plain, runs: reply, phase, latencyMs },
-  ]);
-
-  // "Bilmiyorum" modelin insafına bırakılmaz — pes etmek de bir cevaptır.
-  // `ok` guard'ı kodda: deneme değilse ya da pes ettiyse doğru SAYILAMAZ,
-  // prompt ne derse desin (prompta güvenilmez, karar yapısal kalır).
-  return {
-    text: plain,
-    runs: reply,
-    segmentDone: false,
-    beatDone: verdict.ok && verdict.isAttempt && !surrendered,
-    isAttempt: verdict.isAttempt || surrendered,
-  };
-}
-
-/**
- * "Say the whole sentence" türü adımlar: doğru cevap tek bir dize değildir, o yüzden
- * modelden YAPILANDIRILMIŞ bir karar alınır. İlerleme kararı yine kodda: `ok` ya da
- * deneme hakkı bitti → beatDone. Model akışı yönetmez, yalnızca değerlendirir.
- */
-async function judgeOpenResponse(
-  userId: string,
-  sessionId: string,
-  text: string,
-  beat: Extract<CoreBeat, { kind: "open_response" }>,
-  ctx: JudgeContext,
-  opts: ChatOptions,
-  phase: LessonPhase,
-): Promise<{ text: string; runs: RichText; segmentDone: boolean; beatDone: boolean; isAttempt: boolean }> {
-  const attempt = opts.attempt ?? 0;
-  const isLastAttempt = attempt + 1 >= beat.maxAttempts;
-  const surrendered = isSurrender(text, ctx.surrenderTokens);
-
-  const t0 = Date.now();
-  const verdict = await completeJson({
-    purpose: "chat",
-    system: [
-      `You are Emma, a warm English teacher marking one spoken answer.`,
-      `Task the student was given: "${beat.question}"`,
-      `What the lesson is measuring: ${ctx.core.tutorNotes.target}`,
-      `Example phrases that show the target: ${beat.rubric.mustUse.join(" / ")}`,
-      `Accept the answer when: ${beat.rubric.criteria}`,
-      ``,
-      judgeLanguageRule(ctx.tutorLanguage, ctx.l1Name),
-      ``,
-      // CANLI HATA: bu satır "They must use: she works / he lives" diyordu ve model
-      // BİREBİR arıyordu. "my brother has a lot of work at home" 3. tekil -s'in ta
-      // kendisiydi, reddedildi; üstüne "'He works' demelisin" diye yanlış düzeltme
-      // verildi. Alıştırma judge'ında düzeltilen "kabul listesi = beyaz liste"
-      // hatasının aynısı.
-      `THE EXAMPLE PHRASES ARE EXAMPLES, NOT A CHECKLIST. The student does not have to`,
-      `repeat them. Judge whether their answer USES THE TARGET the lesson measures — with`,
-      `their own subject, verb and content. "My brother has a lot of work" shows third`,
-      `person -s just as well as "she works" does.`,
-      `Judge MEANING and STRUCTURE, not perfection. Accept it if they used the target`,
-      `correctly, even with small slips elsewhere (a wrong plural, a missing article) —`,
-      `you may mention such a slip kindly in your feedback, but it does NOT make ok false.`,
-      `Reject only when the target structure is absent or actually used wrongly.`,
-      ``,
-      // Pes etme deterministik biliniyor; o durumda modele SORULMAZ, tek yönerge verilir.
-      // Yığılmış koşullu talimatlar çelişiyordu: model "konu dışı" dalını seçip görevi
-      // yeniden soruyor, öğrenci hakları bitmesine rağmen örnek cevabı hiç duymuyordu.
-      ...(surrendered
-        ? [
-            `The student has GIVEN UP on this task. Set isAttempt=true and ok=false.`,
-            isLastAttempt
-              ? `This was their LAST try: warmly GIVE THEM a model answer as a full ENGLISH sentence (own "en" run) — a sentence that ACTUALLY COMPLETES THE TASK ABOVE and satisfies the rubric, never a rephrasing of what the student just said. Do NOT ask the task again.`
-              : `Encourage them in one clause, then invite them to try again — without restating or rewording the task.`,
-          ]
-        : [
-            attemptRule,
-            ``,
-            `If isAttempt is false, ok MUST be false; the app re-shows the task after your reply — do not restate it.`,
-            isLastAttempt
-              ? `If it IS an attempt and ok is false, this was their LAST try: warmly GIVE THEM a model answer as a full ENGLISH sentence (own "en" run) — a sentence that ACTUALLY COMPLETES THE TASK ABOVE and satisfies the rubric, never a rephrasing of what the student just said. Do NOT ask the task again.`
-              : `If it IS an attempt and ok is false, name what is missing in one clause and invite them to try again — without restating or rewording the task. Do not reveal a full model answer yet.`,
-          ]),
-      ``,
-      `Reply with STRICT JSON: {"isAttempt": <true|false>, "ok": <true|false>, "feedback": [{"lang":"l1"|"en","text":"..."}]}`,
-      `If ok is true, praise briefly and do not ask anything.`,
-      `Plain speech only: no markdown, no emojis, no quotation marks around the feedback.`,
-    ]
-      .filter(Boolean)
-      .join("\n"),
-    user: `The student said: "${text}"`,
-    schema: openResponseVerdictSchema,
-    promptVersion: "open-response.v5",
-    userId,
-    sessionId,
-    maxTokens: 250,
-    temperature: 0.2,
-  });
-  const latencyMs = Date.now() - t0;
-
-  const plain = runsToPlain(verdict.feedback);
-  await db.insert(transcriptTurns).values([
-    { sessionId, role: "user", text, phase },
-    { sessionId, role: "assistant", text: plain, runs: verdict.feedback, phase, latencyMs },
-  ]);
-
-  const isAttempt = verdict.isAttempt || surrendered;
-  return {
-    text: plain,
-    runs: verdict.feedback,
-    segmentDone: false,
-    // İlerleme KODDA: kabul edildi ya da hak bitti. Cevap denemesi değilse
-    // (selamlama, konu dışı) hak YANMAZ — adım kapanmaz, soru yeniden sorulur.
-    beatDone: isAttempt ? verdict.ok || isLastAttempt : false,
-    isAttempt,
-  };
-}
-
-/** Judge'lara giden oturum bağlamı — dil politikası + pes kümesi. */
-interface JudgeContext {
+async function lectureTurn(a: {
+  userId: string;
+  sessionId: string;
+  text: string;
+  opts: ChatOptions;
   core: LessonCore;
-  tutorLanguage: "native" | "english";
-  l1Name: string;
+  beatId: string;
+  state: SessionState | null;
+  learner: Learner;
   surrenderTokens: readonly string[];
+  askedLine: string;
+}): Promise<{ text: string; runs: RichText; segmentDone: boolean; beatDone?: boolean; isAttempt?: boolean }> {
+  const history = historyFor(a.state?.beatLog, a.beatId);
+  // Sayaçlar istemciden (akışı o yürütür). Eski istemci `exchanges` göndermez:
+  // son-tur bayrağından ya da adım kaydındaki öğrenci turlarından türetilir.
+  const exchanges =
+    a.opts.exchanges ??
+    (a.opts.lastExchange ? MAX_BEAT_EXCHANGES - 1 : history.filter((t) => t.role === "student").length);
+
+  const llm: TurnLlm = (req) =>
+    completeJson({
+      purpose: "chat",
+      system: req.system,
+      user: req.user,
+      schema: req.schema,
+      promptVersion: req.promptVersion,
+      userId: a.userId,
+      sessionId: a.sessionId,
+      maxTokens: req.maxTokens,
+      temperature: req.temperature,
+    });
+
+  const t0 = Date.now();
+  const out = await runLectureTurn(
+    {
+      core: a.core,
+      beatId: a.beatId,
+      learner: a.learner,
+      history,
+      studentText: a.text,
+      counters: { exchanges, attempt: a.opts.attempt ?? 0 },
+      surrenderTokens: a.surrenderTokens,
+      askedLine: a.askedLine || undefined,
+      lastExchange: a.opts.lastExchange,
+    },
+    llm,
+  );
+  if (!out) throw new SessionError("not_found", "Adım bulunamadı");
+  const latencyMs = Date.now() - t0;
+  const plain = runsToPlain(out.reply);
+
+  if (out.task?.repaired) {
+    console.warn(`[turn] cevap sızıntısı yakalandı ve onarıldı (${a.sessionId}, ${a.beatId})`);
+  }
+
+  const phase = a.opts.phase ?? "lecture";
+  await db.insert(transcriptTurns).values([
+    { sessionId: a.sessionId, role: "user", text: a.text, phase },
+    { sessionId: a.sessionId, role: "assistant", text: plain, runs: out.reply, phase, latencyMs },
+  ]);
+  // jsonb BİRLEŞTİRME — state'in diğer alanları (script, hitTurns…) ezilmez.
+  const beatLog = appendToBeatLog(a.state?.beatLog, a.beatId, a.text, out.reply, out.task?.reAsk ?? false);
+  await db
+    .update(sessions)
+    .set({ state: sql`coalesce(${sessions.state}, '{}'::jsonb) || ${JSON.stringify({ beatLog })}::jsonb` })
+    .where(eq(sessions.id, a.sessionId));
+
+  return out.task
+    ? { text: plain, runs: out.reply, segmentDone: false, beatDone: out.task.beatDone, isAttempt: out.task.isAttempt }
+    : { text: plain, runs: out.reply, segmentDone: false };
 }
 
 export async function chatTurn(
@@ -987,14 +574,32 @@ export async function chatTurn(
   const nativeLanguage = nativeLanguageOf(profile);
   const tutorLanguage = state?.tutorLanguage ?? "native";
   const chrome = getChrome(tutorLanguage === "native" ? nativeLanguage : "en");
-  const judgeCtx: JudgeContext | null = core
-    ? {
-        core,
-        tutorLanguage,
+  const phase = opts.phase ?? "lecture";
+
+  // LECTURE ADIMLARI — konuşma motoru (src/modules/session/turn). İstemciden gelen
+  // beatId aktif çekirdekte doğrulanır; yanlış/bayat kimlik genel yola düşer.
+  const activeBeat =
+    phase === "lecture" && core ? core.lecture.beats.find((b) => b.id === opts.beatId) : undefined;
+  if (core && activeBeat && (activeBeat.kind === "exercise" || activeBeat.kind === "open_response" || activeBeat.kind === "ask")) {
+    return await lectureTurn({
+      userId,
+      sessionId,
+      text,
+      opts,
+      core,
+      beatId: activeBeat.id,
+      state,
+      learner: {
+        name: profile?.displayName ?? "Student",
+        cefrLevel: profile?.cefrLevel ?? "A2",
+        nativeLanguage,
         l1Name: languageName(nativeLanguage),
-        surrenderTokens: chrome.surrender,
-      }
-    : null;
+        tutorLanguage,
+      },
+      surrenderTokens: chrome.surrender,
+      askedLine: runsToPlain(script?.beats[activeBeat.id]),
+    });
+  }
 
   const memoryBlock =
     core && scene
@@ -1005,28 +610,10 @@ export async function chatTurn(
         })
       : null;
 
-  const phase = opts.phase ?? "lecture";
-
-  // Minimal oturum koruması: istemciden gelen beatId aktif çekirdekte doğrulanır
-  // (yanlış/bayat kimlik sessizce genel sohbet dalına düşer, akış kilitlenmez).
-  // YAPISAL DEĞERLENDİRME GEREKEN BEAT'LER — düz metin yerine şemayla doğrulanmış
-  // karar döner (isAttempt / ok), böylece ilerleme kararı KODDA kalır.
-  const activeBeat =
-    phase === "lecture" && core ? core.lecture.beats.find((b) => b.id === opts.beatId) : undefined;
-
-  if (judgeCtx && activeBeat?.kind === "open_response") {
-    return await judgeOpenResponse(userId, sessionId, text, activeBeat, judgeCtx, opts, phase);
-  }
-  // Alıştırmaya gelen girdi ya yanlış cevaptır ya da cevap bile değildir
-  // (doğru cevaplar istemcide eşleşir, buraya hiç gelmez).
-  if (judgeCtx && activeBeat?.kind === "exercise") {
-    return await judgeExercise(userId, sessionId, text, activeBeat, judgeCtx, opts, phase);
-  }
-
   // BAĞLAM YALITIMI — faz dışı geçmiş modele GİTMEZ.
-  // Lecture beat'lerinde (ask/exercise) gereken her şey momentContext'te: soru,
-  // beklenen cevap, deneme sayısı. Geçmiş göndermek modelin eski alıştırmalara
-  // dönmesine yol açıyordu (roleplay ortasında "the correct choice is B" bug'ı).
+  // Lecture adımları kendi adım diyaloğunu görür (turn/ — beatLog). Fazlar arası
+  // geçmiş göndermek modelin eski alıştırmalara dönmesine yol açıyordu (roleplay
+  // ortasında "the correct choice is B" bug'ı).
   // Practice ve wrapup çok turlu olduğu için YALNIZCA kendi fazlarının turlarını görür
   // (kapanışta roleplay geçmişi sızarsa hoca karaktere geri dönüyor).
   const priorTurns =
@@ -1066,42 +653,63 @@ export async function chatTurn(
         decisionHits.size >= core.practice.minTargetUses
       : false;
 
-  const system =
-    core && scene
-      ? buildTutorPrompt({
-          displayName: profile?.displayName ?? "Student",
-          cefrLevel: profile?.cefrLevel ?? "A2",
-          nativeLanguage,
-          tutorLanguage,
-          occupation: profile?.occupation ?? null,
-          interests: Array.isArray(profile?.interests) ? (profile.interests as string[]) : [],
-          core,
-          scene,
-          activeContext: momentContext(core, scene, opts, script, goalMet),
-          memoryBlock,
-        })
-      : `You are Emma, a warm English teacher. Reply as STRICT JSON {"reply":[{"lang":"en","text":"..."}]} with 1-3 simple sentences.`;
+  // AKIŞ KONTROLÜ MODELE EMANET EDİLMEZ — sahne yalnızca iki deterministik
+  // nedenle biter: tur tavanı doldu ya da hedef yeterince üretildi (goalMet).
+  // İkisi de çağrıdan ÖNCE belli → modele "bu cevapla sahne kapanıyor/sürüyor"
+  // KESİN söylenir; söz ile akış ayrışamaz.
+  const turnCap = core ? effectiveMaxTurns(core) : PRACTICE_MIN_MAX_TURNS;
+  const reachedLimit = phase === "practice" && core ? turnIndex + 1 >= turnCap : false;
+  const segmentDone = reachedLimit || goalMet;
 
-  const messages = [
-    ...priorTurns.slice(-20).map((t) => ({
-      role: t.role as "user" | "assistant",
-      content: t.text,
-    })),
-    { role: "user" as const, content: text },
-  ];
+  const llm: TurnLlm = (req) =>
+    completeJson({
+      purpose: "chat",
+      system: req.system,
+      user: req.user,
+      schema: req.schema,
+      promptVersion: req.promptVersion,
+      userId,
+      sessionId,
+      maxTokens: req.maxTokens,
+      temperature: req.temperature,
+    });
 
   const t0 = Date.now();
-  const verdict = await completeJson({
-    purpose: "chat",
-    system,
-    user: messages.map((m) => `${m.role === "user" ? "STUDENT" : "YOU"}: ${m.content}`).join("\n"),
-    schema: chatVerdictSchema,
-    promptVersion: "tutor-chat.v4",
-    userId,
-    sessionId,
-    maxTokens: 260,
-    temperature: 0.6,
-  });
+  const verdict =
+    core && scene && (phase === "practice" || phase === "wrapup")
+      ? await runConversationTurn(
+          {
+            phase,
+            core,
+            scene,
+            learner: {
+              name: profile?.displayName ?? "Student",
+              cefrLevel: profile?.cefrLevel ?? "A2",
+              nativeLanguage,
+              l1Name: languageName(nativeLanguage),
+              tutorLanguage,
+            },
+            occupation: profile?.occupation ?? null,
+            interests: Array.isArray(profile?.interests) ? (profile.interests as string[]) : [],
+            memoryBlock,
+            history: priorTurns.map((t) => ({ role: t.role as "user" | "assistant", text: t.text })),
+            studentText: text,
+            turnIndex,
+            turnCap,
+            closesNow: segmentDone,
+            goalMet,
+          },
+          llm,
+        )
+      : // Bayat/bilinmeyen adım kimliği ya da çekirdeksiz eski oturum — kısa güvenli cevap
+        await llm({
+          system: `You are Emma, a warm English teacher in the middle of a lesson. Reply to the student in 1-2 short sentences and keep them on the lesson. Never greet again. Reply as STRICT JSON {"reply":[{"lang":"en","text":"..."}]}.`,
+          user: `STUDENT: ${text}`,
+          schema: chatVerdictSchema,
+          promptVersion: "fallback-chat.v1",
+          maxTokens: 200,
+          temperature: 0.4,
+        });
   const latencyMs = Date.now() - t0;
 
   const runs = verdict.reply;
@@ -1121,22 +729,14 @@ export async function chatTurn(
       const hits = new Set(priorHits);
       hits.add(turnIndex);
       if (hits.size !== priorHits.size) {
+        // jsonb BİRLEŞTİRME — state'in diğer alanları ezilmez
         await db
           .update(sessions)
-          .set({ state: { ...(state ?? {}), practice: { hitTurns: [...hits] } } })
+          .set({ state: sql`coalesce(${sessions.state}, '{}'::jsonb) || ${JSON.stringify({ practice: { hitTurns: [...hits] } })}::jsonb` })
           .where(eq(sessions.id, sessionId));
       }
     }
   }
-
-  // AKIŞ KONTROLÜ MODELE EMANET EDİLMEZ — yanıtın METNİNE hiç bakılmaz.
-  // Sahne yalnızca iki deterministik nedenle biter: tur tavanı doldu ya da
-  // öğrenci hedef yapıyı yeterince kez üretti (goalMet, sayılarak hesaplanır).
-  const reachedLimit =
-    opts.phase === "practice" && core
-      ? (opts.turnIndex ?? 0) + 1 >= effectiveMaxTurns(core)
-      : false;
-  const segmentDone = reachedLimit || goalMet;
 
   await db.insert(transcriptTurns).values([
     { sessionId, role: "user", text, phase },

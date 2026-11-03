@@ -7,12 +7,16 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { triageAnswer, type AnswerReview } from "@glotmate/contracts";
+import { hasWordContent, triageAnswer, type AnswerReview, type AvatarActivity } from "@glotmate/contracts";
 import { api } from "@/lib/api";
 import { alignmentToLine, type ElevenAlignment } from "@/lib/alignment";
 import { buildTimeline, type Timeline } from "@/lib/viseme";
 
 export type VoiceStatus = "idle" | "listening" | "transcribing" | "thinking" | "speaking";
+
+/** Avatar duruşu: öğrenci konuşurken dinler, yazıya dökme + sunucu yanıtı sırasında düşünür */
+export const avatarActivity = (s: VoiceStatus): AvatarActivity =>
+  s === "listening" ? "listening" : s === "transcribing" || s === "thinking" ? "thinking" : "idle";
 
 export interface ChatContext {
   phase?: "lecture" | "practice" | "wrapup";
@@ -21,6 +25,8 @@ export interface ChatContext {
   attempt?: number;
   /** Soru penceresinin son turu: hoca "başka sorun var mı?" demeden kapatır. */
   lastExchange?: boolean;
+  /** Bu sözden ÖNCEKİ tur sayısı — sunucu hocanın sözünü akışla aynı sonuçtan türetir */
+  exchanges?: number;
 }
 
 function errorText(err: unknown): string {
@@ -353,7 +359,8 @@ export function useVoiceSession(sessionId: string | null) {
       const data = await api<{ text: string }>(`/v1/sessions/${sid}/stt`, { method: "POST", body: form });
       if (gen !== genRef.current) return null;
       const text = data.text.trim();
-      if (!text) {
+      // Sessizlikte STT "." döndürebiliyor — boş sayılır
+      if (!hasWordContent(text)) {
         setError("Ses anlaşılamadı — tekrar dener misin?");
         setStatus("idle");
         return null;

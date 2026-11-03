@@ -1,30 +1,11 @@
 import { db } from "../../db/client.js";
 import { llmCalls } from "../../db/schema.js";
+import { generateJson } from "./generate.js";
+import { MODEL_BY_PURPOSE } from "./models.js";
+
+export { modelForPurpose } from "./models.js";
 import { openaiProvider } from "./openai.js";
 import type { CompleteJsonOptions, CompleteTextOptions, LLMPurpose } from "./types.js";
-
-/** Amaç → model yönlendirmesi. Tek yerden değişir; kod dağılmaz. */
-const MODEL_BY_PURPOSE: Record<LLMPurpose, string> = {
-  plan_gen: "gpt-4.1",
-  lesson_gen: "gpt-4.1",
-  // v7 katmanları: çekirdek ve sahne pedagoji taşır → güçlü model.
-  // Dil paketi de güçlü modelde: kötü ana-dil düzyazısı ekibin GÖREMEYECEĞİ hatadır.
-  lesson_core: "gpt-4.1",
-  lesson_scenes: "gpt-4.1",
-  lesson_locale: "gpt-4.1",
-  chat: "gpt-4o-mini",
-  // Cevap incelemesi güncel nesil ucuz katmanda: iki zor işi birden yapıyor —
-  // "doğru ama native böyle demez" yargısı ve açıklamayı ÖĞRENCİNİN DİLİNDE yazmak.
-  // İkincisi ekibin göremeyeceği hata sınıfı, o yüzden 2024 modeline bırakılmadı.
-  answer_review: "gpt-5.6-luna",
-  memory_extract: "gpt-4o-mini",
-  embedding: "text-embedding-3-small",
-};
-
-/** Bir amacın hangi modele gittiğini dışarıdan sormak için (kayıt/log alanları). */
-export function modelForPurpose(purpose: LLMPurpose): string {
-  return MODEL_BY_PURPOSE[purpose];
-}
 
 /** Hafıza vektörlerinin boyutu — memories.embedding kolonuyla aynı olmalı */
 export const EMBEDDING_DIMENSIONS = 1536;
@@ -34,6 +15,10 @@ const PRICING: Record<string, { in: number; out: number }> = {
   "gpt-4.1": { in: 2.0, out: 8.0 },
   "gpt-4o-mini": { in: 0.15, out: 0.6 },
   "gpt-5.6-luna": { in: 0.2, out: 1.2 },
+  // 3 Kas 2026 — üçüncü taraf kaynaklardan (OpenAI fiyat sayfasıyla DOĞRULANMALI):
+  // gpt-6.1-terra $1/$5, gpt-6-astra $10/$50 (bir kaynak $5/$25 diyor)
+  "gpt-6.1-terra": { in: 1.0, out: 5.0 },
+  "gpt-6-astra": { in: 10.0, out: 50.0 },
   "text-embedding-3-small": { in: 0.02, out: 0 },
 };
 
@@ -47,69 +32,39 @@ function costUsd(model: string, inTok: number, outTok: number): string {
   return (((inTok * p.in) + (outTok * p.out)) / 1_000_000).toFixed(6);
 }
 
-/** JSON içinden ilk dengeli objeyi çıkar (model bazen açıklama ekler) */
-function extractJson(text: string): string {
-  const start = text.indexOf("{");
-  if (start === -1) return text;
-  let depth = 0;
-  for (let i = start; i < text.length; i++) {
-    if (text[i] === "{") depth++;
-    else if (text[i] === "}") {
-      depth--;
-      if (depth === 0) return text.slice(start, i + 1);
-    }
-  }
-  return text.slice(start);
-}
-
 /**
  * JSON üretim çağrısı: model yönlendirme + Zod doğrulama + 1 onarım denemesi +
- * her API çağrısının llm_calls'a maliyetiyle loglanması.
+ * her API çağrısının llm_calls'a maliyetiyle loglanması. Çekirdek `generateJson`
+ * (DB'siz) — konuşma taraması aynı yolu kullanır.
  */
 export async function completeJson<T>(opts: CompleteJsonOptions<T>): Promise<T> {
   const model = MODEL_BY_PURPOSE[opts.purpose];
-  let lastError = "";
-
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const user =
-      attempt === 0
-        ? opts.user
-        : `${opts.user}\n\nÖNCEKİ DENEMEN ŞU DOĞRULAMA HATALARINI VERDİ, DÜZELTEREK TEKRAR ÜRET:\n${lastError}`;
-
-    const startedAt = Date.now();
-    const result = await openaiProvider.completeJson({
+  try {
+    return await generateJson({
       model,
       system: opts.system,
-      user,
+      user: opts.user,
+      schema: opts.schema,
       maxTokens: opts.maxTokens,
       temperature: opts.temperature,
+      onCall: async (result, latencyMs) => {
+        await db.insert(llmCalls).values({
+          userId: opts.userId,
+          sessionId: opts.sessionId,
+          provider: openaiProvider.name,
+          model,
+          purpose: opts.purpose,
+          promptVersion: opts.promptVersion,
+          inputTokens: result.inputTokens,
+          outputTokens: result.outputTokens,
+          costUsd: costUsd(model, result.inputTokens, result.outputTokens),
+          latencyMs,
+        });
+      },
     });
-    const latencyMs = Date.now() - startedAt;
-
-    await db.insert(llmCalls).values({
-      userId: opts.userId,
-      sessionId: opts.sessionId,
-      provider: openaiProvider.name,
-      model,
-      purpose: opts.purpose,
-      promptVersion: opts.promptVersion,
-      inputTokens: result.inputTokens,
-      outputTokens: result.outputTokens,
-      costUsd: costUsd(model, result.inputTokens, result.outputTokens),
-      latencyMs,
-    });
-
-    try {
-      const parsed = JSON.parse(extractJson(result.text));
-      const validated = opts.schema.safeParse(parsed);
-      if (validated.success) return validated.data;
-      lastError = JSON.stringify(validated.error.issues.slice(0, 10));
-    } catch (e) {
-      lastError = `JSON parse hatası: ${String(e).slice(0, 200)}`;
-    }
+  } catch (err) {
+    throw new Error(`[${opts.purpose}] ${err instanceof Error ? err.message : String(err)}`);
   }
-
-  throw new Error(`LLM çıktısı ${opts.purpose} şemasını 2 denemede geçemedi: ${lastError.slice(0, 500)}`);
 }
 
 /** Düz metin sohbet tamamlaması (ders içi chat) — llm_calls loglamalı. */

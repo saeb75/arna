@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { X } from "lucide-react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -10,7 +12,14 @@ import {
   type CheckpointAnswer,
   type CheckpointItem,
 } from "@glotmate/contracts";
-import { Button } from "../../components/ui/Button";
+import { CtaButton } from "../../components/ui/CtaButton";
+import { LoadFailed } from "../../components/ui/LoadFailed";
+import { ProgressBar } from "../../components/ui/ProgressBar";
+import { RoundIconButton } from "../../components/ui/RoundIconButton";
+import { Skeleton } from "../../components/ui/Skeleton";
+import { tr } from "../../i18n/tr";
+import { HapticsService } from "../../services/HapticsService";
+import { useThemeColors } from "../../theme/useThemeColors";
 import { CheckpointController } from "../../controllers/CheckpointController";
 import { useCheckpointStore } from "../../stores/useCheckpointStore";
 import { CheckpointResult } from "./CheckpointResult";
@@ -36,9 +45,8 @@ import { OrderItem } from "./OrderItem";
  */
 
 const ERROR_TEXT: Record<string, string> = {
-  not_enough_items: "Bu ünitenin dersleri henüz hazır değil.",
-  unit_not_found: "Ünite bulunamadı.",
-  no_profile: "Önce profilini oluşturman gerekiyor.",
+  not_enough_items: tr.errors.unitNotReady,
+  unit_not_found: tr.errors.unitNotReady,
 };
 
 function labelOf(item: CheckpointItem, labels: Checkpoint["labels"]): string {
@@ -48,6 +56,7 @@ function labelOf(item: CheckpointItem, labels: Checkpoint["labels"]): string {
 export function CheckpointScreen({ level, unit }: { level: string; unit: string }) {
   const unitIndex = Number(unit);
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
   const { checkpoint, loading, error, saveError } = useCheckpointStore();
 
   const [index, setIndex] = useState(0);
@@ -97,9 +106,11 @@ export function CheckpointScreen({ level, unit }: { level: string; unit: string 
     if (!item || !answer || checked) return;
     setChecked(true);
     if (gradeCheckpointItem(item, answer)) {
+      HapticsService.success();
       setScore((s) => s + 1);
       return;
     }
+    HapticsService.warning();
     setWrong((w) => w + 1);
     setWeak((w) => (w.includes(item.lessonId) ? w : [...w, item.lessonId]));
   }, [item, answer, checked]);
@@ -131,17 +142,22 @@ export function CheckpointScreen({ level, unit }: { level: string; unit: string 
 
   if (error) {
     return (
-      <View className="flex-1 items-center justify-center gap-4 bg-background px-6">
-        <Text className="text-center text-sm text-danger">{ERROR_TEXT[error] ?? "Test yüklenemedi."}</Text>
-        <Button title="Derslere dön" variant="outline" onPress={() => router.replace("/lessons")} />
+      <View className="flex-1 justify-center gap-4 bg-canvas px-6">
+        <LoadFailed body={ERROR_TEXT[error]} onRetry={retry} />
+        <CtaButton label={tr.checkpoint.backToLessons} onPress={() => router.replace("/lessons")} />
       </View>
     );
   }
 
   if (loading || !checkpoint) {
     return (
-      <View className="flex-1 items-center justify-center bg-background">
-        <Text className="text-muted">Test hazırlanıyor…</Text>
+      // Güvenli alan ÇALIŞMA ZAMANI değeri — gerekçeli inline stil
+      <View className="flex-1 gap-4 bg-canvas px-4" style={{ paddingTop: insets.top + 16 }}>
+        <Skeleton className="h-10 rounded-full" />
+        <Skeleton className="mt-6 h-8 w-4/5 rounded-xl" />
+        <Skeleton className="h-16 rounded-2xl" />
+        <Skeleton className="h-16 rounded-2xl" />
+        <Skeleton className="h-16 rounded-2xl" />
       </View>
     );
   }
@@ -149,7 +165,7 @@ export function CheckpointScreen({ level, unit }: { level: string; unit: string 
   if (done) {
     return (
       // Güvenli alan çalışma zamanı değeri — gerekçeli inline stil
-      <View className="flex-1 bg-background" style={{ paddingTop: insets.top, paddingBottom: insets.bottom + 16 }}>
+      <View className="flex-1 bg-canvas" style={{ paddingTop: insets.top, paddingBottom: insets.bottom + 16 }}>
         <CheckpointResult
           unitIndex={checkpoint.unitIndex}
           passed={checkpointPassed(score, checkpoint.items.length)}
@@ -165,59 +181,57 @@ export function CheckpointScreen({ level, unit }: { level: string; unit: string 
 
   if (!item) return null;
 
-  const progress = ((index + (checked ? 1 : 0)) / checkpoint.items.length) * 100;
+  const progress = (index + (checked ? 1 : 0)) / checkpoint.items.length;
 
   return (
-    <View className="flex-1 bg-background" style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 12 }}>
-      <View className="flex-row items-center gap-3 px-4">
-        <Pressable onPress={() => router.replace("/lessons")} accessibilityLabel="Çık" hitSlop={12}>
-          <Text className="text-lg text-muted">✕</Text>
-        </Pressable>
-        <View className="h-2 flex-1 overflow-hidden rounded-full bg-nodeIdle">
-          {/* Genişlik yüzdesi ÇALIŞMA ZAMANI değeri — NativeWind sınıfıyla ifade edilemez */}
-          <View className="h-full rounded-full bg-primary" style={{ width: `${progress}%` }} />
+    // Güvenli alan ÇALIŞMA ZAMANI değeri — gerekçeli inline stil
+    <View className="flex-1 bg-canvas" style={{ paddingTop: insets.top + 6, paddingBottom: insets.bottom + 12 }}>
+      <View className="h-14 flex-row items-center gap-3 px-4">
+        <RoundIconButton variant="muted" icon={<X color={colors.foreground} size={20} />} label={tr.checkpoint.exit} onPress={() => router.replace("/lessons")} />
+        <View className="flex-1">
+          <ProgressBar value={progress} className="h-2.5" />
         </View>
         <LivesRow left={livesLeft(wrong)} />
       </View>
 
-      <ScrollView
-        className="flex-1"
-        contentContainerClassName="gap-5 px-4 pb-6 pt-6"
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text className="text-sm font-medium text-muted">{labelOf(item, checkpoint.labels)}</Text>
+      <ScrollView className="flex-1" contentContainerClassName="gap-5 px-5 pb-6 pt-6" keyboardShouldPersistTaps="handled">
+        <Animated.Text key={`l${index}`} entering={FadeInDown.duration(300)} className="text-xs font-bold tracking-widest text-brand">
+          {labelOf(item, checkpoint.labels).toLocaleUpperCase("tr")}
+        </Animated.Text>
 
-        {item.kind === "order" ? (
-          <OrderItem item={item} built={built} checked={checked} onChange={setBuilt} />
-        ) : (
-          <ChoiceItem item={item} choice={choice} checked={checked} onChoose={setChoice} />
-        )}
-
-        {checked && (
-          <View className={`rounded-xl p-4 ${isCorrect ? "bg-success/10" : "bg-danger/10"}`}>
-            <Text className={`text-sm font-medium ${isCorrect ? "text-success" : "text-danger"}`}>
-              {isCorrect ? "Doğru!" : "Doğrusu:"}
-            </Text>
-            {!isCorrect && (
-              <Text className="mt-1 text-sm text-foreground">
-                {item.kind === "order" ? item.answer.join(" ") : item.options[item.correctIndex]}
-              </Text>
-            )}
-            {item.kind === "mcq" && choice !== null && item.optionFeedback?.[choice] && (
-              <Text className="mt-1 text-sm text-muted">{item.optionFeedback[choice]}</Text>
-            )}
-          </View>
-        )}
+        <Animated.View key={`i${index}`} entering={FadeInDown.delay(60).duration(380)}>
+          {item.kind === "order" ? (
+            <OrderItem item={item} built={built} checked={checked} onChange={setBuilt} />
+          ) : (
+            <ChoiceItem item={item} choice={choice} checked={checked} onChoose={setChoice} />
+          )}
+        </Animated.View>
       </ScrollView>
 
+      {checked && (
+        <Animated.View entering={FadeInDown.duration(280)} className={`mx-4 mb-3 gap-1 rounded-3xl p-4 ${isCorrect ? "bg-positive/10" : "bg-negative/10"}`}>
+          <Text className={`text-base font-bold ${isCorrect ? "text-positive" : "text-negative"}`}>
+            {isCorrect ? tr.checkpoint.correct : tr.checkpoint.answerWas}
+          </Text>
+          {!isCorrect && (
+            <Text className="text-base text-foreground">
+              {item.kind === "order" ? item.answer.join(" ") : item.options[item.correctIndex]}
+            </Text>
+          )}
+          {item.kind === "mcq" && choice !== null && item.optionFeedback?.[choice] && (
+            <Text className="text-sm text-muted-foreground">{item.optionFeedback[choice]}</Text>
+          )}
+        </Animated.View>
+      )}
+
       <View className="px-4">
-        <Button
-          title={
+        <CtaButton
+          label={
             checked
               ? livesLeft(wrong) === 0 || index + 1 === checkpoint.items.length
-                ? "Bitir"
-                : "Devam"
-              : "Kontrol et"
+                ? tr.checkpoint.finish
+                : tr.checkpoint.next
+              : tr.checkpoint.check
           }
           disabled={!answer}
           onPress={checked ? next : submit}

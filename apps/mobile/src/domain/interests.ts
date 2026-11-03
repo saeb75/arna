@@ -1,0 +1,40 @@
+import {
+  Briefcase,
+  Clapperboard,
+  Cpu,
+  Dumbbell,
+  FlaskConical,
+  Gamepad2,
+  GraduationCap,
+  HeartPulse,
+  Leaf,
+  Music,
+  Newspaper,
+  Palette,
+  Plane,
+  Shirt,
+  UtensilsCrossed,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react-native";
+import type { Interest } from "@glotmate/contracts";
+
+/** İlgi alanı → ikon (etiket tr.interests'ten). Sıra contracts INTEREST_AREAS ile aynı. */
+export const INTEREST_ICON: Record<Interest, LucideIcon> = {
+  technology: Cpu,
+  business: Briefcase,
+  travel: Plane,
+  movies_tv: Clapperboard,
+  music: Music,
+  sports: Dumbbell,
+  gaming: Gamepad2,
+  food: UtensilsCrossed,
+  science: FlaskConical,
+  health: HeartPulse,
+  finance: Wallet,
+  art_design: Palette,
+  fashion: Shirt,
+  education: GraduationCap,
+  news_politics: Newspaper,
+  nature: Leaf,
+};

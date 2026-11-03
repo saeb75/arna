@@ -1,6 +1,7 @@
 # GlotMate Admin — Mimari Sözleşme
 
-Operatör paneli (içerik yayın hattı, ileride kullanıcı/maliyet). Bu dosya
+Operatör paneli (Overview maliyet panosu, içerik yayın hattı, roleplay yönetimi,
+kullanıcı/abonelik, oturum bug avı). Bu dosya
 bağlayıcıdır ve `apps/mobile/CLAUDE.md`'nin web uyarlamasıdır: mobil ne kadar
 temizse admin de o kadar. Desen tartışılacaksa önce bu dosya, sonra kod.
 
@@ -15,6 +16,7 @@ temizse admin de o kadar. Desen tartışılacaksa önce bu dosya, sonra kod.
 | @supabase/supabase-js 2 | oturum localStorage'da, yenileme supabase-js'te |
 | @glotmate/contracts | tüm response şemaları BURADAN — elle şema yazmak yasak |
 | motion (`motion/react`) | hafif animasyon; sözlük `src/lib/motion.ts` |
+| next-themes | tema (`class`, varsayılan `system`); durum next-themes'te (localStorage), store'da DEĞİL |
 
 ## Katmanlı akış — HER özellik için, istisnasız
 
@@ -42,6 +44,13 @@ Screen → Controller (static class) → Service → axios instance → validate
 
 - Yönlendirme deklaratif ve YALNIZ rota dosyalarında: `<Redirect href/>`
   (`components/shared/Redirect.tsx`). Ekranlar ve interceptor yönlendirmez.
+- Aksiyon sonrası yönlendirme de deklaratif: controller store'a bir işaret yazar,
+  rota dosyası onu okuyup `<Redirect/>` döner (ör. roleplay oluşturma →
+  `useRoleplayEditorStore.createdId` → `roleplays/new/page.tsx`). İşareti hedef
+  ekranın controller'ı temizler (`RoleplayDetailController.load → clearCreated`).
+- Tek istisna kullanıcının KENDİ tıklamasının devamı: `UnsavedChangesGuard`
+  kaydedilmemiş editör varken panel içi `<a>` tıklamasını yakalar, onaydan sonra
+  o adrese gider (+ `beforeunload`). App Router'da rota değişimini durduran API yok.
 - `AppBootstrap` açılışta `AuthController.restore()` çağırır; `ready` olana
   kadar splash — login ekranı parlamaz.
 - Auth + admin kapısı TEK yerde: `app/(panel)/layout.tsx`
@@ -54,22 +63,25 @@ Screen → Controller (static class) → Service → axios instance → validate
 ```
 src/
 ├── app/                    # YALNIZ ince rotalar — iş mantığı, state, stil YOK
-│   ├── layout.tsx          # font + globals.css + <AppBootstrap/> + <Toaster/>
-│   ├── page.tsx            # kapı: session → /lessons, yoksa /login
-│   ├── login/page.tsx
+│   ├── layout.tsx          # font + globals.css + <ThemeProvider> + <AppBootstrap/> + <Toaster/>
+│   ├── login/page.tsx      # oturum varsa → /
 │   └── (panel)/            # yetkili alan: layout kapı + <PanelShell/>
+│       ├── page.tsx        # / = Overview (oturumsuz ziyaret layout kapısında /login'e düşer)
 │       ├── lessons/page.tsx · lessons/[id]/page.tsx
-│       ├── users/page.tsx · users/[id]/page.tsx     # salt okunur; auth.users + profil + sayaçlar
+│       ├── roleplays/page.tsx · roleplays/new/page.tsx · roleplays/[id]/page.tsx
+│       ├── users/page.tsx · users/[id]/page.tsx     # auth.users + profil + sayaçlar; tek yazma: Pro tanıma
 │       ├── sessions/page.tsx · sessions/[id]/page.tsx # bug avı: transkript + imleç + LLM çağrıları
 │       └── settings/            # /settings → /settings/voice; avatar/ ve voice/ AYRI sayfalar,
 │                                #   voice/[provider] sağlayıcı detayı (ses/model/önizleme)
-├── api/index.ts            # TEK axios instance + JWT interceptor + errorCode()
+├── api/index.ts            # TEK axios instance + JWT interceptor + errorCode() + errorData() (422/400 gövdesi)
 ├── services/               # AuthService, AdminLessonsService…
 ├── controllers/            # AuthController, LessonsController…
 ├── stores/                 # useAuthStore, useLessonsStore…
-├── screens/<ekran>/        # lessons/, lesson-detail/, users/, user-detail/, sessions/, session-detail/, settings/ (avatar+voice), tts-provider/, login/, forbidden/
+├── screens/<ekran>/        # overview/, lessons/, lesson-detail/, roleplays/, roleplay-detail/, roleplay-new/,
+│                           #   users/, user-detail/, sessions/, session-detail/, settings/ (avatar+voice), tts-provider/, login/, forbidden/
 ├── components/ui/          # shadcn (dokunulmaz, CLI ile güncellenir)
-├── components/shared/      # 2+ ekranda kullanılan: PanelShell, Sidebar, ErrorState…
+├── components/shared/      # 2+ ekranda kullanılan: PanelShell, Sidebar, ErrorState, StatusPill, ConfirmAction…
+│   └── roleplay/           # roleplay editörü + önizleme — detay VE /roleplays/new aynı grubu kullanır
 └── lib/                    # supabase.ts, labels.ts, motion.ts, saf yardımcılar
 ```
 
@@ -88,7 +100,10 @@ akmaz. Animasyon geçişi yumuşatır, dikkat çekmez; `layoutId` yalnız tek ak
 
 ## Aksiyonlar ve toplu işler
 
-- Mutasyon uçlarının TAMAMI `AdminLessonDetail` döner; controller store'a yazar ve
+- Onaylı her aksiyon (yayınla, taslağı at, emekli et, yeniden üret, Pro geri al)
+  `components/shared/ConfirmAction` üstünden: bu shadcn varyantında `AlertDialogAction`
+  düz Button'dır (Close değil) — diyalog kontrollüdür, onayda kendini kapatır.
+- Ders mutasyon uçlarının TAMAMI `AdminLessonDetail` döner; controller store'a yazar ve
   matrisi (`LessonsController.load()`) tazeler — liste ile detay birbirine yalan
   söylemez. Sonuç bildirimi (toast) yalnız controller'da.
 - **Sunucuda kuyruk yok.** LLM tetikleyen uçlar senkron (10–60 sn); toplu iş
@@ -100,12 +115,44 @@ akmaz. Animasyon geçişi yumuşatır, dikkat çekmez; `layoutId` yalnız tek ak
 - Çekirdek editörü JSON + canlı önizleme: istemcide `lessonCoreSchema` (şema),
   sunucuda `lintCore` (pedagoji). Kayıt satırı `ready`ye düşürür — yayın ayrı buton.
 
+### Roleplay yönetimi
+
+- Roleplay DB kaynaklıdır (müfredatın tersine panelden yazılır). Mutasyon uçlarının
+  TAMAMI `AdminRoleplayDetail` döner → `RoleplayDetailController.applyDetail` (detay +
+  liste tazelenir) → editör kayıtlı hâle eşitlenir.
+- **Yayınlı revizyon değişmez.** Düzenleme senaryo başına TEK açık taslakta; taslak
+  yoksa editör yayından başlar ve kayıt yeni taslak doğurur. Yayın önceki yayını
+  `retired` yapar (silinmez — oturumlar revizyona pinli). Eski revizyona dönmek =
+  "Duplicate as draft". Yayın butonu: taslak var + taslak lint'i hatasız + editör temiz.
+- Editör YAPILANDIRILMIŞ formdur (JSON yalnız salt okunur görünüm). Form durumu
+  `useRoleplayEditorStore`'da (`key` = senaryo kimliği ya da `"new"`): sekme değişimi ve
+  panel içi gezinme yazılanı kaybettirmez; kirli = `candidateKey(form) !== baseline`.
+- İki kapı: istemcide `roleplaySpecSchema` + sunucunun KESİN kurallarının aynısı
+  (açılış "?" ile biter, benzersiz kimlik, `recommendedFrom ≥ supportedFrom`,
+  `supportedFrom`'da ≥2 aktif hedef) alan altında İNGİLİZCE (`lib/roleplayDraft.ts` —
+  contracts'taki Türkçe regex mesajları ekrana taşınmaz); istemci kapısından geçen
+  taslak 450 ms debounce ile `POST /roleplays/lint` kuru koşusuna gider. Sunucu
+  hataları kaydı ENGELLER, uyarılar engellemez. Kayıtlı hedef/komplikasyon kimliği
+  kalıcıdır — yalnız bu oturumda eklenen öğenin kimliği etiketten türetilir.
+- Önizleme sunucunun AYNI saf fonksiyonlarını çalıştırır (`resolvePlayedLevel`,
+  `activeComplications`): oynanan seviye, yükseltme notu, aktif hedefler, seviyede
+  İLK aktif komplikasyon.
+- Kullanıcılarda tek yazma: ücretsiz Pro tanıma/geri alma (`POST /users/:id/pro`);
+  mağaza (RevenueCat) aboneliğine dokunmaz, detay döner, liste tazelenir.
+
 ## Liste ekranı sözleşmesi
 
 Her tablo **sayfalıdır** — sorulmadan. Varsayılan 25, seçenekler 25/50/100; şerit
 `components/shared/TablePagination.tsx`, `Paged` şekli `lib/paginate.ts`.
 - **Sınırlı, sabit listeler** (katalog 395 ders, kullanıcılar) tek seferde gelir; süzme →
   sıralama → sayfalama istemcide (`paginate`). Sayfa/ebat store'da, filtre değişince 1.
+- **Detay kartlarındaki küçük tablolar** da sayfalıdır (LLM çağrıları, ilerleme, ünite
+  testleri, maliyet kırılımları, revizyonlar, hedef istatistikleri): sayfa durumu
+  store'da `Record<tablo, PageState>` (`lib/paginate.ts` → `nextPageState`: ebat
+  değişimi sayfayı 1'e alır); veri/aralık değişince 1.
+- **Büyüyen alt listeler** (kullanıcının oturumları/hafızası, senaryo denemeleri)
+  ayrı uçlardan sunucu sayfalıdır, kendi `loading/error`'larıyla — sayfa değişiminde
+  tablo yerinde kalır, soluklaşır; "son N" kesiti gösterilmez.
 - **Büyüyen listeler** (oturumlar) SUNUCU TARAFI sayfalıdır: süzgeç/sıralama/sayfa
   `AdminSessionsQuery` ile gider, cevap `page/pageSize/total` + `stats` (süzülmemiş
   özet) döner; istemci `pagedFromServer` ile aynı şeridi kurar. "Son N" kısıtı YOK —
@@ -120,23 +167,39 @@ Biçimler: tarih `Intl.DateTimeFormat("en-GB")`, para `en-US` USD, dil adları
 `Intl.DisplayNames(["en"])` (`lib/labels.ts` — dil adı sabitlenmez). Denetim:
 `grep -rnE '[çğıöşüÇĞİÖŞÜ]' src | grep -vE '(//|\*)'` yalnız yorum döndürmeli.
 
-## Renk ilkesi
+## Tema ve renk ilkesi
 
-Light tema, ölçülü palet — panel "renkli AI uygulaması" gibi görünmez:
+Light + dark tema (next-themes, `attribute="class"`, varsayılan `system`; seçici sidebar
+altında: System / Light / Dark). Renkler YALNIZ `globals.css` token'larından gelir —
+`bg-white`, `text-black`, `gray-500` gibi sabit sınıf yazılmaz; her token `.dark`'ta
+karşılığına sahip. Token düzeni GlotCast admin'inkidir (3 Kas 2026, mavi vurgu
+kaldırıldı): `primary` NÖTR, renkli tek vurgu ayrı `brand` token'ı (GlotCast ember'i:
+açık `#b94d17`, koyu `#ee8146`; koyuda `brand-foreground` zemin rengi — turuncu üstünde
+beyaz okunmuyor). Ölçülü palet — panel "renkli AI uygulaması" gibi görünmez:
 
 - **Gri skala** (`foreground / muted-foreground / muted / border`) her şeyin zemini.
-- **`primary` (mavi)** tek vurgu: aktif sidebar öğesi, ana buton, marka ve
-  `published` durumu.
+- **`primary` (nötr siyah/beyaz)**: butonlar, varsayılan `Badge` (Admin, Active).
+  Aktif sidebar öğesi `sidebar-accent` (gri).
+- **`brand` (ember)** tek renkli vurgu: marka işareti (`BrandMark`, `LoginBrand`),
+  `published`/accent hapı, Pro, tamamlanan ders, grafik çubukları, `RatioBar`,
+  transkriptte öğrenci balonu ve isabet. Vurgu için `primary` YAZILMAZ.
 - **`destructive` (kırmızı)** yalnız `failed` ve hata ekranı.
-- Yeşil / sarı / turuncu / menekşe **yok**. Yeni durum rengi EKLENMEZ; anlam
+- Ember dışında yeşil / sarı / mavi / menekşe **yok**. Yeni durum rengi EKLENMEZ; anlam
   biçimle ayrılır: dolgu (yayında), düz gri (ara durum), kesik çerçeve + içi boş
-  halka (bayat paket).
+  halka (bayat paket), kesik çerçeveli gri (açık taslak, misafir hesap).
+- Durum hapları `components/shared/StatusPill` tonlarından (accent · neutral · muted ·
+  destructive) — LayerStatusBadge ile aynı dört ton. Pro = accent + taç ikonu.
+- Grafikler kütüphanesizdir (CSS/SVG) ve TEK seri = TEK renk (`brand`); oranlar
+  `RatioBar` (uzunluk anlam taşır, renk değil). Kategorik palet gerektiren grafik
+  eklenecekse önce bu ilke güncellenir.
 
 ## Yapılmayacaklar
 
 - Bileşende `axios`/`fetch`/`supabase` import etmek (yalnız `services/`, `api/`)
 - Controller'ın doğrudan `api`ye gitmesi (service'ten geçer)
-- Store'a controller dışından yazmak
+- Store'a controller dışından yazmak (istisna: istemci tarafı süzgeç/sıralama/sayfa gibi
+  saf sunum durumu — ekran store setter'ını doğrudan çağırır; sunucuya giden sorgu
+  değişimi ise controller'dan geçer çünkü yeniden çekim tetikler)
 - Bir dosyada birden çok bileşen
 - Elle response tipi/şeması (contracts varken)
 - Rota dosyasında iş mantığı, state, stil

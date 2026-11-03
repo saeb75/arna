@@ -14,6 +14,8 @@ import { isEnglishText } from "../lesson/lint.js";
  * `seed-roleplays.ts` (iki pilot) ve ileride admin panel — böylece panel geldiğinde
  * yalnız form yazılır, kural yeniden yazılmaz.
  *
+ * Mesajlar İNGİLİZCE: admin paneli (İngilizce arayüz) bunları olduğu gibi gösterir.
+ *
  * HATA / UYARI AYRIMI kasten: engelleyen bir kural yanlış pozitif verdiğinde
  * güvenilirliğini yitirir (külliyatta iki kez yaşandı). Sezgisel olan her şey
  * UYARIR; yalnız kesin olan ENGELLER.
@@ -45,7 +47,7 @@ const OUTCOME_VERBS = [
  * sızıntısını (aksanlı harf, Kiril, CJK) yakalıyor. Aynı kural, tek yerde.
  */
 function checkEnglish(label: string, value: string, errors: string[]): void {
-  if (!isEnglishText(value)) errors.push(`${label}: İngilizce (ASCII) olmalı — "${value.slice(0, 40)}"`);
+  if (!isEnglishText(value)) errors.push(`${label}: must be English (ASCII) — "${value.slice(0, 40)}"`);
 }
 
 export function lintRoleplay(
@@ -59,7 +61,7 @@ export function lintRoleplay(
   // Sahne lint'inde aynı kural var ve C1 yazımında SEKİZ kez yakaladı: soruyla
   // bitmeyen açılış `awaiting === null` bırakıp mikrofonu kapatıyor, ders kilitlenir.
   if (!spec.opening.trim().endsWith("?")) {
-    errors.push(`opening: soruyla bitmeli — turu öğrenciye devretmiyor ("${spec.opening.slice(-40)}")`);
+    errors.push(`opening: must end with a question — it does not hand the turn to the student ("${spec.opening.slice(-40)}")`);
   }
 
   // --- İngilizce alanlar ASCII ---------------------------------------------
@@ -75,9 +77,9 @@ export function lintRoleplay(
 
   // --- Kimlikler benzersiz -------------------------------------------------
   const oIds = spec.objectives.map((o) => o.id);
-  if (new Set(oIds).size !== oIds.length) errors.push("objectives: kimlikler benzersiz olmalı");
+  if (new Set(oIds).size !== oIds.length) errors.push("objectives: ids must be unique");
   const cIds = spec.complications.map((c) => c.id);
-  if (new Set(cIds).size !== cIds.length) errors.push("complications: kimlikler benzersiz olmalı");
+  if (new Set(cIds).size !== cIds.length) errors.push("complications: ids must be unique");
 
   // --- supportedFrom EN AZ İKİ aktif hedef vermeli -------------------------
   // Onaylanan sözleşmenin 4. maddesinin yayın-zamanı yarısı. Canlı açık şuydu:
@@ -87,7 +89,7 @@ export function lintRoleplay(
   const atSupported = activeObjectives(spec, spec.supportedFrom);
   if (atSupported.length < MIN_ACTIVE_OBJECTIVES) {
     errors.push(
-      `supportedFrom "${spec.supportedFrom}" yalnız ${atSupported.length} aktif hedef veriyor — en az ${MIN_ACTIVE_OBJECTIVES} gerekli`,
+      `supportedFrom "${spec.supportedFrom}" gives only ${atSupported.length} active objective(s) — at least ${MIN_ACTIVE_OBJECTIVES} required`,
     );
   }
 
@@ -97,7 +99,7 @@ export function lintRoleplay(
   // yükseltilir — tutarsız.
   if (!atLeastLevel(spec.recommendedFrom, spec.supportedFrom)) {
     errors.push(
-      `recommendedFrom "${spec.recommendedFrom}" supportedFrom "${spec.supportedFrom}" altında olamaz`,
+      `recommendedFrom "${spec.recommendedFrom}" cannot be below supportedFrom "${spec.supportedFrom}"`,
     );
   }
 
@@ -107,7 +109,7 @@ export function lintRoleplay(
   for (const value of opts.forbidden ?? []) {
     const needle = value.trim().toLowerCase();
     if (needle.length >= 3 && blob.includes(needle)) {
-      errors.push(`kullanıcıya özel değer sızmış ("${value}") — içerik paylaşımlı`);
+      errors.push(`user-specific value leaked ("${value}") — content is shared with every learner`);
     }
   }
 
@@ -120,7 +122,7 @@ export function lintRoleplay(
     const first = o.label.trim().split(/\s+/)[0]?.toLowerCase() ?? "";
     if (OUTCOME_VERBS.includes(first)) {
       warnings.push(
-        `objective "${o.id}": "${first}" sonuç fiili — hedef dünya durumu gibi yazılmış olabilir ("${o.label}"). İletişim adımı mı? Örn. "Ask for a table"`,
+        `objective "${o.id}": "${first}" is an outcome verb — the objective may describe a world state ("${o.label}"). Is it a communicative step? e.g. "Ask for a table"`,
       );
     }
   }
@@ -129,7 +131,7 @@ export function lintRoleplay(
   // kovaladığı hata, ama yazma anında da söylemek ucuz.
   for (const o of spec.objectives) {
     if (!o.openingHint) {
-      warnings.push(`objective "${o.id}": openingHint yok — persona bu hedefe kapı açmayabilir`);
+      warnings.push(`objective "${o.id}": no openingHint — the persona may never open the door to it`);
     }
   }
 
@@ -137,7 +139,7 @@ export function lintRoleplay(
   // senaryo C2'de sıkıcı kalır: "alt seviyeler işlemi alır, üst seviyeler belayı
   // alır" kararının pratik karşılığı. Koşulu seviyeye bağlamak totolojiydi.
   if (spec.complications.length === 0) {
-    warnings.push("complications boş — üst seviyelerde senaryo sıkıcı kalır");
+    warnings.push("complications is empty — the scenario will feel flat at higher levels");
   }
 
   return { errors, warnings };

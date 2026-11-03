@@ -15,7 +15,16 @@ buradaki desene uyar. Desen tartışılacaksa önce bu dosya güncellenir, sonra
 | Axios | 1.x | tek instance, `src/api/index.ts` |
 | @supabase/supabase-js | 2.x | + `@react-native-async-storage/async-storage` (oturum kalıcılığı) |
 | @glotmate/contracts | workspace | tüm response tipleri ve zod şemaları BURADAN |
-| react-native-svg | 15.x | kurulu, şu an tüketicisi yok — ileride vektör çizim için; ikon için @expo/vector-icons kullanılır |
+| react-native-svg | 15.x | gradyanlar (GradientFill, ScreenGlow, Sheen), halkalar, lucide ikonlarının altyapısı |
+| react-native-reanimated | 4.x | TÜM hareket (giriş, nefes, halka, sayfa çevirme) — RN `Animated` kullanılmaz |
+| lucide-react-native | 1.x | TEK ikon seti (saf JS, svg üstünde — fingerprint'e dokunmaz) |
+| expo-haptics | SDK | dokunsal geri bildirim — yalnız `services/HapticsService` |
+| react-native-purchases | 10.x | RevenueCat — yalnız `services/PurchasesService` |
+| expo-notifications | SDK | günlük YEREL hatırlatıcı — yalnız `services/NotificationsService` |
+| expo-apple-authentication | SDK | Sign in with Apple — yalnız `services/AppleAuthService` |
+
+**Native bağımlılık = fingerprint değişir = yeni dev build.** Ekleme/çıkarma
+kullanıcıya SORULMADAN yapılmaz (12 Eki 2026'da dördü onayla eklendi).
 
 Kurulum kuralı: Expo'ya bağlı her paket **`npx expo install`** ile eklenir —
 sürüm uyumunu Expo çözer, elle sürüm sabitlenmez. Expo dışı paketler (zustand,
@@ -175,19 +184,54 @@ apps/mobile/src/
 │   └── shared/                 # birden çok ekranda kullanılan: MessageBubble.tsx…
 ├── lib/                        # supabase.ts, yardımcılar
 └── global.css                  # @tailwind direktifleri — _layout.tsx import eder
-apps/mobile/colors.js           # PALET — tek renk kaynağı (tailwind.config.js + bileşenler)
+apps/mobile/colors.js           # PALET — tek renk kaynağı, AÇIK + KOYU (themeColors/cssVariables)
 ```
 
-**Renk kuralı (light tema, marka moru `primary` sabit):** her renk
-`colors.js`'teki bir token'dır. Sınıf olarak (`bg-background`, `text-foreground`,
-`text-muted`, `border-border`, `text-danger`…) ya da NativeWind sınıfı alamayan
-prop'larda (`color=`, `placeholderTextColor=`, Stack `contentStyle`) `import
-colors from ".../colors"` ile. Literal Tailwind rengi (`text-white`,
-`text-red-400`, `bg-amber-500/10`) ve hex string bileşende YAZILMAZ — dark'tan
-light'a geçişte 40+ literal tek tek elle düzeltilmek zorunda kaldı. Mor zemin
-üstündeki metin/ikon `onPrimary`; İngilizce parçaların vurgusu `accent`.
-Sistem teması OKUNMAZ (`app.json` `userInterfaceStyle: "light"`) — palet tek
-yönlüdür, `dark:` öneki kullanılmaz.
+Ek klasörler (12 Eki 2026 yeniden yazımı):
+
+```
+src/theme/        # useScheme, useThemeColors, motion (enter), layout (sekme barı boşluğu)
+src/services/     # cihaz G/Ç: Haptics, Purchases, Notifications, AppleAuth, Browser
+src/domain/       # saf yardımcılar: pro planları, dil adı, kategori/ilgi/track görünümü
+src/hooks/        # store birleşimleri: usePro, useQuota
+src/i18n/tr.ts    # TÜM arayüz metni (bileşende sabit metin YOK)
+src/config/       # yasal URL'ler (EXPO_PUBLIC_* ile ezilir)
+```
+
+Rotalar: `onboarding` (fade) · `paywall` (fullScreenModal) · `(tabs)/{lessons,roleplay,profile}`
+· `lesson/[id]` · `checkpoint/[level]/[unit]` · `roleplay/[slug]` (brief) ·
+`roleplay/[slug]/play` · `auth/{login,save-progress}` ve `settings/*` (native formSheet).
+Yığının seçenekleri `screens/root/RootStack.tsx`'te; `_layout.tsx` yalnız `<AppRoot/>`.
+
+**Renk ve tema kuralı (açık + koyu, GlotCast token sistemi — 12 Eki 2026):** her
+renk `colors.js`'teki bir token'dır; değerler tema başına CSS değişkeni olarak
+kökte (`components/ui/ThemeRoot`, NativeWind `vars()`) uygulanır, Tailwind
+sınıfları `rgb(var(--color-x) / <alpha-value>)` okur → `bg-brand/15` çalışır ve
+tema TEK noktada değişir. Sınıf: `bg-canvas` (ekran), `bg-card`, `bg-muted`,
+`border-border`, `text-foreground`, `text-muted-foreground`, `text-brand`,
+`bg-primary`/`text-primary-foreground`, marka zemininde `text-on-brand`.
+Sınıf alamayan prop (`color=`, SVG, gölge) → `useThemeColors()`. Literal
+Tailwind rengi (`text-white`, `bg-red-500`), hex ve `dark:` öneki YAZILMAZ.
+Yüzeyler nötr taban + biraz marka karışımıdır (`mix`). Renk de GlotCast'inkidir
+(3 Kas 2026'da mordan geçildi): marka ember `#b94d17`/`#ee8146`, gradyan
+`brand-from → brand-to` (`#f07a34 → #e5484a`), koyu tema sıcak kahve yüzeyler;
+marka + yüzey tabloları GlotCast `src/ui/colors.js` ile birebir tutulur. Gradyanın
+açık ucu beyaz metinle ~2.8:1 → gradyan yalnız kalın/büyük metin ya da ikon taşır
+(CTA, mikrofon, aktif yol düğümü, Pro/hero); gövde metni taşıyan dolu yüzey
+(öğrenci balonu) `bg-primary` + `text-primary-foreground`. Görünüm tercihi
+(Sistem/Açık/Koyu) `useSettingsStore`'da, cihazda kalıcı.
+
+**Hareket kuralı (GlotCast dili):** giriş `theme/motion.ts` → `enter(i)`
+(FadeInDown, 420 ms, ease-out cubic, 60 ms kademe). YAY YOK, zıplama yok
+(`withSpring`/`springify` kullanılmaz). Süreler: küçük 180–220, durum 260–320,
+sayfa 380–420, halka/sayaç 1100 ms. Her döngü `useReducedMotion()`'a saygı
+duyar. Basış geri bildirimi `active:opacity-*` (ölçek yok) + anlamlı
+dokunuşlarda `HapticsService`. Yükleme her yerde `Skeleton` — spinner yok
+(tek istisna: buton içi `busy`).
+
+**Bileşen dili:** sayfanın TEK ana eylemi `CtaButton` (gradyan + ışık geçişi,
+`breathe`); seçimler `OptionCard`; ayarlar `SettingsGroup/Row`; liste sayfası
+`SectionHeader` + kart rafları; üst bar `TopBar` (kaydırınca başlık belirir).
 
 **Monorepo notu:** `expo-doctor`'ın react-dom kopya uyarısı (mobil 19.2.x ↔ kökte
 web'in Next sürümü) ZARARSIZ — yalnız kullanılmayan expo-web hedefini etkiler;
@@ -213,16 +257,30 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
 
 **Dosya başına TEK bileşen.** Yardımcı alt bileşen bile ayrı dosyaya çıkar.
 
-## Auth
+## Auth — MİSAFİR ÖNCE (12 Eki 2026 kararı)
 
-- `src/lib/supabase.ts`: `createClient` + AsyncStorage (`auth.storage`),
-  `autoRefreshToken: true`, `persistSession: true`.
-- Token'ı **interceptor** ekler (yukarıdaki `api/index.ts`) — hiçbir controller
-  elle header kurmaz.
-- Response interceptor 401'de: `useAuthStore.getState().clear()` + login'e
-  yönlendirme. Tek yerde, tek kez.
-- Login/logout/signup akışı da desene uyar: `AuthController` → supabase çağrısı
-  → `useAuthStore`.
+- İlk açılışta Supabase **anonim** oturum açılır (`AuthController.boot`):
+  onboarding, paywall ve dersler hesapsız çalışır. Login ekranı YOK.
+- "İlerlemeni kaydet" AYNI kullanıcıyı kalıcı yapar: e-posta+şifre
+  `updateUser({email,password})` (tek çağrı), Apple `linkIdentity` — kimlik
+  değişmediği için ilerleme, hafıza ve satın alma (RevenueCat müşteri kimliği =
+  Supabase kimliği) taşınır. Mevcut hesaba GİRMEK kimliği değiştirir; misafir
+  ilerlemesi varsa ekran önce uyarır.
+- Token'ı **interceptor** ekler; 401'de `AuthController.recover()` önce
+  belirteci tazeler, olmazsa yeni misafirle kapıdan geçer.
+- Kapı: `/` → `me.profile` yoksa `/onboarding`, varsa `/lessons`. Kök, açılış
+  bitmeden hiçbir ekranı çizmez (native splash açık kalır).
+
+## Abonelik ve günlük kota
+
+- Pro kararı SUNUCUDA (`me.entitlement`); RevenueCat'in anlık durumu
+  (`useProStore.storeActive`) yalnız ekranı hemen açar ve sunucuya "yeniden
+  doğrula" dedirtir (`POST /me/entitlement/refresh`). `usePro()` ikisinin VEYA'sı.
+- Ücretsiz: günde 1 FARKLI ders + 1 FARKLI rol yapma (aynısını yeniden açmak hak
+  yakmaz). Oturum açan uçlar 402 `quota_exceeded` döner → controller paywall'ı
+  açar (`quotaKindOf`), hata göstermez.
+- RevenueCat anahtarı yoksa (`EXPO_PUBLIC_REVENUECAT_IOS_KEY`) paywall önizleme
+  planlarıyla görünür, hiçbir şey satın alınmaz.
 
 ## API yüzeyi (backend'den doğrulandı — hepsi `/v1` öneki + JWT)
 
@@ -230,7 +288,10 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
 |---|---|
 | `POST /onboarding` | profil oluşturma |
 | `GET /curriculum/current` | seviye listesi + ilerleme |
-| `PATCH /me/profile` | seviye/track/tutorLanguage değişimi |
+| `GET /me` · `GET /me/stats` | profil + abonelik + kota · seri/dakika/7 gün |
+| `PATCH /me/profile` | profil alanları (seviye, track, açıklama dili, hedef, ad, saat dilimi) — müfredatı döner |
+| `DELETE /me` | hesabı ve kişisel veriyi sil |
+| `POST /me/entitlement/refresh` | satın alma sonrası zorla doğrulama |
 | `GET /lessons/:catalogLessonId` | ders içeriği (`{ lessonId, lesson }`) |
 | `POST /lessons/:catalogLessonId/sessions` | ders oturumu aç (script döner) |
 | `POST /sessions/:id/chat` | sohbet turu |
@@ -244,7 +305,28 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
 ## Ürün kuralları (kök CLAUDE.md'den taşınan, mobilde de bağlayıcı)
 
 - **Mobil UI:** kategori/jargon ekranda YOK ("beat", "core", "checkpoint" gibi
-  iç terimler kullanıcıya gösterilmez), düz ders yolu, kart metinleri L1.
+  iç terimler kullanıcıya gösterilmez). Ders yolu (3 Kas 2026, kullanıcı kararı —
+  46fe195 zikzağı emekli): her ünite soft 3D illüstrasyonlu kapak kartıyla açılır
+  (`UnitCard`, görsel `domain/unitArt.ts` — ÜRETİLMİŞ harita). Altındaki düğümlerin
+  YAPISI Duolingo'ya benzer, RENKLERİ bizim (kullanıcı açıkça istedi; kil sikke
+  düğümler ve aralarındaki taşlar beğenilmedi, kaldırıldı): düz yüz + koyu dudak
+  (`node-*` token'ları), basınca yüz dudağa iner; yumuşak SİNÜS dalgası
+  (`lessonPath.waveX(step)`); bitmiş ve kaldığın ders ember (bitmişte beyaz onay),
+  başlanmamış gri; kaldığın derste halka + süzülen "BAŞLA/DEVAM" balonu. Etiket
+  YOK — dokununca düğümün altında (yer yoksa üstünde) `NodePopover` açılır: ad,
+  "Ders 3 / 6", tek eylem (Başla / Devam et / Tekrar et). Kaydırma kartı kapatır.
+  Görseller `scripts/unit-art/` hattıyla üretilir: `dump-units.mts` → `generate.py`
+  (Gemini 3 Pro Image, A1-1 stil çapası, `GEMINI_API_KEY` `.env.local`'de) →
+  `write-map.mjs`. Düzen kullanıcı açıkça istemeden değişmez.
+- **Ders ekranı düzeni (3 Kas 2026):** sohbet duvarı YOK. Anlatımda görüntülü
+  görüşme — büyük avatar + yalnız o anki söz (`CaptionCard`); alıştırma/açık uçlu
+  beat'te avatar AYNI WebView'la köşeye küçülür (`LessonStage`, yeniden yükleme
+  yok), `TaskCard` ortaya gelir (MCQ şıkları içinde, dokunmak ANINDA gönderir).
+  Geçmişin tamamı `TranscriptSheet`'te (RN Modal pageSheet). Rıhtım: ortada büyük
+  bas-konuş, solda klavye, sağda transkript. Mod seçimi yalnız sunumdur (beat tipi);
+  `promptMessageId` soru balonunu geri bildirimden ayırır, akış kararı DEĞİLDİR.
+- **Rol yapma:** her zaman İngilizce; bitiren YALNIZ "Bitir" (✕ denemeyi
+  kaydetmeden çıkar); hedef tikleri sunucudan (`newHits`), istemci karar vermez.
 - **Dil bağımsızlığı:** hiçbir yerde dil adı sabitlenmez; `nativeLanguage`
   profilden gelir. RichText parçaları (`{lang: "en"|"l1"}`) ekranda `en` vurgulu
   (+RTL'de `<bdi>` karşılığı), TTS her parçayı kendi diliyle okur.
@@ -294,6 +376,10 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
   settle/watchdog sahipliği VoiceService'ten ÇIKMAZ: WebView ölürse 4sn
   start-watchdog aynı klipleri expo-audio'yla çalar, ders asla kilitlenmez.
   JWT WebView'a ASLA girmez — TTS'i RN çeker, yalnız klip baytları köprüden geçer.
+  Ekran `AvatarStage`e `activity` verir (`recording` → dinliyor, `busy && !speaking`
+  → düşünüyor); köprü yalnız değişimde `{type:"activity"}` yollar ve sayfa yeniden
+  yüklenince `ready`de tekrarlar. Avatar bunu yalnız JEST için kullanır (2.5D:
+  baş sallama, bakış) — akış kararı DEĞİLDİR.
 - Sistem prompt'u, LLM anahtarı, akıl yürütme İSTEMCİDE YAŞAMAZ — mobil yalnız
   `/v1` uçlarını çağırır.
 
@@ -308,4 +394,6 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
 - Rota dosyasında (`src/app/`) iş mantığı, state, stil
 - Literal renk: `text-white`, `text-red-400`, hex string, `dark:` öneki — yalnız
   `colors.js` token'ları (bkz. Renk kuralı)
+- Bileşende sabit arayüz metni — yalnız `i18n/tr.ts`
+- `withSpring`/zıplayan hareket, RN `Animated` (Reanimated var)
 - Tailwind v4'e / NativeWind v5'e kendi kendine geçiş — stabil çıkana kadar bekle

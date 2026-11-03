@@ -1,11 +1,11 @@
-import { avatarSettingsSchema, type AvatarSettings } from "@glotmate/contracts";
+import { avatarSettingsSchema, DEFAULT_AVATAR_ID, type AvatarSettings } from "@glotmate/contracts";
 import { eq } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { appSettings } from "../../db/schema.js";
 
 /**
  * `app_settings.avatar` — aktif avatar kimliği (tts/settings.ts deseninin aynası).
- * Satır yoksa varsayılan Fat Man (bugünkü davranış); bozuk satır da varsayılana
+ * Satır yoksa varsayılan (contracts DEFAULT_AVATAR_ID — şimdilik 2.5D); bozuk satır da varsayılana
  * düşer ve uyarı basar — sahne hiçbir durumda ayar yüzünden boş kalmaz.
  * 15 sn süreç içi önbellek; `save` tek süreçte anında geçersiz kılar.
  */
@@ -20,7 +20,7 @@ export interface StoredAvatarSettings {
 let cache: { value: StoredAvatarSettings; at: number } | null = null;
 
 export function defaultAvatarSettings(): AvatarSettings {
-  return { activeId: "fatman" };
+  return { activeId: DEFAULT_AVATAR_ID };
 }
 
 export function invalidateAvatarSettingsCache(): void {
@@ -40,7 +40,7 @@ export async function getAvatarSettings(): Promise<StoredAvatarSettings> {
       value = { settings: parsed.data, updatedAt: row.updatedAt.toISOString() };
     } else {
       // Kayıtta artık listede olmayan bir id kalmış olabilir (avatar emekli edildi)
-      console.warn(`[avatar] app_settings.${KEY} şemaya uymuyor, varsayılan (fatman) kullanılıyor`);
+      console.warn(`[avatar] app_settings.${KEY} şemaya uymuyor, varsayılan (${DEFAULT_AVATAR_ID}) kullanılıyor`);
       value = { settings: defaultAvatarSettings(), updatedAt: row.updatedAt.toISOString() };
     }
   }

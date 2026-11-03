@@ -7,6 +7,7 @@ import type {
   SessionScript,
   TranscriptTurn,
 } from "@glotmate/contracts";
+import { DEFAULT_AVATAR_ID } from "@glotmate/contracts";
 
 /**
  * Ders oturumu durumu — web sayfasındaki useState+useRef yığınının store karşılığı.
@@ -55,6 +56,12 @@ interface LessonSessionState {
   beatIndex: number;
   awaiting: Awaiting;
   messages: LessonMessage[];
+  /**
+   * Şu anki alıştırmayı/açık uçlu soruyu SORAN balonun kimliği — YALNIZ sunum:
+   * ekran görev kartında soruyu ayrı, sonraki hoca sözlerini (geri bildirim)
+   * ayrı gösterir. Akış kararı DEĞİLDİR.
+   */
+  promptMessageId: string | null;
   hint: RichText | null;
 
   speaking: boolean;
@@ -86,6 +93,8 @@ interface LessonSessionState {
   // sayaçlar — web'deki ref'lerin karşılığı
   beatExchanges: number;
   invites: number;
+  /** Kapanışta script vedası kaç kez söylendi — aynı veda iki kez okunmaz */
+  farewells: number;
   attempt: number;
   praiseIndex: number;
   practiceTurn: number;
@@ -102,12 +111,13 @@ const initial = {
   script: null,
   loadError: null,
   resume: null as LessonResume | null,
-  avatarId: "fatman",
+  avatarId: DEFAULT_AVATAR_ID,
   started: false,
   phase: "lecture" as SessionPhase,
   beatIndex: 0,
   awaiting: null as Awaiting,
   messages: [] as LessonMessage[],
+  promptMessageId: null as string | null,
   hint: null as RichText | null,
   speaking: false,
   recording: false,
@@ -118,6 +128,7 @@ const initial = {
   stopped: false,
   beatExchanges: 0,
   invites: 0,
+  farewells: 0,
   attempt: 0,
   praiseIndex: 0,
   practiceTurn: 0,

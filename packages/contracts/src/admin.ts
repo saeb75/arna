@@ -4,6 +4,8 @@ import { CEFR_LEVELS, cefrLevelSchema, lessonKindSchema } from "./levels.js";
 const CEFR_LEVELS_FOR_QUERY = CEFR_LEVELS;
 import { lessonCoreSchema, sceneVariantSchema } from "./lessonLayers.js";
 import { sessionPositionSchema, transcriptTurnSchema } from "./sessionResume.js";
+import { entitlementSchema, quotaSchema } from "./billing.js";
+import { objectiveHitSchema, roleplaySpecSchema } from "./roleplay.js";
 
 /**
  * ADMİN PANELİ SÖZLEŞMELERİ — `GET /v1/admin/*` uçları.
@@ -240,6 +242,10 @@ export const adminUserSchema = z.object({
   sessionCount: z.number().int().nonnegative(),
   lastSessionAt: z.string().nullable(),
   llmCostUsd: z.number().nonnegative(),
+  /** Supabase anonim (misafir) hesap — henüz e-posta/Apple bağlamamış */
+  isAnonymous: z.boolean(),
+  isPro: z.boolean(),
+  proSource: z.enum(["revenuecat", "admin"]).nullable(),
 });
 export type AdminUser = z.infer<typeof adminUserSchema>;
 
@@ -270,6 +276,9 @@ export const adminUserSessionSchema = z.object({
   kind: z.string().nullable(),
   catalogLessonId: z.string().nullable(),
   lessonTitle: z.string().nullable(),
+  /** Roleplay oturumunda senaryo slug'ı + başlığı (revizyondan) */
+  roleplayId: z.string().nullable().default(null),
+  roleplayTitle: z.string().nullable().default(null),
   startedAt: z.string(),
   endedAt: z.string().nullable(),
   summary: z.string().nullable(),
@@ -299,6 +308,17 @@ export const adminUserCostSchema = z.object({
   byPurpose: z.array(z.object({ purpose: z.string(), calls: z.number().int().nonnegative(), usd: z.number().nonnegative() })),
 });
 
+export const adminEntitlementSchema = entitlementSchema.extend({
+  /** Mağaza (RevenueCat) tarafı aktif mi — son doğrulamadaki değer */
+  rcActive: z.boolean(),
+  /** Admin tanıması bitişi; null = tanıma yok ya da süresiz (isPro'ya bak) */
+  adminGrantUntil: z.string().nullable(),
+  adminGranted: z.boolean(),
+  /** Son RevenueCat doğrulaması; hiç yapılmadıysa null */
+  checkedAt: z.string().nullable(),
+});
+export type AdminEntitlement = z.infer<typeof adminEntitlementSchema>;
+
 export const adminUserDetailSchema = z.object({
   user: adminUserSchema,
   profile: z
@@ -315,8 +335,42 @@ export const adminUserDetailSchema = z.object({
   memories: z.array(adminUserMemorySchema),
   checkpoints: z.array(adminUserCheckpointSchema),
   cost: adminUserCostSchema,
+  /** Abonelik görünümü — kaynak ayrıntısıyla */
+  entitlement: adminEntitlementSchema,
+  /** Bugünkü ücretsiz kota kullanımı (kullanıcının saat diliminde) */
+  quota: quotaSchema,
 });
 export type AdminUserDetail = z.infer<typeof adminUserDetailSchema>;
+
+/** Sayfalı alt kaynak zarfı — kullanıcı oturumları/hafızaları gibi büyüyen listeler */
+export const adminPageQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().refine((n) => [25, 50, 100].includes(n), "page size").default(25),
+});
+export type AdminPageQuery = z.infer<typeof adminPageQuerySchema>;
+
+export const adminUserSessionsPageSchema = z.object({
+  items: z.array(adminUserSessionSchema),
+  page: z.number().int().min(1),
+  pageSize: z.number().int().min(1),
+  total: z.number().int().nonnegative(),
+});
+export type AdminUserSessionsPage = z.infer<typeof adminUserSessionsPageSchema>;
+
+export const adminUserMemoriesPageSchema = z.object({
+  items: z.array(adminUserMemorySchema),
+  page: z.number().int().min(1),
+  pageSize: z.number().int().min(1),
+  total: z.number().int().nonnegative(),
+});
+export type AdminUserMemoriesPage = z.infer<typeof adminUserMemoriesPageSchema>;
+
+/** Pro tanıma/geri alma — `until` null = süresiz */
+export const adminProGrantBodySchema = z.object({
+  grant: z.boolean(),
+  until: z.string().datetime().nullable().default(null),
+});
+export type AdminProGrantBody = z.infer<typeof adminProGrantBodySchema>;
 
 // ---------------------------------------------------------------------------
 // OTURUMLAR — `GET /v1/admin/sessions`, `GET /v1/admin/sessions/:id` (salt okunur)
@@ -340,6 +394,8 @@ export const adminSessionSchema = z.object({
   level: cefrLevelSchema.nullable(),
   /** Roleplay slug — revizyon üzerinden */
   roleplayId: z.string().nullable(),
+  /** Roleplay başlığı (oturumun pinli revizyonundan) */
+  roleplayTitle: z.string().nullable().default(null),
   /** Oturuma pinlenen değerler (`state`) */
   track: z.string().nullable(),
   tutorLanguage: z.string().nullable(),
@@ -430,6 +486,21 @@ export const adminLlmCallSchema = z.object({
 });
 export type AdminLlmCall = z.infer<typeof adminLlmCallSchema>;
 
+export const adminSessionRoleplaySchema = z.object({
+  roleplayId: z.string(),
+  title: z.string(),
+  revision: z.number().int(),
+  revisionId: z.string().uuid(),
+  playedLevel: cefrLevelSchema,
+  complicationId: z.string().nullable(),
+  /** Komplikasyonun metni (revizyondan); yoksa null */
+  complicationText: z.string().nullable().default(null),
+  objectives: z.array(z.object({ id: z.string(), label: z.string(), done: z.boolean() })),
+  hits: z.array(objectiveHitSchema),
+  levelPolicyVersion: z.number().int(),
+});
+export type AdminSessionRoleplay = z.infer<typeof adminSessionRoleplaySchema>;
+
 export const adminSessionDetailSchema = z.object({
   session: adminSessionSchema,
   /** Şemadan geçmeyen (eski/bozuk) imleç null döner */
@@ -447,6 +518,8 @@ export const adminSessionDetailSchema = z.object({
     })
     .nullable(),
   llmCalls: z.array(adminLlmCallSchema),
+  /** Roleplay oturumu: deneme satırı + senaryo görünümü; ders oturumunda null */
+  roleplay: adminSessionRoleplaySchema.nullable().default(null),
   /** Oturumun oynattığı katman sürümleri — "bozuk içeriği kim gördü" izi */
   layers: z.object({
     coreId: z.string().uuid().nullable(),
@@ -455,3 +528,151 @@ export const adminSessionDetailSchema = z.object({
   }),
 });
 export type AdminSessionDetail = z.infer<typeof adminSessionDetailSchema>;
+
+// ---------------------------------------------------------------------------
+// ROLEPLAY YÖNETİMİ — `/v1/admin/roleplays*`
+//
+// DB-kaynaklı içerik (müfredatın tersine). Yayınlı revizyon DEĞİŞMEZ: düzenleme
+// TEK açık taslak üzerinde yapılır, yayınlanınca önceki yayın `retired` olur ama
+// silinmez (oturumlar kesin revizyona pinli). Kapı `lintRoleplay` kayıtta koşar.
+// ---------------------------------------------------------------------------
+
+export const ROLEPLAY_REVISION_STATUSES = ["draft", "published", "retired"] as const;
+export const roleplayRevisionStatusSchema = z.enum(ROLEPLAY_REVISION_STATUSES);
+
+export const adminRoleplayLintSchema = z.object({
+  errors: z.array(z.string()),
+  warnings: z.array(z.string()),
+});
+export type AdminRoleplayLint = z.infer<typeof adminRoleplayLintSchema>;
+
+export const adminRoleplayRowSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  category: z.string(),
+  status: z.enum(["active", "retired"]),
+  supportedFrom: cefrLevelSchema,
+  recommendedFrom: cefrLevelSchema,
+  publishedRevision: z.number().int().nullable(),
+  hasDraft: z.boolean(),
+  objectiveCount: z.number().int(),
+  attempts30d: z.number().int().nonnegative(),
+  attemptsTotal: z.number().int().nonnegative(),
+  /** Bitmiş denemelerde ortalama tamamlanan hedef oranı (0..1); deneme yoksa null */
+  avgCompletion: z.number().min(0).max(1).nullable(),
+  updatedAt: z.string(),
+});
+export type AdminRoleplayRow = z.infer<typeof adminRoleplayRowSchema>;
+
+export const adminRoleplaysResponseSchema = z.object({
+  roleplays: z.array(adminRoleplayRowSchema),
+  generatedAt: z.string(),
+});
+export type AdminRoleplaysResponse = z.infer<typeof adminRoleplaysResponseSchema>;
+
+export const adminRoleplayRevisionSchema = z.object({
+  id: z.string().uuid(),
+  revision: z.number().int(),
+  status: roleplayRevisionStatusSchema,
+  specHash: z.string(),
+  spec: roleplaySpecSchema,
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type AdminRoleplayRevision = z.infer<typeof adminRoleplayRevisionSchema>;
+
+export const adminObjectiveStatSchema = z.object({
+  objectiveId: z.string(),
+  label: z.string(),
+  /** Bu hedefin GÖSTERİLDİĞİ biten deneme sayısı */
+  shown: z.number().int().nonnegative(),
+  hit: z.number().int().nonnegative(),
+});
+
+export const adminRoleplayDetailSchema = z.object({
+  roleplay: adminRoleplayRowSchema,
+  revisions: z.array(adminRoleplayRevisionSchema),
+  /** Açık taslak (en fazla bir); yoksa null */
+  draft: adminRoleplayRevisionSchema.nullable(),
+  /** Taslak varsa onun kapı raporu — yayın butonu buna bakar */
+  draftLint: adminRoleplayLintSchema.nullable(),
+  objectiveStats: z.array(adminObjectiveStatSchema),
+});
+export type AdminRoleplayDetail = z.infer<typeof adminRoleplayDetailSchema>;
+
+/** Yeni senaryo: slug kalıcı kimliktir, sonradan değişmez */
+export const adminRoleplayCreateBodySchema = z.object({
+  id: z.string().regex(/^rp-[a-z0-9][a-z0-9-]{1,60}$/, "slug must start with rp- and use lowercase letters, digits and hyphens"),
+  spec: roleplaySpecSchema,
+});
+export type AdminRoleplayCreateBody = z.infer<typeof adminRoleplayCreateBodySchema>;
+
+export const adminRoleplaySpecBodySchema = z.object({ spec: roleplaySpecSchema });
+export type AdminRoleplaySpecBody = z.infer<typeof adminRoleplaySpecBodySchema>;
+
+export const adminRoleplayAttemptSchema = z.object({
+  sessionId: z.string().uuid(),
+  userId: z.string().uuid(),
+  userEmail: z.string().nullable(),
+  userName: z.string().nullable(),
+  revision: z.number().int(),
+  playedLevel: cefrLevelSchema,
+  done: z.number().int().nonnegative(),
+  total: z.number().int().nonnegative(),
+  turns: z.number().int().nonnegative(),
+  startedAt: z.string(),
+  endedAt: z.string().nullable(),
+});
+export type AdminRoleplayAttempt = z.infer<typeof adminRoleplayAttemptSchema>;
+
+export const adminRoleplayAttemptsPageSchema = z.object({
+  items: z.array(adminRoleplayAttemptSchema),
+  page: z.number().int().min(1),
+  pageSize: z.number().int().min(1),
+  total: z.number().int().nonnegative(),
+});
+export type AdminRoleplayAttemptsPage = z.infer<typeof adminRoleplayAttemptsPageSchema>;
+
+// ---------------------------------------------------------------------------
+// OVERVIEW — `GET /v1/admin/overview?days=30`
+// ---------------------------------------------------------------------------
+
+export const adminOverviewQuerySchema = z.object({
+  days: z.coerce.number().int().refine((n) => [7, 30, 90].includes(n), "days").default(30),
+});
+
+export const adminOverviewSchema = z.object({
+  days: z.number().int(),
+  users: z.object({
+    total: z.number().int().nonnegative(),
+    anonymous: z.number().int().nonnegative(),
+    newInRange: z.number().int().nonnegative(),
+    activeToday: z.number().int().nonnegative(),
+    activeInRange: z.number().int().nonnegative(),
+    pro: z.number().int().nonnegative(),
+  }),
+  sessions: z.object({
+    lessonInRange: z.number().int().nonnegative(),
+    roleplayInRange: z.number().int().nonnegative(),
+    completedLessonsInRange: z.number().int().nonnegative(),
+  }),
+  cost: z.object({
+    totalUsd: z.number().nonnegative(),
+    perActiveUserUsd: z.number().nonnegative().nullable(),
+    /** Gün başına, eskiden yeniye, boş günler 0 ile dolu */
+    byDay: z.array(z.object({ date: z.string(), usd: z.number().nonnegative(), calls: z.number().int().nonnegative() })),
+    byPurpose: z.array(z.object({ purpose: z.string(), calls: z.number().int().nonnegative(), usd: z.number().nonnegative() })),
+    byModel: z.array(z.object({ model: z.string(), calls: z.number().int().nonnegative(), usd: z.number().nonnegative() })),
+    topUsers: z.array(
+      z.object({
+        userId: z.string().uuid(),
+        email: z.string().nullable(),
+        name: z.string().nullable(),
+        calls: z.number().int().nonnegative(),
+        usd: z.number().nonnegative(),
+      }),
+    ),
+  }),
+  generatedAt: z.string(),
+});
+export type AdminOverview = z.infer<typeof adminOverviewSchema>;

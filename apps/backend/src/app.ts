@@ -16,6 +16,8 @@ import avatarRoutes from "./modules/avatar/routes.js";
 import sessionRoutes from "./modules/session/routes.js";
 import roleplayRoutes from "./modules/roleplay/routes.js";
 import adminRoutes from "./modules/admin/routes.js";
+import meRoutes from "./modules/me/routes.js";
+import billingRoutes from "./modules/billing/routes.js";
 
 export async function buildApp() {
   const app = Fastify({
@@ -57,6 +59,8 @@ export async function buildApp() {
   await app.register(sessionRoutes, { prefix: "/v1" });
   await app.register(roleplayRoutes, { prefix: "/v1" });
   await app.register(avatarRoutes, { prefix: "/v1" });
+  await app.register(meRoutes, { prefix: "/v1" });
+  await app.register(billingRoutes, { prefix: "/v1" });
   await app.register(adminRoutes, { prefix: "/v1" });
 
   return app;

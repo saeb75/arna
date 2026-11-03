@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import {
   activeComplications,
@@ -64,6 +64,14 @@ export async function openRoleplaySession(userId: string, slug: string): Promise
   // Deterministik ve basit — örnekleme (tekrar oynanabilirlik) bilinçli olarak
   // sonraki faz; onaylı planda kapsam dışı.
   const complication = activeComplications(rp.spec, decision.level)[0] ?? null;
+
+  // Önceki açık roleplay oturumları TERK EDİLMİŞ sayılır (ders `openSession`
+  // deseni): kapatılır ki yetim açık oturum birikmesin. Debrief/hafıza koşmaz —
+  // öğrenci "Bitir"e basmadı.
+  await db
+    .update(sessions)
+    .set({ endedAt: new Date() })
+    .where(and(eq(sessions.userId, userId), eq(sessions.sessionKind, "roleplay"), isNull(sessions.endedAt)));
 
   // CHECK kısıtının istediği şekil: kind='roleplay' → revizyon DOLU, katalog NULL.
   const [session] = await db
@@ -363,7 +371,8 @@ export async function roleplayDebrief(
       .where(and(eq(transcriptTurns.sessionId, sessionId), eq(transcriptTurns.phase, ROLEPLAY_PHASE)))
       .orderBy(asc(transcriptTurns.id));
 
-    if (turns.length === 0) return debrief;
+    // Öğrenci hiç konuşmadıysa koçluk için malzeme yok — boş çağrı yapılmaz
+    if (!turns.some((t) => t.role === "user")) return debrief;
 
     const missed = objectives.filter((o) => !o.done);
     const transcript = turns

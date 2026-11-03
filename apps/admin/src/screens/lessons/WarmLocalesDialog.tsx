@@ -77,7 +77,7 @@ export function WarmLocalesDialog({ level, lessons, allLessons }: { level: strin
                 className={cn(
                   "h-7 rounded-md border px-2.5 font-mono text-xs uppercase transition-colors",
                   selected.includes(lang)
-                    ? "border-primary bg-primary/10 text-primary"
+                    ? "border-brand bg-brand/10 text-brand"
                     : "border-border text-muted-foreground hover:text-foreground",
                 )}
               >

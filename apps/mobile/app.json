@@ -6,13 +6,14 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "glotmate",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.imtiyaz.glotmate",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "usesAppleSignIn": true
     },
     "android": {
       "adaptiveIcon": {
@@ -39,12 +40,23 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#f8f6f4",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 76,
+          "dark": {
+            "backgroundColor": "#140e0b",
+            "image": "./assets/images/splash-icon.png"
+          }
         }
       ],
-      "expo-audio"
+      "expo-audio",
+      "expo-apple-authentication",
+      [
+        "expo-notifications",
+        {
+          "color": "#b94d17"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

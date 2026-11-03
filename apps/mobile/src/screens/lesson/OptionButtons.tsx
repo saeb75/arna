@@ -1,35 +1,35 @@
 import { Pressable, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
+import { HapticsService } from "../../services/HapticsService";
+import { enter } from "../../theme/motion";
 
 /**
- * MCQ şıkları — ÜRÜN KURALI: tek harf STT için en kötü girdi (web'de canlı
- * hatadan öğrenildi), şıklar butonla. Tıklamak şık METNİNİ normal akışa vermek;
- * yeni akış yolu yok. Mikrofon/klavye açık kalır.
+ * MCQ şıkları — ÜRÜN KURALI: tek harf STT için en kötü girdi (canlı hatadan),
+ * şıklar butonla. Dokunmak şık METNİNİ normal akışa verir; mikrofon/klavye açık kalır.
+ * Görev kartının içinde büyük, dokunsal düğmeler (altta ince kalınlık kenarı).
  */
 const LETTERS = ["A", "B", "C", "D"];
 
-interface OptionButtonsProps {
-  options: string[];
-  disabled: boolean;
-  onSelect: (option: string) => void;
-}
-
-export function OptionButtons({ options, disabled, onSelect }: OptionButtonsProps) {
+export function OptionButtons({ options, disabled, onSelect }: { options: string[]; disabled: boolean; onSelect: (option: string) => void }) {
   return (
-    <View className="gap-2 px-4 pb-2">
+    <View className="gap-2.5">
       {options.map((opt, i) => (
-        <Pressable
-          key={i}
-          disabled={disabled}
-          onPress={() => onSelect(opt)}
-          className={`flex-row items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 active:bg-primary/20 ${
-            disabled ? "opacity-40" : ""
-          }`}
-        >
-          <View className="size-7 items-center justify-center rounded-full bg-primary/15">
-            <Text className="text-sm font-bold text-primary">{LETTERS[i]}</Text>
-          </View>
-          <Text className="flex-1 text-base text-foreground">{opt}</Text>
-        </Pressable>
+        <Animated.View key={`${i}-${opt}`} entering={enter(i, 0)}>
+          <Pressable
+            accessibilityRole="button"
+            disabled={disabled}
+            onPress={() => {
+              HapticsService.tap();
+              onSelect(opt);
+            }}
+            className={`min-h-14 flex-row items-center gap-3.5 rounded-2xl border border-b-4 border-border bg-muted px-4 py-3 active:border-brand active:bg-brand/10 ${disabled ? "opacity-60" : ""}`}
+          >
+            <View className="size-9 items-center justify-center rounded-xl bg-card">
+              <Text className="text-[15px] font-extrabold text-brand">{LETTERS[i]}</Text>
+            </View>
+            <Text className="flex-1 text-[17px] font-semibold text-foreground">{opt}</Text>
+          </Pressable>
+        </Animated.View>
       ))}
     </View>
   );

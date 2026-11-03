@@ -2,21 +2,11 @@
 
 import type { AdminLayer, LintReport } from "@glotmate/contracts";
 import { Loader2, RefreshCw } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { ConfirmAction } from "@/components/shared/ConfirmAction";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/labels";
 import { LayerStatusBadge } from "@/components/shared/LayerStatusBadge";
-import { LintReportView } from "@/screens/lesson-detail/LintReportView";
+import { LintReportView } from "@/components/shared/LintReportView";
 
 type Layer = (AdminLayer & { model: string | null; report: LintReport | null }) | null;
 
@@ -61,30 +51,23 @@ export function LayerCard({
       )}
 
       <div className="mt-auto flex justify-end">
-        <AlertDialog>
-          <AlertDialogTrigger
-            render={
-              <Button variant="outline" size="sm" disabled={disabled}>
-                {busy ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <RefreshCw data-icon="inline-start" />}
-                {layer ? "Regenerate" : "Generate"}
-              </Button>
-            }
-          />
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{layer ? "Regenerate" : "Generate"} {title.toLowerCase()}?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Calls the strong model (10–60 s, costs money). The new content lands as <strong>ready</strong>: the
-                lesson goes offline until you review and publish it again. Stale language packs bound to this layer are
-                deleted.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={onRegenerate}>Generate</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <ConfirmAction
+          trigger={
+            <Button variant="outline" size="sm" disabled={disabled}>
+              {busy ? <Loader2 className="animate-spin" data-icon="inline-start" /> : <RefreshCw data-icon="inline-start" />}
+              {layer ? "Regenerate" : "Generate"}
+            </Button>
+          }
+          title={`${layer ? "Regenerate" : "Generate"} ${title.toLowerCase()}?`}
+          description={
+            <>
+              Calls the strong model (10–60 s, costs money). The new content lands as <strong>ready</strong>: the lesson goes
+              offline until you review and publish it again. Stale language packs bound to this layer are deleted.
+            </>
+          }
+          confirmLabel="Generate"
+          onConfirm={onRegenerate}
+        />
       </div>
     </section>
   );

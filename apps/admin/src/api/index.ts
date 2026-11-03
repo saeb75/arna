@@ -40,3 +40,14 @@ export function errorCode(err: unknown): string {
   if (err instanceof Error && err.name === "ZodError") return "invalid_response";
   return "unknown";
 }
+
+/**
+ * Hata gövdesinin kendisi (kod dışındaki alanlar: `report`, `issues`…) — controller'lar
+ * axios'a dokunmadan 422/400 ayrıntısını okuyabilsin. Gövde yoksa null.
+ */
+export function errorData(err: unknown): Record<string, unknown> | null {
+  if (axios.isAxiosError(err) && err.response?.data && typeof err.response.data === "object") {
+    return err.response.data as Record<string, unknown>;
+  }
+  return null;
+}

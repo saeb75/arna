@@ -1,27 +1,21 @@
 import { Redirect } from "expo-router";
 import { Tabs } from "expo-router/js-tabs";
-import { TabBar } from "../../components/shared/TabBar";
+import { FloatingTabBar } from "../../components/shared/FloatingTabBar";
 import { UpdateBanner } from "../../components/shared/UpdateBanner";
-import { useAuthStore } from "../../stores/useAuthStore";
+import { useMeStore } from "../../stores/useMeStore";
 
 /**
- * Sekme kabuğu. Auth kapısı ARTIK BURADA — üç rotada tekrarlanmıyor.
- * Bar tamamen `TabBar` bileşeninde; bu dosyada stil yok (CLAUDE.md ince rota kuralı).
- * `expo-router` kökündeki `Tabs` SDK 57'de deprecated → `expo-router/js-tabs`.
- *
- * Güncelleme kartı KASTEN burada: uygulamayı yeniden başlatmak ders veya test
- * ortasında ilerlemeyi keser, sekme kabuğu bu ekranları yapısal olarak dışarıda
- * bırakır — ek koşul mantığı gerekmez.
+ * Sekme kabuğu — profil kapısı TEK yerde. Bar tamamen FloatingTabBar'da;
+ * güncelleme kartı kasten burada (ders/test ortasında yeniden başlatma yok).
  */
 export default function TabsLayout() {
-  const session = useAuthStore((s) => s.session);
-  if (!session) return <Redirect href="/login" />;
-
+  const hasProfile = useMeStore((s) => !!s.me?.profile);
+  if (!hasProfile) return <Redirect href="/onboarding" />;
   return (
     <>
-      <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false }}>
+      <Tabs tabBar={(props) => <FloatingTabBar {...props} />} screenOptions={{ headerShown: false, animation: "shift" }}>
         <Tabs.Screen name="lessons" />
-        <Tabs.Screen name="practice" />
+        <Tabs.Screen name="roleplay" />
         <Tabs.Screen name="profile" />
       </Tabs>
       <UpdateBanner />

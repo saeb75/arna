@@ -16,6 +16,7 @@ import {
   decideAfterTutorReply,
   decideInWrapup,
   decideOnStudentInput,
+  hasWordContent,
   isLastExchange,
   matchesAnswerSpec,
   normalizeUtterance,
@@ -36,10 +37,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { api } from "@/lib/api";
-import { AVATAR_PROFILES, DEFAULT_AVATAR_ID, type AvatarProfile } from "@/lib/avatarProfiles";
-import { useVoiceSession } from "@/hooks/useVoiceSession";
+import { resolveAvatar, type AvatarSpec } from "@/lib/avatarProfiles";
+import { avatarActivity, useVoiceSession } from "@/hooks/useVoiceSession";
 
-const AvatarScene = dynamic(() => import("@/components/AvatarScene"), { ssr: false });
+const AvatarView = dynamic(() => import("@/components/AvatarView"), { ssr: false });
 
 type Phase = "lecture" | "practice" | "wrapup" | "done";
 type Awaiting = null | "ask" | "exercise" | "open_response" | "practice" | "wrapup";
@@ -218,16 +219,15 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
   const pendingInputRef = useRef<string | null>(null);
   const enteredRef = useRef<string | null>(null);
 
-  // Aktif avatar admin ayarindan (app_settings.avatar) — hata/gecikmede Fat Man:
+  // Aktif avatar admin ayarindan (app_settings.avatar) — hata/gecikmede varsayılan (contracts DEFAULT_AVATAR_ID):
   // ders avatar ayarini BEKLEMEZ, yanlis avatarla acilmaktansa varsayilanla acilir.
-  const [avatarProfile, setAvatarProfile] = useState<AvatarProfile>(AVATAR_PROFILES[DEFAULT_AVATAR_ID]);
+  const [avatar, setAvatar] = useState<AvatarSpec>(() => resolveAvatar(null));
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
         const { activeId } = await api<{ activeId: string }>("/v1/avatar");
-        const p = AVATAR_PROFILES[activeId as keyof typeof AVATAR_PROFILES];
-        if (alive && p) setAvatarProfile(p);
+        if (alive) setAvatar(resolveAvatar(activeId));
       } catch {
         /* varsayilan kalir */
       }
@@ -428,7 +428,8 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
   // --- kullanıcı girdisi ----------------------------------------------------
   const handleUserText = useCallback(
     async (text: string) => {
-      if (!lesson || !awaiting) return;
+      // Yalnız noktalama (",,") boş girdidir — hocaya gitmez, hak yemez
+      if (!lesson || !awaiting || !hasWordContent(text)) return;
       pushUser(text);
       setHintShown(null);
       const beat = lesson.lecture.beats[beatIndex];
@@ -528,6 +529,7 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
       // yapar — yoksa Emma soru sorarken akış ilerliyor, ders kendiyle çelişiyor.
       // (Sayaç ARTMADAN önce, yani bu turun kaçıncı olduğuna göre hesaplanır.)
       const lastExchange = isLastExchange(beat, beatExchangesRef.current);
+      const exchanges = beatExchangesRef.current;
 
       beatExchangesRef.current += 1;
       attemptRef.current += 1;
@@ -537,6 +539,7 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
         beatId: beat.id,
         attempt,
         lastExchange,
+        exchanges,
       });
       if (!res) {
         // Aktarım hatası deneme hakkı YEMEZ — sayaçlar geri alınır.
@@ -728,11 +731,12 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
           göstergesi ve kapatma düğmesi kutunun DIŞINDA, şeridin köşelerinde. */}
       <div className="relative flex shrink-0 justify-center bg-gradient-to-b from-indigo-950 to-neutral-900 py-3">
         <div className="aspect-[4/3] h-[34dvh] max-w-full overflow-hidden rounded-2xl ring-1 ring-white/10">
-          <AvatarScene
-            profile={avatarProfile}
+          <AvatarView
+            spec={avatar}
             timeline={timeline}
             getTime={getTime}
             getLevel={getLevel}
+            getActivity={() => avatarActivity(status)}
             /* Hoca ilk cümlesine başladığında bir kez el kaldırıp selam verir
                (AvatarScene tek seferliği kendi içinde tutuyor). */
             greet={status === "speaking"}

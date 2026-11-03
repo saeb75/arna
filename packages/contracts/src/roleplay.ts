@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { CEFR_LEVELS, cefrLevelSchema, type CefrLevel } from "./levels.js";
-import { spokenRunsSchema, textRunSchema } from "./lessonLayers.js";
+import { richTextSchema, spokenRunsSchema, textRunSchema } from "./lessonLayers.js";
 
 // ============================================================================
 // ROLEPLAY — bağımsız rol yapma sekmesi
@@ -33,7 +33,7 @@ export const LEVEL_POLICY_VERSION = 1;
 const englishText = z.string().trim().min(1);
 
 /** Kimlik: kalıcı slug/id gövdesi — indeks ASLA kimlik olarak kullanılmaz (panelde sıralama değişir) */
-const idSchema = z.string().trim().regex(/^[a-z0-9][a-z0-9-]{1,48}$/, "küçük harf, tire, 2-49 karakter");
+const idSchema = z.string().trim().regex(/^[a-z0-9][a-z0-9-]{1,48}$/, "lowercase letters, digits and hyphens, 2-49 characters");
 
 // ---------------------------------------------------------------------------
 // Hedef ve komplikasyon
@@ -109,7 +109,7 @@ export type RoleplaySpec = z.infer<typeof roleplaySpecSchema>;
  */
 export const roleplayReplySchema = z
   .array(textRunSchema.extend({ lang: z.literal("en") }).refine((r) => !/[{}]/.test(r.text), {
-    message: "text alanı süslü parantez içeriyor — yapı sızıntısı",
+    message: "text contains braces — structure leak",
   }))
   .min(1)
   .max(6);
@@ -291,3 +291,83 @@ export function objectiveProgress(
   const done = new Set(hits.map((h) => h.objectiveId).filter((id) => active.has(id)));
   return { done: done.size, total: active.size };
 }
+
+// ---------------------------------------------------------------------------
+// KATEGORİLER — keşif rafları
+//
+// `spec.category` serbest metin kalır (yayınlı revizyonlar değişmez); bu liste
+// istemcinin raf sırasını ve ikon/etiket eşlemesini besler. Listede olmayan
+// kategori lint'te UYARI verir, engellemez — bilinmeyeni istemci "Diğer" rafına
+// koyar.
+// ---------------------------------------------------------------------------
+
+export const ROLEPLAY_CATEGORIES = [
+  "Eating out",
+  "Travel",
+  "Shopping",
+  "Work",
+  "Health",
+  "Social",
+  "Housing",
+  "Services",
+] as const;
+export type RoleplayCategory = (typeof ROLEPLAY_CATEGORIES)[number];
+
+// ---------------------------------------------------------------------------
+// API ZARFLARI — /v1/roleplays* ve roleplay oturumunun /end debrief'i
+// (istemciler `as` cast yerine bunlarla doğrular)
+// ---------------------------------------------------------------------------
+
+export const roleplayPersonaSchema = roleplaySpecSchema.shape.persona;
+export type RoleplayPersona = z.infer<typeof roleplayPersonaSchema>;
+
+const progressSchema = z.object({ done: z.number().int().min(0), total: z.number().int().min(0) });
+
+export const roleplayListItemSchema = z.object({
+  slug: z.string(),
+  title: z.string(),
+  category: z.string(),
+  scene: z.string(),
+  personaName: z.string(),
+  recommendedFrom: cefrLevelSchema,
+  objectiveCount: z.number().int().min(0),
+  /** Kullanıcının seviyesinde mi oynanır, `supportedFrom`'a mı yükseltilir — karar sunucuda */
+  willPlayAt: cefrLevelSchema,
+  raised: z.boolean(),
+  /** Kullanıcının bu senaryodaki EN SON bitmiş denemesi; hiç oynamadıysa null */
+  lastAttempt: progressSchema.extend({ at: z.string() }).nullable(),
+});
+export type RoleplayListItem = z.infer<typeof roleplayListItemSchema>;
+
+export const roleplayListResponseSchema = z.object({ roleplays: z.array(roleplayListItemSchema) });
+export type RoleplayListResponse = z.infer<typeof roleplayListResponseSchema>;
+
+export const roleplayBriefSchema = z.object({
+  slug: z.string(),
+  title: z.string(),
+  category: z.string(),
+  persona: roleplayPersonaSchema,
+  scene: z.string(),
+  playedLevel: cefrLevelSchema,
+  raised: z.boolean(),
+  objectives: z.array(z.object({ id: z.string(), label: z.string() })),
+});
+export type RoleplayBrief = z.infer<typeof roleplayBriefSchema>;
+
+export const roleplaySessionOpenSchema = roleplayBriefSchema.extend({
+  sessionId: z.string().uuid(),
+  /** Persona'nın ilk cümlesi — istemci seslendirir; transkripte sunucu yazdı */
+  opening: z.string(),
+});
+export type RoleplaySessionOpen = z.infer<typeof roleplaySessionOpenSchema>;
+
+export const roleplayDebriefSchema = z.object({
+  objectives: z.array(
+    z.object({ id: z.string(), label: z.string(), done: z.boolean(), evidence: z.string().nullable() }),
+  ),
+  progress: progressSchema,
+  playedLevel: cefrLevelSchema,
+  /** En fazla 3 koçluk maddesi, dil etiketli; LLM düşerse boş */
+  coaching: z.array(richTextSchema),
+});
+export type RoleplayDebriefView = z.infer<typeof roleplayDebriefSchema>;

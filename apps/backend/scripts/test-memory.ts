@@ -10,7 +10,7 @@ import { embed } from "../src/modules/llm/index.js";
 import { DEDUP_SIMILARITY } from "../src/modules/memory/extract.js";
 import { buildTutorPrompt } from "../src/modules/lesson/tutorPrompt.js";
 import { extractSessionMemory } from "../src/modules/memory/extract.js";
-import { buildMemoryBlock } from "../src/modules/memory/retrieve.js";
+import { buildMemoryBlock, MEMORY_RECALL_ENABLED } from "../src/modules/memory/retrieve.js";
 import { chatTurn, openSession } from "../src/modules/session/service.js";
 import { makeLessonContent, seedTestCatalogLesson, seedTestContent } from "./_fixture.js";
 
@@ -177,9 +177,14 @@ const block = await buildMemoryBlock(testUserId, {
   theme: nextLesson.theme,
 });
 console.log(block);
-check("hafıza bloğu üretildi", !!block);
-check("önceki ders anılıyor", !!block?.includes("Previous lesson"));
-check("blok ≤700 karakter", (block?.length ?? 0) <= 700, `${block?.length ?? 0} karakter`);
+if (MEMORY_RECALL_ENABLED) {
+  check("hafıza bloğu üretildi", !!block);
+  check("önceki ders anılıyor", !!block?.includes("Previous lesson"));
+  check("blok ≤700 karakter", (block?.length ?? 0) <= 700, `${block?.length ?? 0} karakter`);
+} else {
+  // Geri getirme kapalı (retrieve.ts) — çıkarım yine çalışmış olmalı, ama blok kurulmaz
+  check("geri getirme KAPALI: blok kurulmadı", block === null);
+}
 
 const system = buildTutorPrompt({
   displayName: "Saeb",
@@ -213,7 +218,10 @@ const system = buildTutorPrompt({
   },
   memoryBlock: block,
 });
-check("prompt'ta <student_memory> bloğu var", system.includes("<student_memory>"));
+check(
+  MEMORY_RECALL_ENABLED ? "prompt'ta <student_memory> bloğu var" : "geri getirme KAPALI: prompt'ta <student_memory> yok",
+  system.includes("<student_memory>") === MEMORY_RECALL_ENABLED,
+);
 check("prompt'ta meslek var", system.includes("backend developer"));
 check("prompt'ta ilgi alanları var", system.includes("technology"));
 
@@ -237,12 +245,16 @@ console.log("Emma:", reply.text);
 
 const [liveSession] = await db.select().from(sessions).where(eq(sessions.id, liveSessionId));
 const liveState = liveSession?.state as { memoryBlock?: string | null } | null;
-check("oturum state'inde hafıza bloğu cache'lendi", typeof liveState?.memoryBlock === "string");
-check(
-  "canlı turun prompt'una giren blok gerçeği içeriyor",
-  !!liveState?.memoryBlock?.includes("backend developer"),
-  liveState?.memoryBlock?.split("\n")[0] ?? "(boş)",
-);
+if (MEMORY_RECALL_ENABLED) {
+  check("oturum state'inde hafıza bloğu cache'lendi", typeof liveState?.memoryBlock === "string");
+  check(
+    "canlı turun prompt'una giren blok gerçeği içeriyor",
+    !!liveState?.memoryBlock?.includes("backend developer"),
+    liveState?.memoryBlock?.split("\n")[0] ?? "(boş)",
+  );
+} else {
+  check("geri getirme KAPALI: oturum state'inde blok yok", (liveState?.memoryBlock ?? null) === null);
+}
 
 const callsBefore = (await db.select().from(llmCalls).where(eq(llmCalls.userId, testUserId))).length;
 await chatTurn(testUserId, liveSessionId, "No questions.", { phase: "lecture", beatId: "b3" });

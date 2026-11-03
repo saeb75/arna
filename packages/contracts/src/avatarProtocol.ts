@@ -26,10 +26,18 @@ export interface AvatarClip {
   lang: string;
 }
 
+/**
+ * Konuşmadığı anlarda avatarın ne yaptığı — beden dili için (2.5D: dinlerken baş
+ * sallar, düşünürken gözünü kaçırır). Yalnız sunum; akış kararı değildir.
+ */
+export type AvatarActivity = "idle" | "listening" | "thinking";
+
 /** RN → WebView komutları */
 export type AvatarCommand =
   | { type: "speak"; id: number; clips: AvatarClip[] }
-  | { type: "stop" };
+  | { type: "stop" }
+  /** öğrenci konuşuyor (listening) / sunucu yanıt hazırlıyor (thinking) / boşta */
+  | { type: "activity"; activity: AvatarActivity };
 
 /** WebView → RN olayları */
 export type AvatarEvent =

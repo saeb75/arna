@@ -6,6 +6,8 @@ import { userProfiles } from "../../db/schema.js";
 import { eq } from "drizzle-orm";
 import { getPublishedRoleplay, listPublishedRoleplays } from "./queries.js";
 import { openRoleplaySession, RoleplayError } from "./service.js";
+import { lastAttemptsByRoleplay } from "./queries.js";
+import { assertQuota, QuotaError, quotaErrorBody } from "../billing/quota.js";
 
 const slugParams = z.object({ slug: z.string().regex(/^[a-z0-9][a-z0-9-]{1,63}$/) });
 const byUser = (req: FastifyRequest) => (req as { userId?: string }).userId ?? req.ip;
@@ -33,7 +35,7 @@ export default async function roleplayRoutes(app: FastifyInstance) {
     if (!profile) return reply.code(404).send({ error: "no_profile" });
     const userLevel = profile.cefrLevel as CefrLevel;
 
-    const rows = await listPublishedRoleplays();
+    const [rows, last] = await Promise.all([listPublishedRoleplays(), lastAttemptsByRoleplay(request.userId)]);
     return {
       roleplays: rows.map((r) => {
         const decision = resolvePlayedLevel(r.spec, userLevel);
@@ -47,6 +49,7 @@ export default async function roleplayRoutes(app: FastifyInstance) {
           objectiveCount: decision.objectives.length,
           willPlayAt: decision.level,
           raised: decision.raised,
+          lastAttempt: last.get(r.slug) ?? null,
         };
       }),
     };
@@ -98,8 +101,10 @@ export default async function roleplayRoutes(app: FastifyInstance) {
       const params = slugParams.safeParse(request.params);
       if (!params.success) return reply.code(400).send({ error: "invalid_params" });
       try {
+        await assertQuota(request.userId, "roleplay", params.data.slug);
         return await openRoleplaySession(request.userId, params.data.slug);
       } catch (err) {
+        if (err instanceof QuotaError) return reply.code(402).send(quotaErrorBody(err));
         return sendError(reply, err);
       }
     },

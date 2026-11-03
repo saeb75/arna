@@ -11,11 +11,12 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { hasWordContent } from "@glotmate/contracts";
 import { api } from "@/lib/api";
-import { AVATAR_PROFILES, DEFAULT_AVATAR_ID, type AvatarProfile } from "@/lib/avatarProfiles";
-import { useVoiceSession } from "@/hooks/useVoiceSession";
+import { resolveAvatar, type AvatarSpec } from "@/lib/avatarProfiles";
+import { avatarActivity, useVoiceSession } from "@/hooks/useVoiceSession";
 
-const AvatarScene = dynamic(() => import("@/components/AvatarScene"), { ssr: false });
+const AvatarView = dynamic(() => import("@/components/AvatarView"), { ssr: false });
 
 /**
  * ROLEPLAY OYUN SAYFASI — brief → oyun → debrief.
@@ -91,16 +92,15 @@ export default function RoleplayPage({ params }: { params: Promise<{ slug: strin
   const voice = useVoiceSession(sessionId);
   const { status, timeline, getTime, getLevel } = voice;
 
-  // Aktif avatar admin ayarindan (app_settings.avatar) — hata/gecikmede Fat Man:
+  // Aktif avatar admin ayarindan (app_settings.avatar) — hata/gecikmede varsayılan (contracts DEFAULT_AVATAR_ID):
   // ders avatar ayarini BEKLEMEZ, yanlis avatarla acilmaktansa varsayilanla acilir.
-  const [avatarProfile, setAvatarProfile] = useState<AvatarProfile>(AVATAR_PROFILES[DEFAULT_AVATAR_ID]);
+  const [avatar, setAvatar] = useState<AvatarSpec>(() => resolveAvatar(null));
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
         const { activeId } = await api<{ activeId: string }>("/v1/avatar");
-        const p = AVATAR_PROFILES[activeId as keyof typeof AVATAR_PROFILES];
-        if (alive && p) setAvatarProfile(p);
+        if (alive) setAvatar(resolveAvatar(activeId));
       } catch {
         /* varsayilan kalir */
       }
@@ -144,7 +144,7 @@ export default function RoleplayPage({ params }: { params: Promise<{ slug: strin
   const handleUserText = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
-      if (!trimmed || sending) return;
+      if (!hasWordContent(trimmed) || sending) return; // yalnız noktalama boş girdidir
       setAwaiting(false);
       setSending(true);
       setBubbles((b) => [...b, { role: "user", text: trimmed }]);
@@ -302,11 +302,12 @@ export default function RoleplayPage({ params }: { params: Promise<{ slug: strin
         {/* 4:3 YATAY — ders sayfasıyla aynı: göğüs kadrajının yatay alanı
             kutunun oranından gelir (bkz. AvatarScene FRAMING_DISTANCE) */}
         <div className="aspect-[4/3] h-[30dvh] max-w-full overflow-hidden rounded-2xl ring-1 ring-white/10">
-          <AvatarScene
-            profile={avatarProfile}
+          <AvatarView
+            spec={avatar}
             timeline={timeline}
             getTime={getTime}
             getLevel={getLevel}
+            getActivity={() => avatarActivity(status)}
             greet={status === "speaking"}
           />
         </div>

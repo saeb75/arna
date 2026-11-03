@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   bigserial,
+  boolean,
   index,
   integer,
   jsonb,
@@ -28,7 +29,28 @@ export const userProfiles = pgTable("user_profiles", {
   dailyGoalMinutes: integer("daily_goal_minutes").notNull().default(10),
   occupation: text("occupation"),
   interests: jsonb("interests").notNull().default([]),
+  /** IANA saat dilimi — günlük ücretsiz kota ve seri bu güne göre sayılır */
+  timezone: text("timezone").notNull().default("UTC"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * ABONELİK GÖRÜNÜMÜ — RevenueCat'in ÖNBELLEĞİ, doğruluk kaynağı DEĞİL.
+ *
+ * Mağaza tarafı (`rc_*`) RevenueCat REST doğrulamasıyla ya da webhook'la yazılır;
+ * `checked_at` bayatsa (15 dk) oturum açan uç yeniden doğrular. Admin tanıması
+ * AYRI kolonda durur: RC "aktif değil" dediğinde operatörün verdiği ücretsiz Pro
+ * silinmesin diye iki kaynak birbirini ezmez. Pro = rc_active VEYA geçerli grant.
+ */
+export const userEntitlements = pgTable("user_entitlements", {
+  userId: uuid("user_id").primaryKey(),
+  rcActive: boolean("rc_active").notNull().default(false),
+  rcProductId: text("rc_product_id"),
+  rcExpiresAt: timestamp("rc_expires_at", { withTimezone: true }),
+  /** Admin tanıması: null = yok; `ADMIN_GRANT_FOREVER` = süresiz */
+  adminGrantUntil: timestamp("admin_grant_until", { withTimezone: true }),
+  checkedAt: timestamp("checked_at", { withTimezone: true }),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

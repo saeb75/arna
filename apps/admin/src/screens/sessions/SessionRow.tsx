@@ -13,7 +13,7 @@ import { ease, rowDelay } from "@/lib/motion";
 export function SessionRow({ session: s, index }: { session: AdminSession; index: number }) {
   const router = useRouter();
   const open = () => router.push(`/sessions/${s.id}`);
-  const title = s.lessonTitle ?? s.roleplayId ?? s.catalogLessonId ?? "—";
+  const title = s.lessonTitle ?? s.roleplayTitle ?? s.roleplayId ?? s.catalogLessonId ?? "—";
 
   return (
     <motion.tr

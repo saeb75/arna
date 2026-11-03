@@ -7,7 +7,7 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { UsersController } from "@/controllers/UsersController";
 import { formatDateTime } from "@/lib/labels";
-import { applyUserFilters, summarizeUsers } from "@/lib/userFilters";
+import { applyUserFilters, sortUsers, summarizeUsers } from "@/lib/userFilters";
 import { paginate } from "@/lib/paginate";
 import { TablePagination } from "@/components/shared/TablePagination";
 import { useUsersStore } from "@/stores/useUsersStore";
@@ -16,15 +16,15 @@ import { UsersSummary } from "@/screens/users/UsersSummary";
 import { UsersTable } from "@/screens/users/UsersTable";
 import { UsersToolbar } from "@/screens/users/UsersToolbar";
 
-/** Kullanıcı listesi — salt okunur; süzme istemcide, saf fonksiyonla. Skeleton yalnız veri yokken. */
+/** Kullanıcı listesi — süzme → sıralama → sayfalama istemcide, saf fonksiyonlarla. Skeleton yalnız veri yokken. */
 export function UsersScreen() {
-  const { data, loading, error, filters, page, pageSize, setPage, setPageSize } = useUsersStore();
+  const { data, loading, error, filters, sort, page, pageSize, setPage, setPageSize } = useUsersStore();
 
   useEffect(() => {
     void UsersController.load();
   }, []);
 
-  const visible = useMemo(() => (data ? applyUserFilters(data.users, filters) : []), [data, filters]);
+  const visible = useMemo(() => (data ? sortUsers(applyUserFilters(data.users, filters), sort) : []), [data, filters, sort]);
   const summary = useMemo(() => summarizeUsers(data?.users ?? []), [data]);
   const paged = useMemo(() => paginate(visible, page, pageSize), [visible, page, pageSize]);
 
@@ -51,7 +51,7 @@ export function UsersScreen() {
         <div className="flex flex-col gap-5">
           <UsersSummary summary={summary} />
           <UsersToolbar visibleCount={visible.length} totalCount={data.users.length} />
-          <UsersTable key={paged.page} users={paged.items} />
+          <UsersTable key={`${paged.page}-${sort}`} users={paged.items} />
           <TablePagination paged={paged} onPage={setPage} onPageSize={setPageSize} noun="users" />
         </div>
       )}

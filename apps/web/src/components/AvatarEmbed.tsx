@@ -2,7 +2,8 @@
 //
 // RN tarafı yetkili TTS isteğini kendi atar ve base64 klipleri
 // `window.__ARNA_AVATAR__.push(json)` ile buraya iter (JWT buraya asla
-// girmez); bu bileşen çalar (clipPlayer), AvatarScene'i sürer ve olayları
+// girmez); bu bileşen çalar (clipPlayer), avatarı sürer (sistemine göre 3D
+// AvatarScene ya da 2.5D SpriteAvatar — protokol ikisinde aynı) ve olayları
 // `window.ReactNativeWebView.postMessage` ile geri bildirir. Protokol:
 // @glotmate/contracts avatarProtocol.ts. Masaüstü tarayıcıda (ReactNativeWebView
 // yok) olaylar console'a düşer — sayfa elle test edilebilir.
@@ -13,9 +14,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import type { AvatarCommand, AvatarEvent } from "@glotmate/contracts";
-import AvatarScene from "@/components/AvatarScene";
-import { resolveAvatarProfile } from "@/lib/avatarProfiles";
+import type { AvatarActivity, AvatarCommand, AvatarEvent } from "@glotmate/contracts";
+import AvatarView from "@/components/AvatarView";
+import { resolveAvatar } from "@/lib/avatarProfiles";
 import { createClipPlayer, type ClipPlayer } from "@/lib/clipPlayer";
 import { alignmentToLine } from "@/lib/alignment";
 import { buildTimeline, isSpeaking, type Timeline } from "@/lib/viseme";
@@ -36,15 +37,24 @@ function post(event: AvatarEvent): void {
 export default function AvatarEmbed() {
   // RN, WebView URL'ine ?avatar=<id> ekler (aktif kimliği YETKİLİ istemci çözer;
   // bu sayfa auth'suz kalır — parametre sır değil, bilinmeyen id Fat Man'e düşer).
-  const [profile] = useState(() =>
-    resolveAvatarProfile(typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("avatar")),
+  const [spec] = useState(() =>
+    resolveAvatar(typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("avatar")),
   );
+  // sceneReady tek sefer: 3D'de GLB yükleme yöneticisi, 2.5D'de katman yüklemesi bildirir
+  const sceneAnnouncedRef = useRef(false);
+  const announceScene = () => {
+    if (sceneAnnouncedRef.current) return;
+    sceneAnnouncedRef.current = true;
+    post({ type: "sceneReady" });
+  };
   const playerRef = useRef<ClipPlayer | null>(null);
   const [timeline, setTimeline] = useState<Timeline | null>(null);
   const [playing, setPlaying] = useState(false);
   // Sahne, closure'ları her karede yoklar — güncel timeline'a ref'ten ulaşırlar
   const timelineRef = useRef<Timeline | null>(null);
   timelineRef.current = timeline;
+  // RN'nin bildirdiği öğrenci durumu — sahne her karede okur (render tetiklemez)
+  const activityRef = useRef<AvatarActivity>("idle");
 
   useEffect(() => {
     const player = createClipPlayer();
@@ -56,6 +66,10 @@ export default function AvatarEmbed() {
         cmd = JSON.parse(json) as AvatarCommand;
       } catch {
         post({ type: "error", id: null, code: "bad_command_json" });
+        return;
+      }
+      if (cmd.type === "activity") {
+        activityRef.current = cmd.activity;
         return;
       }
       if (cmd.type === "stop") {
@@ -93,11 +107,10 @@ export default function AvatarEmbed() {
 
     // GLB + dokular indiğinde bir kez sceneReady — RN yükleme örtüsünü kaldırır
     const prevOnLoad = THREE.DefaultLoadingManager.onLoad;
-    let sceneAnnounced = false;
     THREE.DefaultLoadingManager.onLoad = () => {
       prevOnLoad?.();
-      if (!sceneAnnounced) {
-        sceneAnnounced = true;
+      if (!sceneAnnouncedRef.current) {
+        sceneAnnouncedRef.current = true;
         post({ type: "sceneReady" });
       }
     };
@@ -125,12 +138,14 @@ export default function AvatarEmbed() {
 
   return (
     <div className="h-dvh w-full">
-      <AvatarScene
-        profile={profile}
+      <AvatarView
+        spec={spec}
         timeline={timeline}
         getTime={getTime}
         getLevel={getLevel}
         greet={playing}
+        onSpriteReady={announceScene}
+        getActivity={() => activityRef.current}
       />
     </div>
   );

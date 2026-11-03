@@ -6,11 +6,11 @@ import { STATUS_LABEL, formatDateTime } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
 /**
- * Renk ilkesi (CLAUDE.md): tek vurgu MAVİ = yayında; gri = ara durumlar;
+ * Renk ilkesi (CLAUDE.md): tek vurgu EMBER (`brand`) = yayında; gri = ara durumlar;
  * kırmızı yalnız başarısız. Yeni durum rengi eklenmez.
  */
 const TONE: Record<LayerStatus, string> = {
-  published: "bg-primary/10 text-primary",
+  published: "bg-brand/10 text-brand",
   ready: "bg-muted text-foreground",
   generating: "bg-muted text-muted-foreground",
   failed: "bg-destructive/10 text-destructive",

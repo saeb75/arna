@@ -1,6 +1,11 @@
 import type {
+  AdminEntitlement,
+  AdminPageQuery,
+  AdminProGrantBody,
   AdminUser,
   AdminUserDetail,
+  AdminUserMemoriesPage,
+  AdminUserSessionsPage,
   AdminUsersResponse,
   CefrLevel,
   LessonKind,
@@ -13,10 +18,14 @@ import {
   llmCalls,
   memories,
   sessions,
+  roleplayRevisions,
   sessionSummaries,
   unitCheckpoints,
+  userEntitlements,
   userProfiles,
 } from "../../db/schema.js";
+import { ADMIN_GRANT_FOREVER, setAdminGrant, viewOf } from "../billing/entitlements.js";
+import { getQuota } from "../billing/quota.js";
 import { AdminError } from "./queries.js";
 
 /**
@@ -40,6 +49,7 @@ interface AuthRow {
   created_at: Date;
   last_sign_in_at: Date | null;
   role: string | null;
+  is_anonymous: boolean | null;
 }
 
 const iso = (d: Date | string | null | undefined) => (d ? new Date(d).toISOString() : null);
@@ -48,10 +58,10 @@ const num = (v: unknown) => Number(v ?? 0);
 async function fetchAuthUsers(id?: string): Promise<AuthRow[]> {
   return id
     ? await sql<AuthRow[]>`
-        select id, email, created_at, last_sign_in_at, raw_app_meta_data->>'role' as role
+        select id, email, created_at, last_sign_in_at, raw_app_meta_data->>'role' as role, is_anonymous
         from auth.users where id = ${id}::uuid`
     : await sql<AuthRow[]>`
-        select id, email, created_at, last_sign_in_at, raw_app_meta_data->>'role' as role
+        select id, email, created_at, last_sign_in_at, raw_app_meta_data->>'role' as role, is_anonymous
         from auth.users order by created_at desc`;
 }
 
@@ -61,7 +71,7 @@ async function buildUsers(auth: AuthRow[]): Promise<AdminUser[]> {
   const ids = auth.map((a) => a.id);
   const inIds = dsql`${dsql.join(ids.map((i) => dsql`${i}::uuid`), dsql`, `)}`;
 
-  const [profiles, progress, sess, cost] = await Promise.all([
+  const [profiles, progress, sess, cost, ents] = await Promise.all([
     db.select().from(userProfiles).where(dsql`${userProfiles.userId} in (${inIds})`),
     db
       .select({ userId: lessonProgress.userId, status: lessonProgress.status, n: dsql<number>`count(*)::int` })
@@ -78,7 +88,9 @@ async function buildUsers(auth: AuthRow[]): Promise<AdminUser[]> {
       .from(llmCalls)
       .where(and(isNotNull(llmCalls.userId), dsql`${llmCalls.userId} in (${inIds})`))
       .groupBy(llmCalls.userId),
+    db.select().from(userEntitlements).where(dsql`${userEntitlements.userId} in (${inIds})`),
   ]);
+  const entBy = new Map(ents.map((e) => [e.userId, viewOf(e)]));
 
   const profileBy = new Map(profiles.map((p) => [p.userId, p]));
   const progressBy = new Map<string, { completed: number; inProgress: number }>();
@@ -112,6 +124,9 @@ async function buildUsers(auth: AuthRow[]): Promise<AdminUser[]> {
       sessionCount: s?.n ?? 0,
       lastSessionAt: iso(s?.last ?? null),
       llmCostUsd: costBy.get(a.id) ?? 0,
+      isAnonymous: a.is_anonymous === true,
+      isPro: entBy.get(a.id)?.isPro ?? false,
+      proSource: entBy.get(a.id)?.source ?? null,
     };
   });
 }
@@ -127,7 +142,7 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
   const [user] = await buildUsers(auth);
 
   const since30d = new Date(Date.now() - 30 * 24 * 3600 * 1000);
-  const [profile, progress, sess, mems, checkpoints, costTotal, cost30, costByPurpose] = await Promise.all([
+  const [profile, progress, sess, mems, checkpoints, costTotal, cost30, costByPurpose, entRow] = await Promise.all([
     db.select().from(userProfiles).where(eq(userProfiles.userId, userId)).limit(1),
     db
       .select({
@@ -156,10 +171,13 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
         summary: sessionSummaries.summary,
         continuityHook: sessionSummaries.continuityHook,
         errorsObserved: sessionSummaries.errorsObserved,
+        roleplayId: roleplayRevisions.roleplayId,
+        roleplayTitle: dsql<string | null>`${roleplayRevisions.spec}->>'title'`,
       })
       .from(sessions)
       .leftJoin(sessionSummaries, eq(sessionSummaries.sessionId, sessions.id))
       .leftJoin(catalogLessons, eq(catalogLessons.id, sessions.catalogLessonId))
+      .leftJoin(roleplayRevisions, eq(roleplayRevisions.id, sessions.roleplayRevisionId))
       .where(eq(sessions.userId, userId))
       .orderBy(desc(sessions.startedAt))
       .limit(20),
@@ -195,6 +213,7 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
       .where(eq(llmCalls.userId, userId))
       .groupBy(llmCalls.purpose)
       .orderBy(desc(dsql`sum(${llmCalls.costUsd})`)),
+    db.select().from(userEntitlements).where(eq(userEntitlements.userId, userId)).limit(1),
   ]);
 
   const p = profile[0];
@@ -218,6 +237,8 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
       kind: s.kind,
       catalogLessonId: s.catalogLessonId,
       lessonTitle: s.lessonTitle,
+      roleplayId: s.roleplayId ?? null,
+      roleplayTitle: s.roleplayTitle ?? null,
       startedAt: s.startedAt.toISOString(),
       endedAt: iso(s.endedAt),
       summary: s.summary ?? null,
@@ -237,5 +258,99 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
       last30dUsd: num(cost30[0]?.usd),
       byPurpose: costByPurpose.map((r) => ({ purpose: r.purpose, calls: r.calls, usd: num(r.usd) })),
     },
+    entitlement: entitlementView(entRow[0] ?? null),
+    quota: await getQuota(userId, user!.isPro, p?.timezone),
   };
+}
+
+function entitlementView(row: typeof userEntitlements.$inferSelect | null): AdminEntitlement {
+  const v = viewOf(row);
+  return {
+    isPro: v.isPro,
+    source: v.source,
+    productId: v.productId,
+    expiresAt: v.expiresAt,
+    rcActive: v.rcActive,
+    adminGranted: v.adminGranted,
+    adminGrantUntil: row?.adminGrantUntil && row.adminGrantUntil.getTime() < ADMIN_GRANT_FOREVER.getTime()
+      ? row.adminGrantUntil.toISOString()
+      : null,
+    checkedAt: iso(row?.checkedAt ?? null),
+  };
+}
+
+/** Sunucu-sayfalı oturum listesi — detayın "son 20"si budanmış görünümdü */
+export async function getAdminUserSessions(userId: string, q: AdminPageQuery): Promise<AdminUserSessionsPage> {
+  const [rows, count] = await Promise.all([
+    db
+      .select({
+        id: sessions.id,
+        kind: sessions.sessionKind,
+        catalogLessonId: sessions.catalogLessonId,
+        lessonTitle: catalogLessons.title,
+        startedAt: sessions.startedAt,
+        endedAt: sessions.endedAt,
+        summary: sessionSummaries.summary,
+        continuityHook: sessionSummaries.continuityHook,
+        errorsObserved: sessionSummaries.errorsObserved,
+        roleplayId: roleplayRevisions.roleplayId,
+        roleplayTitle: dsql<string | null>`${roleplayRevisions.spec}->>'title'`,
+      })
+      .from(sessions)
+      .leftJoin(sessionSummaries, eq(sessionSummaries.sessionId, sessions.id))
+      .leftJoin(catalogLessons, eq(catalogLessons.id, sessions.catalogLessonId))
+      .leftJoin(roleplayRevisions, eq(roleplayRevisions.id, sessions.roleplayRevisionId))
+      .where(eq(sessions.userId, userId))
+      .orderBy(desc(sessions.startedAt))
+      .limit(q.pageSize)
+      .offset((q.page - 1) * q.pageSize),
+    db.select({ n: dsql<number>`count(*)::int` }).from(sessions).where(eq(sessions.userId, userId)),
+  ]);
+  return {
+    items: rows.map((s) => ({
+      id: s.id,
+      kind: s.kind,
+      catalogLessonId: s.catalogLessonId,
+      lessonTitle: s.lessonTitle,
+      roleplayId: s.roleplayId ?? null,
+      roleplayTitle: s.roleplayTitle ?? null,
+      startedAt: s.startedAt.toISOString(),
+      endedAt: iso(s.endedAt),
+      summary: s.summary ?? null,
+      continuityHook: s.continuityHook ?? null,
+      errorsObserved: s.errorsObserved ?? null,
+    })),
+    page: q.page,
+    pageSize: q.pageSize,
+    total: count[0]?.n ?? 0,
+  };
+}
+
+/** Sunucu-sayfalı hafıza listesi */
+export async function getAdminUserMemories(userId: string, q: AdminPageQuery): Promise<AdminUserMemoriesPage> {
+  const [rows, count] = await Promise.all([
+    db
+      .select({ id: memories.id, kind: memories.kind, text: memories.text, createdAt: memories.createdAt })
+      .from(memories)
+      .where(eq(memories.userId, userId))
+      .orderBy(desc(memories.createdAt))
+      .limit(q.pageSize)
+      .offset((q.page - 1) * q.pageSize),
+    db.select({ n: dsql<number>`count(*)::int` }).from(memories).where(eq(memories.userId, userId)),
+  ]);
+  return {
+    items: rows.map((m) => ({ id: m.id, kind: m.kind, text: m.text, createdAt: m.createdAt.toISOString() })),
+    page: q.page,
+    pageSize: q.pageSize,
+    total: count[0]?.n ?? 0,
+  };
+}
+
+/** Admin Pro tanıması — mağaza tarafına dokunmaz */
+export async function setUserProGrant(userId: string, body: AdminProGrantBody): Promise<AdminUserDetail> {
+  const auth = await fetchAuthUsers(userId);
+  if (auth.length === 0) throw new AdminError("not_found");
+  const until = body.grant ? (body.until ? new Date(body.until) : ADMIN_GRANT_FOREVER) : null;
+  await setAdminGrant(userId, until);
+  return await getAdminUserDetail(userId);
 }

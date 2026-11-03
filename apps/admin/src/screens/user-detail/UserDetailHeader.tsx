@@ -4,6 +4,7 @@ import type { AdminUser } from "@glotmate/contracts";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { motion } from "motion/react";
+import { ProPill } from "@/components/shared/ProPill";
 import { Badge } from "@/components/ui/badge";
 import { formatDateTime, formatRelative } from "@/lib/labels";
 import { fadeUp } from "@/lib/motion";
@@ -20,9 +21,15 @@ export function UserDetailHeader({ user }: { user: AdminUser }) {
         <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-muted text-lg font-semibold">{initial}</span>
         <div className="min-w-0">
           <h1 className="flex flex-wrap items-center gap-2 text-2xl font-semibold tracking-tight">
-            {user.displayName ?? user.email ?? "Unnamed account"}
+            {user.displayName ?? user.email ?? (user.isAnonymous ? "Guest account" : "Unnamed account")}
             {user.isAdmin && <Badge>Admin</Badge>}
+            {user.isAnonymous ? (
+              <Badge variant="outline" className="border-dashed font-normal text-muted-foreground">Guest</Badge>
+            ) : (
+              <Badge variant="outline" className="font-normal">Registered</Badge>
+            )}
             {!user.hasProfile && <Badge variant="outline">Not onboarded</Badge>}
+            {user.isPro && <ProPill isPro source={user.proSource} />}
           </h1>
           {user.displayName && <p className="text-sm text-muted-foreground">{user.email}</p>}
           <p className="mt-1 font-mono text-[11px] text-muted-foreground/70">{user.id}</p>

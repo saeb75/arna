@@ -33,4 +33,8 @@ Kullanıcı **yeniden giriş yapınca** claim token'a düşer. Rolsüz kullanıc
   dil paketi üret/yenile, seviye bazlı toplu ısıtma (istemcide orkestre)
 - ✅ Faz 4 — Kullanıcılar (liste + detay: profil, ilerleme, oturum özetleri, hafıza, maliyet; salt okunur) · arayüz İngilizce
 - ✅ Faz 5 — Sessions: tüm oturumlar (filtre/sıralama) + tam transkript (script/chat), pozisyon imleci, özet, LLM çağrıları
-- ⏳ Faz 6 — Roleplay yönetimi, `llm_calls` maliyet panosu
+- ✅ Faz 6 — Overview (`/`: kullanıcı/aktiflik/Pro/oturum sayaçları, 7/30/90 gün, günlük maliyet grafiği,
+  amaç/model kırılımı, en pahalı kullanıcılar) · Roleplay yönetimi (liste, yapılandırılmış spec editörü + şema/lint,
+  önizleme, revizyonlar, denemeler, hedef istatistikleri; taslak → yayın → emekli) · kullanıcılarda Pro/misafir,
+  abonelik kartı + ücretsiz Pro tanıma, günlük kota, sunucu sayfalı oturum/hafıza · oturumda roleplay kartı ·
+  koyu tema (System/Light/Dark)

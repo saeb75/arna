@@ -1,12 +1,16 @@
 "use client";
 
-import { AudioLines, BookOpen, MessagesSquare, PersonStanding, Users } from "lucide-react";
+import { AudioLines, BookOpen, Drama, LayoutDashboard, MessagesSquare, PersonStanding, Users } from "lucide-react";
 import { BrandMark } from "@/components/shared/BrandMark";
 import { SidebarNavItem } from "@/components/shared/SidebarNavItem";
+import { ThemeSwitcher } from "@/components/shared/ThemeSwitcher";
 import { UserMenu } from "@/components/shared/UserMenu";
 
+/** Overview kökte ("/") — yalnız TAM eşleşmede aktif, yoksa her sayfada yanardı */
 const NAV = [
+  { href: "/", label: "Overview", icon: LayoutDashboard, exact: true },
   { href: "/lessons", label: "Lessons", icon: BookOpen },
+  { href: "/roleplays", label: "Roleplays", icon: Drama },
   { href: "/users", label: "Users", icon: Users },
   { href: "/sessions", label: "Sessions", icon: MessagesSquare },
 ];
@@ -32,6 +36,7 @@ export function Sidebar() {
           <SidebarNavItem key={item.href} {...item} />
         ))}
       </nav>
+      <ThemeSwitcher />
       <UserMenu />
     </aside>
   );

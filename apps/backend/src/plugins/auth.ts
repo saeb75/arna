@@ -13,12 +13,18 @@ declare module "fastify" {
      * `user_metadata`nın aksine. Tek yetki kaynağı; DB'de rol kolonu YOK.
      */
     isAdmin: boolean;
+    /** Supabase anonim (misafir) oturumu — JWT `is_anonymous` */
+    isAnonymous: boolean;
+    /** JWT `email` — misafirde boş */
+    userEmail: string | null;
   }
 }
 
 /** Supabase access token'ındaki `app_metadata` bloğu (yalnız sunucu yazar) */
 interface SupabaseClaims extends JWTPayload {
   app_metadata?: { role?: unknown };
+  is_anonymous?: unknown;
+  email?: unknown;
 }
 
 const hsSecret = env.SUPABASE_JWT_SECRET
@@ -42,6 +48,8 @@ async function verifyToken(token: string): Promise<JWTPayload> {
 async function authPlugin(app: FastifyInstance) {
   app.decorateRequest("userId", "");
   app.decorateRequest("isAdmin", false);
+  app.decorateRequest("isAnonymous", false);
+  app.decorateRequest("userEmail", null);
 
   const requireAuth = async function (request: FastifyRequest, reply: FastifyReply) {
     const header = request.headers.authorization;
@@ -53,6 +61,8 @@ async function authPlugin(app: FastifyInstance) {
       if (!payload.sub) throw new Error("no sub");
       request.userId = payload.sub;
       request.isAdmin = payload.app_metadata?.role === "admin";
+      request.isAnonymous = payload.is_anonymous === true;
+      request.userEmail = typeof payload.email === "string" && payload.email ? payload.email : null;
     } catch {
       return reply.code(401).send({ error: "invalid_token" });
     }

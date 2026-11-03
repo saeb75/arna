@@ -3,13 +3,17 @@
 import type { AdminUser } from "@glotmate/contracts";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
+import { ProPill } from "@/components/shared/ProPill";
 import { Badge } from "@/components/ui/badge";
 import { TableCell } from "@/components/ui/table";
 import { TRACK_LABEL, formatRelative, formatUsd, languageName } from "@/lib/labels";
 import { ease, rowDelay } from "@/lib/motion";
 import { lastActivity } from "@/lib/userFilters";
 
-/** Satırın tamamı detaya gider. Renk: admin rozeti mavi (tek vurgu), geri kalan gri. */
+/**
+ * Satırın tamamı detaya gider. Renk: Pro hapı ember (tek vurgu), admin rozeti nötr dolgu,
+ * geri kalan gri; misafir (anonim) hesap kesik çerçeveli rozetle ayrılır.
+ */
 export function UserRow({ user, index }: { user: AdminUser; index: number }) {
   const router = useRouter();
   const open = () => router.push(`/users/${user.id}`);
@@ -32,8 +36,13 @@ export function UserRow({ user, index }: { user: AdminUser; index: number }) {
           <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">{initial}</span>
           <div className="min-w-0">
             <p className="flex items-center gap-2 truncate text-sm font-medium">
-              {user.email ?? <span className="text-muted-foreground">(no email)</span>}
+              {user.email ?? <span className="text-muted-foreground">{user.isAnonymous ? "Guest account" : "(no email)"}</span>}
               {user.isAdmin && <Badge className="h-4 px-1.5 text-[10px]">Admin</Badge>}
+              {user.isAnonymous && (
+                <Badge variant="outline" className="h-4 border-dashed px-1.5 text-[10px] font-normal text-muted-foreground">
+                  Guest
+                </Badge>
+              )}
             </p>
             <p className="truncate text-xs text-muted-foreground">{user.displayName ?? <span className="font-mono text-[10px]">{user.id}</span>}</p>
           </div>
@@ -51,6 +60,9 @@ export function UserRow({ user, index }: { user: AdminUser; index: number }) {
         ) : (
           <span className="text-xs text-muted-foreground">Not onboarded</span>
         )}
+      </TableCell>
+      <TableCell>
+        <ProPill isPro={user.isPro} source={user.proSource} />
       </TableCell>
       <TableCell className="text-xs tabular-nums">
         <span className="font-medium">{user.lessonsCompleted}</span>

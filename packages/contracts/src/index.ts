@@ -25,43 +25,18 @@ export const catalogLessonIdSchema = z
   .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/)
   .max(80);
 
-/**
- * KONUŞMA BAĞLAMI — "öğrenme yolu" DEĞİL. Yalnızca rol yapma sahnesinin dekorunu
- * belirler; anlatım, alıştırmalar ve cevaplar track'ten bağımsızdır (çekirdekte).
- * Bu yüzden onboarding kopyası "İngilizceyi en çok nerede kullanacaksın?" der,
- * "IELTS hazırlık programı" vaadi VERMEZ — gerçek sınav içeriği ileride ayrı
- * eksen (learningGoal) olarak açılabilir.
- * Eşleme (eski → yeni): conversation→everyday, business→work.
- */
-export const TRACKS = ["everyday", "work", "travel", "academic", "exam"] as const;
-export const trackSchema = z.enum(TRACKS);
-export type Track = z.infer<typeof trackSchema>;
-
-/** Öğretim dili: native → Emma açıklamaları öğrencinin dilinde yapar. */
-export const TUTOR_LANGUAGES = ["native", "english"] as const;
-export const tutorLanguageSchema = z.enum(TUTOR_LANGUAGES);
-export type TutorLanguage = z.infer<typeof tutorLanguageSchema>;
-
-export const INTEREST_AREAS = [
-  "technology",
-  "business",
-  "travel",
-  "movies_tv",
-  "music",
-  "sports",
-  "gaming",
-  "food",
-  "science",
-  "health",
-  "finance",
-  "art_design",
-  "fashion",
-  "education",
-  "news_politics",
-  "nature",
-] as const;
-export const interestSchema = z.enum(INTEREST_AREAS);
-export type Interest = z.infer<typeof interestSchema>;
+export {
+  TRACKS,
+  trackSchema,
+  type Track,
+  TUTOR_LANGUAGES,
+  tutorLanguageSchema,
+  type TutorLanguage,
+  INTEREST_AREAS,
+  interestSchema,
+  type Interest,
+} from "./profile.js";
+import { interestSchema, trackSchema, tutorLanguageSchema } from "./profile.js";
 
 // ---------------------------------------------------------------------------
 // Onboarding
@@ -82,6 +57,8 @@ export const onboardingInputSchema = z.object({
   nativeLanguage: z.string().trim().min(2).max(10).default("tr"),
   /** Öğretim dili — onboarding'de sorulur, ayarlardan değiştirilebilir */
   tutorLanguage: tutorLanguageSchema.default("native"),
+  /** IANA saat dilimi — günlük kota ve seri bu güne göre sayılır */
+  timezone: z.string().trim().min(1).max(64).optional(),
 });
 export type OnboardingInput = z.infer<typeof onboardingInputSchema>;
 
@@ -426,3 +403,6 @@ export * from "./avatarProtocol.js";
 export * from "./avatars.js";
 export * from "./sessionResume.js";
 export * from "./admin.js";
+export * from "./billing.js";
+export * from "./me.js";
+export * from "./sessionApi.js";

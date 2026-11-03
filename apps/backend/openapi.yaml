@@ -28,6 +28,12 @@ tags:
     description: Tembel ders içeriği üretimi ("plan peşin, içerik tembel")
   - name: Oturum
     description: Ders çalışma zamanı — chat / TTS / STT / bitirme
+  - name: Hesap
+    description: Öğrencinin kendi hesabı — profil, istatistik, hesap silme (misafir dahil)
+  - name: Abonelik
+    description: Pro durumu (RevenueCat) ve günlük ücretsiz kota
+  - name: Roleplay
+    description: Bağımsız rol yapma sekmesi — katalog, brief, oturum (chat/end ortak uçlardan)
   - name: Admin
     description: Admin paneli uçları — JWT `app_metadata.role = admin` ister (403 aksi hâlde)
 
@@ -106,17 +112,35 @@ paths:
               schema: { $ref: "#/components/schemas/Error" }
               example: { error: no_profile }
 
+  /v1/me:
+    get:
+      tags: [Hesap]
+      summary: Hesabım — profil, abonelik, bugünkü kota
+      description: |
+        İstemci kapısı buna bakar: `profile: null` → onboarding. Misafir (Supabase
+        anonim) oturumda `isAnonymous: true`. Şema: contracts `meResponseSchema`.
+      responses:
+        "200": { description: "MeResponse (contracts `meResponseSchema`)" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    delete:
+      tags: [Hesap]
+      summary: Hesabı ve tüm kişisel veriyi sil
+      description: |
+        Oturumlar, transkript, hafıza, ilerleme, abonelik önbelleği ve profil silinir;
+        `llm_calls` maliyet muhasebesi için kullanıcıdan koparılır; son adım
+        `auth.users` satırı. Mağaza aboneliği Apple'da sürer. 5/saat.
+      responses:
+        "200": { description: "{ ok: true }" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
   /v1/me/profile:
     patch:
-      tags: [Curriculum]
-      summary: Seviye/track değiştir
+      tags: [Hesap]
+      summary: Profil alanlarını güncelle
       description: |
-        Kullanıcı ayarlardan seviye veya track değiştirdiğinde çağrılır ve
-        **yalnızca profili günceller**. İlerleme katalog kimliğine bağlı olduğu
-        için hiç etkilenmez — eski `POST /v1/programs/regenerate` planı yeniden
-        üretip ilerlemeyi arşive gömüyordu, o uç kaldırıldı.
-
-        Gövdedeki iki alan da opsiyoneldir ama en az biri verilmelidir.
+        Seviye, track, açıklama dili, günlük hedef, ad, ilgi alanları, meslek ve saat
+        dilimi (contracts `profilePatchSchema`, en az bir alan). **İlerleme etkilenmez**
+        — katalog kimliğine bağlı. Cevap güncel müfredat görünümüdür.
       requestBody:
         required: true
         content:
@@ -124,9 +148,14 @@ paths:
             schema:
               type: object
               properties:
+                displayName: { type: string, maxLength: 60 }
                 cefrLevel: { $ref: "#/components/schemas/CefrLevel" }
                 track: { $ref: "#/components/schemas/Track" }
                 tutorLanguage: { type: string, enum: [native, english] }
+                dailyGoalMinutes: { type: integer, enum: [5, 10, 15] }
+                interests: { type: array, items: { type: string } }
+                occupation: { type: string, nullable: true, maxLength: 120 }
+                timezone: { type: string, example: Europe/Istanbul }
             example: { cefrLevel: B1 }
       responses:
         "200":
@@ -142,6 +171,248 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
               example: { error: no_profile }
+
+  /v1/me/stats:
+    get:
+      tags: [Hesap]
+      summary: Seri, bugünkü dakika, son 7 gün
+      parameters:
+        - { name: tz, in: query, required: false, schema: { type: string }, description: "IANA saat dilimi; yoksa profildeki" }
+      responses:
+        "200": { description: "MeStats (contracts `meStatsSchema`)" }
+
+  /v1/me/entitlement/refresh:
+    post:
+      tags: [Abonelik]
+      summary: Pro durumunu RevenueCat'ten ZORLA doğrula
+      description: Satın alma / geri yükleme sonrası çağrılır; cevap kotayı da taşır. 30/saat.
+      responses:
+        "200": { description: "{ entitlement, quota } (contracts `entitlementRefreshResponseSchema`)" }
+
+  /v1/webhooks/revenuecat:
+    post:
+      tags: [Abonelik]
+      summary: RevenueCat webhook
+      security: []
+      description: |
+        `Authorization` başlığı `REVENUECAT_WEBHOOK_SECRET` ile eşleşmeli. Anahtar
+        (`REVENUECAT_SECRET_KEY`) varsa olay yalnız tetiktir, durum REST'ten okunur.
+        Sır tanımlı değilse 404.
+      responses:
+        "200": { description: "{ ok: true, users }" }
+        "401": { description: Sır eşleşmedi }
+
+  /v1/roleplays:
+    get:
+      tags: [Roleplay]
+      summary: Yayınlı senaryolar + kullanıcının son denemesi
+      responses:
+        "200": { description: "contracts `roleplayListResponseSchema`" }
+        "404": { description: no_profile }
+
+  /v1/roleplays/{slug}:
+    get:
+      tags: [Roleplay]
+      summary: Brief önizlemesi (oturum AÇMAZ)
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: "contracts `roleplayBriefSchema`" }
+        "404": { description: not_found / no_profile }
+
+  /v1/roleplays/{slug}/sessions:
+    post:
+      tags: [Roleplay]
+      summary: Roleplay oturumu aç ("Başla")
+      description: |
+        LLM çağrısı yok; açılış cümlesi transkripte yazılır, önceki açık roleplay
+        oturumları kapatılır. Sonrası ortak `/sessions/:id/chat` (hedef tikleri
+        `newHits`) ve `/sessions/:id/end` (debrief). Günlük ücretsiz kota: 402.
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: "contracts `roleplaySessionOpenSchema`" }
+        "402": { $ref: "#/components/responses/QuotaExceeded" }
+        "404": { description: not_found }
+
+  /v1/avatar:
+    get:
+      tags: [Ders]
+      summary: Aktif avatar (admin ayarı)
+      responses:
+        "200": { description: "{ activeId }" }
+
+  /v1/lessons/{catalogLessonId}/resume:
+    get:
+      tags: [Oturum]
+      summary: "Sürdürülebilir açık oturum (yoksa `{ resume: null }`)"
+      parameters:
+        - { name: catalogLessonId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: "{ resume: { sessionId, startedAt, position, script, lesson, transcript } | null }" }
+
+  /v1/sessions/{sessionId}/sync:
+    post:
+      tags: [Oturum]
+      summary: Pozisyon imleci + script satırları (fire-and-forget)
+      parameters:
+        - { name: sessionId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: "{ ok: true }" }
+
+  /v1/sessions/{sessionId}/translate:
+    post:
+      tags: [Oturum]
+      summary: Bir hoca cümlesini ana dile çevir
+      parameters:
+        - { name: sessionId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Çeviri }
+
+  /v1/sessions/{sessionId}/review:
+    post:
+      tags: [Oturum]
+      summary: Cevap incelemesi (kind + corrected + açıklama parçaları)
+      parameters:
+        - { name: sessionId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: "contracts `answerReview`" }
+
+  /v1/admin/overview:
+    get:
+      tags: [Admin]
+      summary: Overview — kullanıcı, aktiflik, Pro, oturum, LLM maliyet panosu
+      parameters:
+        - { name: days, in: query, schema: { type: integer, enum: [7, 30, 90], default: 30 } }
+      responses:
+        "200": { description: "contracts `adminOverviewSchema`" }
+
+  /v1/admin/roleplays:
+    get:
+      tags: [Admin]
+      summary: Roleplay listesi (yayınlı rev, taslak, deneme sayaçları)
+      responses:
+        "200": { description: "contracts `adminRoleplaysResponseSchema`" }
+    post:
+      tags: [Admin]
+      summary: Yeni senaryo (revizyon 1, taslak)
+      description: "Gövde `{ id: rp-…, spec }`. 409 exists · 422 lint_failed (+report)."
+      responses:
+        "201": { description: "contracts `adminRoleplayDetailSchema`" }
+
+  /v1/admin/roleplays/lint:
+    post:
+      tags: [Admin]
+      summary: Kapı kuru koşusu — yazmaz
+      responses:
+        "200": { description: "{ report: { errors, warnings } }" }
+
+  /v1/admin/roleplays/{id}:
+    get:
+      tags: [Admin]
+      summary: Senaryo detayı — revizyonlar, taslak + lint, hedef isabet oranları
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: "contracts `adminRoleplayDetailSchema`" }
+
+  /v1/admin/roleplays/{id}/draft:
+    put:
+      tags: [Admin]
+      summary: Taslağı kaydet (yoksa yeni revizyon doğar) — 422 lint_failed
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Detay }
+    delete:
+      tags: [Admin]
+      summary: Taslağı at (yayın/emekli satır asla silinmez) — 409 no_draft
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Detay }
+
+  /v1/admin/roleplays/{id}/draft/publish:
+    post:
+      tags: [Admin]
+      summary: Taslağı yayınla — önceki yayın retired olur
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Detay }
+
+  /v1/admin/roleplays/{id}/revisions/{revisionId}/duplicate:
+    post:
+      tags: [Admin]
+      summary: Eski revizyonu taslak olarak çoğalt — 409 draft_exists
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: revisionId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Detay }
+
+  /v1/admin/roleplays/{id}/status:
+    post:
+      tags: [Admin]
+      summary: "Keşiften çek / geri getir (`{ status: active | retired }`)"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Detay }
+
+  /v1/admin/roleplays/{id}/attempts:
+    get:
+      tags: [Admin]
+      summary: Senaryonun denemeleri (sunucu sayfalı)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, enum: [25, 50, 100], default: 25 } }
+      responses:
+        "200": { description: "contracts `adminRoleplayAttemptsPageSchema`" }
+
+  /v1/admin/users/{id}/sessions:
+    get:
+      tags: [Admin]
+      summary: Kullanıcının oturumları (sunucu sayfalı)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, enum: [25, 50, 100], default: 25 } }
+      responses:
+        "200": { description: "contracts `adminUserSessionsPageSchema`" }
+
+  /v1/admin/users/{id}/memories:
+    get:
+      tags: [Admin]
+      summary: Kullanıcının hafıza gerçekleri (sunucu sayfalı)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, enum: [25, 50, 100], default: 25 } }
+      responses:
+        "200": { description: "contracts `adminUserMemoriesPageSchema`" }
+
+  /v1/admin/users/{id}/pro:
+    post:
+      tags: [Admin]
+      summary: "Ücretsiz Pro tanı / geri al (`{ grant, until }`) — mağazaya dokunmaz"
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: "Güncel kullanıcı detayı" }
+
+  /v1/admin/settings/avatar:
+    get:
+      tags: [Admin]
+      summary: Aktif avatar ayarı
+      responses:
+        "200": { description: "{ settings, avatars, updatedAt }" }
+    put:
+      tags: [Admin]
+      summary: Aktif avatarı değiştir
+      responses:
+        "200": { description: "{ settings, avatars, updatedAt }" }
 
   /v1/checkpoints/{level}/{unitIndex}:
     parameters:
@@ -641,6 +912,7 @@ paths:
                     allOf: [{ $ref: "#/components/schemas/SessionScript" }]
                     nullable: true
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "402": { $ref: "#/components/responses/QuotaExceeded" }
         "404":
           description: Ders bulunamadı
           content:
@@ -884,6 +1156,25 @@ components:
       description: Supabase Auth access token'ı
 
   responses:
+    InvalidInput:
+      description: Gövde/parametre şemadan geçmedi
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string, example: invalid_input }
+              issues: { type: array, items: { type: object } }
+    QuotaExceeded:
+      description: Günlük ücretsiz kota doldu (Pro değil) — istemci paywall açar
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string, example: quota_exceeded }
+              kind: { type: string, enum: [lesson, roleplay] }
+              quota: { type: object, description: "contracts `quotaSchema`" }
     Unauthorized:
       description: Token yok veya geçersiz
       content:
@@ -1325,7 +1616,7 @@ components:
               description: "Hedef yapı kaç turda üretilirse sahne başarılı sayılır (sunucuda deterministik sayılır)"
             successCriteria: { type: string }
             maxTurns: { type: integer }
-        summary: { type: string, description: "Ana dilde kapanış özeti" }
+        summary: "{ type: string, description: \"Ana dilde kapanış özeti\" }"
         quiz:
           type: array
           description: "Ders sonrası İSTEĞE BAĞLI mini test (3-5 soru)"

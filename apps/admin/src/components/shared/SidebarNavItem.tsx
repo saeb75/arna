@@ -10,8 +10,20 @@ import { cn } from "@/lib/utils";
  * Aktif öğe arka planı `layoutId` ile öğeler arasında KAYAR — tıklamada
  * yeniden çizilmez. Tek ortak layoutId, sidebar'da tek aktif olduğu için güvenli.
  */
-export function SidebarNavItem({ href, label, icon: Icon }: { href: string; label: string; icon: LucideIcon }) {
-  const active = usePathname().startsWith(href);
+export function SidebarNavItem({
+  href,
+  label,
+  icon: Icon,
+  exact = false,
+}: {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  /** Kök gibi her yolun öneki olan href'ler yalnız tam eşleşmede aktif */
+  exact?: boolean;
+}) {
+  const pathname = usePathname();
+  const active = exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
   return (
     <Link
       href={href}

@@ -9,7 +9,7 @@ import { formatCore, parseDraft } from "@/lib/coreDraft";
 import { useLessonDetailStore } from "@/stores/useLessonDetailStore";
 import { CorePreview } from "@/screens/lesson-detail/CorePreview";
 import { DraftIssues } from "@/screens/lesson-detail/DraftIssues";
-import { LintReportView } from "@/screens/lesson-detail/LintReportView";
+import { LintReportView } from "@/components/shared/LintReportView";
 
 /**
  * Çekirdek JSON editörü. İki kapı: istemcide şema (anında, `parseDraft`),

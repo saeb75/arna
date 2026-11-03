@@ -1,67 +1,51 @@
 import { Text, View } from "react-native";
+import Animated, { Easing, FadeInDown } from "react-native-reanimated";
 import type { RichText } from "@glotmate/contracts";
+import { RunsText } from "./RunsText";
 
-/**
- * RichText parçalı sohbet balonu — `en` parçalar vurgulu (ders malzemesi),
- * L1 parçalar düz. Roleplay ekranı da bunu kullanacak (shared kuralı).
- * RTL dillerde İngilizce'nin yön yalıtımı RN'de writingDirection ile çözülür;
- * Text iç içe olduğu için web'deki <bdi> ihtiyacının karşılığı budur.
- */
 interface MessageBubbleProps {
   role: "teacher" | "user";
   text: string;
   runs?: RichText;
+  /** Anlatım maddeleri — balonda satır satır */
   points?: RichText[];
+  /** Tamamı İngilizce sohbet (rol yapma) — `en` vurgusu yok */
+  plain?: boolean;
 }
 
-/** Ardışık run'lar bitişik yazılmasın: önceki boşlukla bitmiyor VE yenisi boşlukla başlamıyorsa araya boşluk gir ("başlayalım.Today" canlı hatası). */
-function needsSpace(prev: string | undefined, cur: string): boolean {
-  if (!prev) return false;
-  return !/\s$/.test(prev) && !/^\s/.test(cur);
-}
+const rise = FadeInDown.duration(260).easing(Easing.out(Easing.cubic));
 
 /**
- * Kullanıcı balonu mor zeminde: metin `onPrimary`, `en` vurgusu yalnız kalınlıkla.
- * Hoca balonu beyaz kartta: metin `foreground`, `en` parçalar `accent`.
+ * Sohbet balonu — ders VE rol yapma. Hoca solda kartta (`en` parçalar marka
+ * renginde), öğrenci sağda dolu `primary` zeminde. Gradyan DEĞİL: ember
+ * gradyanın açık ucu beyaz gövde metniyle ~2.8:1 kalıyor (GlotCast kuralı:
+ * metin taşıyan dolu yüzey `primary`, gradyan yalnız CTA/mikrofon/hero).
  */
-function Runs({ runs, onPrimary }: { runs: RichText; onPrimary: boolean }) {
-  const body = onPrimary ? "text-onPrimary" : "text-foreground";
-  const en = onPrimary ? "text-onPrimary" : "text-accent";
-  return (
-    <Text className={`text-base leading-6 ${body}`}>
-      {runs.map((r, i) => {
-        const sep = needsSpace(runs[i - 1]?.text, r.text) ? " " : "";
-        return r.lang === "en" ? (
-          <Text key={i} className={`${r.emphasis ? "font-bold" : "font-semibold"} ${en}`}>
-            {sep + r.text}
-          </Text>
-        ) : (
-          <Text key={i}>{sep + r.text}</Text>
-        );
-      })}
-    </Text>
-  );
-}
-
-export function MessageBubble({ role, text, runs, points }: MessageBubbleProps) {
+export function MessageBubble({ role, text, runs, points, plain = false }: MessageBubbleProps) {
   const isUser = role === "user";
   return (
-    <View
-      className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
-        isUser ? "self-end bg-primary" : "self-start border border-border bg-card"
+    <Animated.View
+      entering={rise}
+      // Maddeli balon SABİT genişlikte: içerik boyutlu balonda madde metni sıfır
+      // genişliğe çöküp harf harf kırılıyordu (canlı hata, 3 Kas 2026)
+      className={`${points?.length ? "w-[85%]" : "max-w-[85%]"} overflow-hidden rounded-3xl px-4 py-3 ${
+        isUser ? "self-end rounded-br-lg bg-primary" : "self-start rounded-bl-lg border border-border bg-card"
       }`}
     >
       {points?.length ? (
-        <View className="gap-2">
+        <View className="gap-2.5">
           {points.map((p, i) => (
-            <Runs key={i} runs={p} onPrimary={isUser} />
+            <View key={i} className="flex-row gap-2.5">
+              <View className={`mt-2.5 size-1.5 rounded-full ${isUser ? "bg-primary-foreground" : "bg-brand"}`} />
+              <RunsText runs={p} onPrimary={isUser} plain={plain} className="flex-1" />
+            </View>
           ))}
         </View>
       ) : runs?.length ? (
-        <Runs runs={runs} onPrimary={isUser} />
+        <RunsText runs={runs} onPrimary={isUser} plain={plain} />
       ) : (
-        <Text className={`text-base leading-6 ${isUser ? "text-onPrimary" : "text-foreground"}`}>{text}</Text>
+        <Text className={`text-[16px] leading-6 ${isUser ? "text-primary-foreground" : "text-foreground"}`}>{text}</Text>
       )}
-    </View>
+    </Animated.View>
   );
 }

@@ -1,0 +1,45 @@
+import { z } from "zod";
+import { richTextSchema } from "./lessonLayers.js";
+import { roleplayDebriefSchema } from "./roleplay.js";
+
+// ============================================================================
+// Oturum uçlarının CEVAP zarfları — /sessions/:id/chat · /tts · /end
+//
+// İstek şemaları backend `session/routes.ts`'te; cevaplar burada ki istemciler
+// (mobil roleplay ekranı ilk tüketici) `as` cast yerine doğrulasın.
+// ============================================================================
+
+export const chatResponseSchema = z.object({
+  text: z.string(),
+  runs: richTextSchema.optional(),
+  segmentDone: z.boolean(),
+  beatDone: z.boolean().optional(),
+  isAttempt: z.boolean().optional(),
+  /** Yalnız roleplay: hedef ilerlemesi */
+  progress: z.object({ done: z.number().int(), total: z.number().int() }).optional(),
+  /** Yalnız roleplay: bu turda kabul edilen yeni tikler */
+  newHits: z.array(z.object({ objectiveId: z.string(), evidence: z.string() })).optional(),
+});
+export type ChatResponse = z.infer<typeof chatResponseSchema>;
+
+export const ttsClipSchema = z.object({
+  audioBase64: z.string(),
+  alignment: z
+    .object({
+      characters: z.array(z.string()),
+      character_start_times_seconds: z.array(z.number()),
+      character_end_times_seconds: z.array(z.number()),
+    })
+    .nullable(),
+  lang: z.string(),
+});
+
+export const ttsResponseSchema = z.object({ clips: z.array(ttsClipSchema) });
+export type TtsResponse = z.infer<typeof ttsResponseSchema>;
+
+export const endSessionResponseSchema = z.object({
+  ok: z.literal(true),
+  turns: z.number().int(),
+  debrief: roleplayDebriefSchema.nullable().optional(),
+});
+export type EndSessionResponse = z.infer<typeof endSessionResponseSchema>;

@@ -48,3 +48,19 @@ export function pagedFromServer<T>(items: T[], page: number, pageSize: number, t
     to: total ? start + items.length : 0,
   };
 }
+
+/**
+ * Küçük kart tabloları (detay ekranlarındaki alt listeler) için sayfa durumu —
+ * store'larda `Record<anahtar, PageState>` olarak durur. Ebat değişimi sayfayı 1'e alır.
+ */
+export interface PageState {
+  page: number;
+  pageSize: PageSize;
+}
+
+export const FIRST_PAGE: PageState = { page: 1, pageSize: 25 };
+
+export function nextPageState(prev: PageState, patch: Partial<PageState>): PageState {
+  if (patch.pageSize !== undefined && patch.pageSize !== prev.pageSize) return { page: 1, pageSize: patch.pageSize };
+  return { ...prev, ...patch };
+}

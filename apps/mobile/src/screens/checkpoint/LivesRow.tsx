@@ -1,22 +1,18 @@
 import { View } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Animated, { ZoomIn } from "react-native-reanimated";
+import { Heart } from "lucide-react-native";
 import { CHECKPOINT_LIVES } from "@glotmate/contracts";
-import colors from "../../../colors";
+import { useThemeColors } from "../../theme/useThemeColors";
 
-/**
- * Kalan canlar. Sayı contracts'tan gelir — ekran kendi sabitini TUTMAZ, yoksa
- * kural değiştiğinde gösterge ile gerçek ayrışır.
- */
+/** Kalan canlar — sayı contracts'tan (ekran kendi sabitini TUTMAZ). */
 export function LivesRow({ left }: { left: number }) {
+  const colors = useThemeColors();
   return (
-    <View className="flex-row items-center gap-0.5">
+    <View className="flex-row items-center gap-1">
       {Array.from({ length: CHECKPOINT_LIVES }, (_, i) => (
-        <MaterialCommunityIcons
-          key={i}
-          name={i < left ? "heart" : "heart-outline"}
-          size={19}
-          color={i < left ? colors.danger : colors.muted}
-        />
+        <Animated.View key={`${i}-${i < left}`} entering={ZoomIn.duration(220)}>
+          <Heart color={i < left ? colors.negative : colors["muted-foreground"]} fill={i < left ? colors.negative : "transparent"} size={20} />
+        </Animated.View>
       ))}
     </View>
   );

@@ -1,11 +1,12 @@
 /**
- * ROLEPLAY TOHUMLAMA — iki pilotu repo dosyasından DB'ye yazar.
+ * ROLEPLAY TOHUMLAMA — repo kataloğunu (`scripts/roleplays/index.ts` →
+ * `ROLEPLAY_SOURCES`, iki pilot + kategori başına üç senaryo) DB'ye yazar.
  *
  *   npx tsx scripts/seed-roleplays.ts [--dry-run]
  *
  * DERSLERDEN AYRIŞAN YÖN: müfredat repo-kaynaklıdır (DB türetilmiş projeksiyon),
- * roleplay ise DB-KAYNAKLIDIR. İki pilot incelenebilirlik için repoda duruyor ama
- * tohumlamadan sonra doğruluk kaynağı DB'dir — gerisi panelin işi.
+ * roleplay ise DB-KAYNAKLIDIR. Repo kataloğu incelenebilirlik için repoda duruyor
+ * ama tohumlamadan sonra doğruluk kaynağı DB'dir — gerisi panelin işi.
  *
  * DEĞİŞMEZ REVİZYON: yayınlanmış satır GÜNCELLENMEZ. `specHash` değiştiyse yeni
  * revizyon doğar, eskisi `retired` olur ama SİLİNMEZ — oturumlar kesin revizyona
@@ -21,12 +22,9 @@ import { roleplaySpecSchema, ROLEPLAY_SPEC_FORMAT, type RoleplaySpec } from "@gl
 import { db } from "../src/db/client.js";
 import { roleplayRevisions, roleplays } from "../src/db/schema.js";
 import { lintRoleplay } from "../src/modules/roleplay/lintRoleplay.js";
-import { COMPLAINT_REFUND } from "./roleplays/complaint-refund.js";
-import { RESTAURANT_ORDER } from "./roleplays/restaurant-order.js";
+import { ROLEPLAY_SOURCES } from "./roleplays/index.js";
 
 const DRY_RUN = process.argv.includes("--dry-run");
-
-const PILOTS = [RESTAURANT_ORDER, COMPLAINT_REFUND];
 
 /** Oynatmayı etkileyen alanların parmak izi — başlık/kategori DIŞINDA tutulmadı,
  *  çünkü ikisi de brief'te görünüyor ve değişmesi yeni revizyonu hak ediyor. */
@@ -41,7 +39,7 @@ let inserted = 0;
 let unchanged = 0;
 let revised = 0;
 
-for (const pilot of PILOTS) {
+for (const pilot of ROLEPLAY_SOURCES) {
   // Şema önce: kapı geçerli olmayan bir nesneyi denetlemeye çalışmasın
   const parsed = roleplaySpecSchema.safeParse(pilot.spec);
   if (!parsed.success) {
@@ -131,7 +129,7 @@ for (const pilot of PILOTS) {
 
 // Repo'dan çıkarılmış pilotları emekliye ayır (silme yok — oturumlar pinli)
 if (!DRY_RUN) {
-  const wanted = PILOTS.map((p) => p.slug);
+  const wanted = ROLEPLAY_SOURCES.map((p) => p.slug);
   const orphans = await db
     .select({ id: roleplays.id })
     .from(roleplays)

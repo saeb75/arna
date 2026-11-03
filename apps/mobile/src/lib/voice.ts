@@ -1,6 +1,6 @@
 import { AudioModule, createAudioPlayer, setAudioModeAsync, RecordingPresets, type AudioPlayer } from "expo-audio";
 import * as FileSystem from "expo-file-system/legacy";
-import type { AvatarClip, RichText } from "@glotmate/contracts";
+import { hasWordContent, type AvatarClip, type RichText } from "@glotmate/contracts";
 import { api } from "../api";
 import { AvatarBridge } from "./avatarBridge";
 
@@ -45,6 +45,26 @@ let generation = 0;
  * konuşma adına ateşlenip bir SONRAKİ konuşmayı bozuyordu.
  */
 let current: { settle: () => void; abandon: () => void } | null = null;
+
+/**
+ * Watchdog süre tahmini için bit hızı TABANI. Sağlayıcıların mp3'leri bunun
+ * üstünde (Azure 48k, ElevenLabs 128k, Inworld varsayılan) — taban düşük
+ * tutulduğu için bayttan çıkan süre gerçeğin ÜST sınırıdır, asla altı değil.
+ */
+const MIN_MP3_BITRATE_BPS = 24_000;
+
+/**
+ * Klibin en fazla kaç saniye süreceği: bayt boyutundan (taban bit hızıyla) ve
+ * hizalamanın son karakterinden büyük olanı. Watchdog yalnızca TAKILAN oynatıcıyı
+ * kurtarmak içindir — gerçek konuşmadan ÖNCE asla ateşlenmemeli.
+ */
+function clipMaxSeconds(clip: AvatarClip): number {
+  const bytes = (clip.audioBase64.length * 3) / 4;
+  const fromBytes = (bytes * 8) / MIN_MP3_BITRATE_BPS;
+  const ends = clip.alignment?.character_end_times_seconds;
+  const fromAlignment = ends?.length ? ends[ends.length - 1]! : 0;
+  return Math.max(fromBytes, fromAlignment);
+}
 
 export const VoiceService = {
   async init(): Promise<void> {
@@ -104,10 +124,15 @@ export const VoiceService = {
       return;
     }
 
-    // Toplam kabaca süre bilinmiyor; watchdog klip sayısına göre cömert:
-    // klip başına 30sn + 5sn. Takılan oynatıcı dersi asla kilitleyemez.
-    // Bu dış watchdog HER İKİ rota için de nihai emniyettir (avatar dahil).
-    watchdog = setTimeout(settle, clips.length * 30_000 + 5_000);
+    // Watchdog bütçesi klip SÜRESİNDEN: eskiden klip başına sabit 30sn + 5sn'di.
+    // Azure bir konuşmanın tüm dil parçalarını TEK klipte verdiği için anlatım
+    // maddeleri (600-930 karakter ≈ 40-65 sn) 35. saniyede "bitti" sayılıyor,
+    // akış sonraki balona geçip konuşmayı yarıda kesiyordu (canlı hata, 3 Kas).
+    // Pay: klip başına 5sn + avatar start-watchdog'u (4sn) ve fallback'in
+    // baştan çalması için 15sn. Takılan oynatıcı dersi yine asla kilitleyemez;
+    // bu dış watchdog HER İKİ rota için de nihai emniyettir (avatar dahil).
+    const budgetMs = clips.reduce((sum, c) => sum + clipMaxSeconds(c) * 1000 + 5_000, 15_000);
+    watchdog = setTimeout(settle, budgetMs);
 
     const playClip = async (index: number): Promise<void> => {
       const clip = clips[index];
@@ -161,6 +186,16 @@ export const VoiceService = {
     // içinde çalar (dudak senkronu ses+timeline aynı bağlamda olmalı — mimari
     // karar, bkz. contracts/avatarProtocol.ts). Köprü yoksa/ölürse expo-audio.
     if (AvatarBridge.isReady()) {
+      // expo-audio'ya düşüş TEK SEFER: start-watchdog'daki recover() bekleyen
+      // konuşmanın onError'ını da tetikliyor — ikisi de playClip(0) deyince klip
+      // iki oynatıcıda üst üste çalıyordu ve ilki (currentPlayer ezildiği için)
+      // söz kesmeyle susturulamıyordu.
+      let fellBack = false;
+      const fallBack = () => {
+        if (fellBack) return;
+        fellBack = true;
+        void playClip(0);
+      };
       // Start-watchdog: 4sn içinde `started` gelmezse sayfa takılmış demektir —
       // toparla (reload) ve AYNI klipleri expo-audio'yla çal. Klipler zaten
       // elimizde, fallback bedava; konuşma asla sessizce yutulmaz.
@@ -173,7 +208,7 @@ export const VoiceService = {
         }
         console.warn("[voice] avatar 4sn'de started vermedi — expo-audio'ya düşülüyor");
         AvatarBridge.recover();
-        if (gen === generation) void playClip(0);
+        if (gen === generation) fallBack();
         else settle();
       }, 4_000);
       AvatarBridge.speak(gen, clips, {
@@ -189,7 +224,7 @@ export const VoiceService = {
             return;
           }
           console.warn("[voice] avatar hatası:", code, "— expo-audio'ya düşülüyor");
-          void playClip(0);
+          fallBack();
         },
       });
       return;
@@ -297,7 +332,9 @@ export const VoiceService = {
       });
       const text = (res.data as { text?: string }).text?.trim();
       if (!text) console.warn("[voice] STT boş metin döndürdü — mikrofona ses gitmiyor olabilir (simülatörde Mac mikrofon girişini kontrol et)");
-      return text || null;
+      // Sessizlikte STT "." / "..." döndürebiliyor — boş sayılır (null hak yemez,
+      // releaseMic kuyruktaki sözü teslim eder)
+      return text && hasWordContent(text) ? text : null;
     } catch (err) {
       // audio_too_short dahil hak yemez; ama SEBEBİ terminalde görünsün
       const e = err as { response?: { status?: number; data?: unknown }; message?: string };

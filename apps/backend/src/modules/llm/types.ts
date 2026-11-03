@@ -12,12 +12,17 @@ export type LLMPurpose =
   | "memory_extract"
   | "embedding";
 
+/** Akıl yürüten modellerin düzeyi — sesli derste gecikme için çoğunlukla "none"/"low". */
+export type ReasoningEffort = "none" | "minimal" | "low" | "medium" | "high";
+
 export interface JsonRequest {
   model: string;
   system: string;
   user: string;
   maxTokens?: number;
   temperature?: number;
+  /** Yalnız yeni nesil (gpt-5+/o-serisi) modellerde gönderilir */
+  reasoningEffort?: ReasoningEffort;
 }
 
 export interface ChatMessage {

@@ -1,6 +1,6 @@
 /** Sayfalama yardımcısı — LLM'siz, DB'siz.  npx tsx scripts/test-paginate.ts */
 import assert from "node:assert/strict";
-import { paginate } from "../src/lib/paginate";
+import { FIRST_PAGE, nextPageState, paginate } from "../src/lib/paginate";
 
 const xs = Array.from({ length: 103 }, (_, i) => i + 1);
 assert.deepEqual(paginate(xs, 1, 25).items.slice(0, 3), [1, 2, 3]);
@@ -12,4 +12,8 @@ const p3 = paginate(xs, 3, 50);
 assert.deepEqual([p3.from, p3.to, p3.items.length], [101, 103, 3]);
 const empty = paginate([], 1, 25);
 assert.deepEqual([empty.total, empty.pageCount, empty.from, empty.to, empty.items.length], [0, 1, 0, 0, 0]);
+assert.deepEqual(nextPageState({ page: 4, pageSize: 25 }, { page: 5 }), { page: 5, pageSize: 25 });
+assert.deepEqual(nextPageState({ page: 4, pageSize: 25 }, { pageSize: 50 }), { page: 1, pageSize: 50 }, "ebat değişimi → sayfa 1");
+assert.deepEqual(nextPageState({ page: 4, pageSize: 25 }, { pageSize: 25 }), { page: 4, pageSize: 25 }, "aynı ebat sayfayı korur");
+assert.deepEqual(FIRST_PAGE, { page: 1, pageSize: 25 });
 console.log("✅ paginate: tüm vakalar geçti");

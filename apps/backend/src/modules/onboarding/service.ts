@@ -4,6 +4,7 @@ import { db } from "../../db/client.js";
 import { programs, userProfiles } from "../../db/schema.js";
 import { normalizeNativeLanguage } from "../../lib/language.js";
 import { getCurriculumForUser } from "../curriculum/queries.js";
+import { safeTimezone } from "../billing/quota.js";
 
 /**
  * Profili yazar ve kullanıcının seviyesini işaretler, sonra SABİT katalog
@@ -18,6 +19,7 @@ export async function createProgramForUser(
   input: OnboardingInput,
 ): Promise<CurriculumResponse> {
   const nativeLanguage = normalizeNativeLanguage(input.nativeLanguage);
+  const timezone = safeTimezone(input.timezone);
 
   await db
     .insert(userProfiles)
@@ -31,6 +33,7 @@ export async function createProgramForUser(
       dailyGoalMinutes: input.dailyGoalMinutes,
       occupation: input.occupation,
       interests: input.interests,
+      timezone,
     })
     .onConflictDoUpdate({
       target: userProfiles.userId,
@@ -45,6 +48,7 @@ export async function createProgramForUser(
         dailyGoalMinutes: input.dailyGoalMinutes,
         occupation: input.occupation,
         interests: input.interests,
+        timezone,
         updatedAt: new Date(),
       },
     });

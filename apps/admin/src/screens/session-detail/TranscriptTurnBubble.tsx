@@ -4,11 +4,12 @@ import { formatDateTime, formatMs } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
 /**
- * Tek tur. Öğrenci sağda (mavi dolgu — tek vurgu), hoca solda (gri). Script
+ * Tek tur. Öğrenci sağda (ember dolgu — tek vurgu), hoca solda (gri). Script
  * satırı kesik çerçeve + "script" etiketi: bug avında "bunu LLM mi söyledi,
- * şablon mu?" sorusu ilk sorudur. RichText varsa `en` parçalar kalın.
+ * şablon mu?" sorusu ilk sorudur. RichText varsa `en` parçalar kalın. İsabet etiketi
+ * (`hit`) practice'te "target used", roleplay'de tiklenen hedefin adı.
  */
-export function TranscriptTurnBubble({ turn: t, hit }: { turn: AdminTranscriptTurn; hit: boolean }) {
+export function TranscriptTurnBubble({ turn: t, hit }: { turn: AdminTranscriptTurn; hit: string | null }) {
   const student = t.role === "user";
   return (
     <div className={cn("flex", student ? "justify-end" : "justify-start")}>
@@ -17,9 +18,9 @@ export function TranscriptTurnBubble({ turn: t, hit }: { turn: AdminTranscriptTu
           <TooltipTrigger
             className={cn(
               "rounded-2xl px-3.5 py-2 text-left text-sm leading-relaxed",
-              student ? "rounded-br-md bg-primary text-primary-foreground" : "rounded-bl-md bg-muted text-foreground",
+              student ? "rounded-br-md bg-brand text-brand-foreground" : "rounded-bl-md bg-muted text-foreground",
               t.source === "script" && "border border-dashed border-border bg-transparent text-foreground",
-              hit && "ring-2 ring-primary/40",
+              hit !== null && "ring-2 ring-brand/40",
             )}
           >
             {t.runs ? (
@@ -38,7 +39,7 @@ export function TranscriptTurnBubble({ turn: t, hit }: { turn: AdminTranscriptTu
           <span>{student ? "student" : "tutor"}</span>
           <span className="font-mono">{t.source}</span>
           {t.latencyMs !== null && t.source === "chat" && <span>{formatMs(t.latencyMs)}</span>}
-          {hit && <span className="text-primary">target used</span>}
+          {hit !== null && <span className="text-brand">{hit}</span>}
         </div>
       </div>
     </div>

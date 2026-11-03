@@ -70,6 +70,19 @@ export function normalizeShort(text: string): string {
     .trim();
 }
 
+/**
+ * Girdide en az bir HARF ya da RAKAM var mı — her yazı sisteminde (\p{L}\p{N}).
+ *
+ * Yalnız noktalama/boşluk/emoji olan söz ("..", ",,", "?!") cevap değildir,
+ * selamlama da değildir; boş girdi gibi davranılır: gönderilmez, hak yemez,
+ * hocaya gitmez. CANLI HATA (3 Kas 2026): alıştırmada ",," yazıldı, judge'a
+ * gitti, model bunu sohbet açılışı sanıp "Merhaba! Bir şeyler denemek ister
+ * misin?" dedi. STT de sessizlikte "." döndürebiliyor — aynı kapıdan geçer.
+ */
+export function hasWordContent(text: string): boolean {
+  return /[\p{L}\p{N}]/u.test(text);
+}
+
 export function isSurrender(text: string, extraTokens: readonly string[] = []): boolean {
   const t = normalizeShort(text);
   if (!t || t.split(" ").length > 4) return false;
@@ -213,6 +226,10 @@ export function decideOnStudentInput(
           ctx.exchanges >= MAX_BEAT_EXCHANGES || ctx.invites >= MAX_QUESTION_INVITES;
         return exhausted ? { kind: "advance" } : { kind: "invite" };
       }
+      // "Hazır mısın?" → "hayır": sessizce anlatıma geçmek öğrenciyi duymamaktır
+      // (ders tek kelime etmeden başlıyordu). Hoca bir cümleyle güven verir, sonra
+      // ders başlar — readiness cevabından sonra akış zaten ilerler.
+      if (beat.purpose === "readiness" && ctx.ack === "no") return { kind: "askTutor" };
       // Kalan onaylar akışı ilerletir; sonraki beat'in kendi girişi karşılık niteliğinde.
       if (ctx.ack) return { kind: "advance" };
       return { kind: "askTutor" };
@@ -251,9 +268,19 @@ export type WrapupDecision =
  * biter — sayaç, tavan ya da kelime tahmini kullanıcıyı asla kesemez. Bu, kullanıcının
  * açık kararı: practice fazında sayaç konuşmanın ortasında kapattığı için kondu.
  */
-export function decideInWrapup(ack: AckKind | null): WrapupDecision {
-  if (ack === "yes") return { kind: "invite" };
-  if (ack) return { kind: "farewell" }; // "hayır" / "tamam" → veda, ama bekle
+export interface WrapupContext {
+  /** Kapanışta script daveti ("neyi merak ediyorsun?") kaç kez söylendi */
+  invites?: number;
+  /** Kapanışta script vedası kaç kez söylendi */
+  farewells?: number;
+}
+
+export function decideInWrapup(ack: AckKind | null, ctx: WrapupContext = {}): WrapupDecision {
+  // AYNI ŞABLON CÜMLESİ İKİ KEZ SÖYLENMEZ. Canlı şikâyet: "tamam" diyen öğrenciye
+  // her seferinde aynı veda, "evet"e her seferinde aynı davet okunuyordu — ikinci
+  // seferden itibaren söz hocaya (geçmişi gören LLM) gider, doğal cevap verir.
+  if (ack === "yes") return (ctx.invites ?? 0) >= 1 ? { kind: "askTutor" } : { kind: "invite" };
+  if (ack) return (ctx.farewells ?? 0) >= 1 ? { kind: "askTutor" } : { kind: "farewell" }; // "hayır"/"tamam" → veda, ama bekle
   return { kind: "askTutor" };
 }
 
@@ -322,17 +349,91 @@ export function decideAfterTutorReply(
       if (ctx.beatDone) return { kind: "advance" };
       // 1. yanlışta hoca düzeltip YENİDEN sorar → beklenir.
       // 2. yanlışta hoca cevabı verir → ilerlenir. (Sayaç kararı verir, cevabın metni değil.)
-      return ctx.attempt >= 1
+      // TAVAN da kapatır: iki konu dışı turdan sonra gelen İLK yanlış cevap, tavan
+      // turudur — hoca cevabı söylüyordu ama akış bekliyordu ("cevabı verip yeniden
+      // sorma" saçmalığı, söz ile akışın ayrı yerlerde hesaplanmasından doğdu).
+      return ctx.attempt >= 1 || ctx.exchanges >= MAX_BEAT_EXCHANGES
         ? { kind: "advance" }
         : { kind: "wait", awaiting: "exercise" };
 
     case "open_response":
       if (ctx.isAttempt === false) return offTopic("open_response", ctx.exchanges);
-      return ctx.beatDone
+      // Tavan burada da kapatır (alıştırmayla aynı gerekçe).
+      return ctx.beatDone || ctx.exchanges >= MAX_BEAT_EXCHANGES
         ? { kind: "advance" }
         : { kind: "wait", awaiting: "open_response" };
 
     default:
       return { kind: "advance" };
   }
+}
+
+// ---------------------------------------------------------------------------
+// SÖZ ↔ AKIŞ BAĞI — hocanın ne söyleyeceği akış kararından TÜRETİLİR
+// ---------------------------------------------------------------------------
+
+/**
+ * Soru bekleyen bir adımda öğrencinin sözünün TÜRÜ — judge'ın yapısal hükmü.
+ *
+ *  - `answer`   görevi yapma denemesi (doğru, yanlış, yarım, tahmin, anlamsız harfler, ana dilde cevap)
+ *  - `give_up`  bilmiyorum / geç / pes
+ *  - `ask_help` ipucu, görevin ne istediği, bir kelimenin anlamı, çeviri, "anlamadım"
+ *  - `repeat`   tekrar et / duyamadım
+ *  - `other`    selam, teşekkür, his, sohbet, başka konu, anlaşılmayan söz
+ *
+ * Yalnız ilk ikisi DENEMEDİR (hak yakar). Tür, modelin düzyazısından değil şemayla
+ * doğrulanmış alandan okunur.
+ */
+export const TURN_KINDS = ["answer", "give_up", "ask_help", "repeat", "other"] as const;
+export type TurnKind = (typeof TURN_KINDS)[number];
+
+export function isAttemptKind(kind: TurnKind): boolean {
+  return kind === "answer" || kind === "give_up";
+}
+
+/** Judge'ın bir söz için verdiği yapısal hüküm. */
+export interface TurnVerdict {
+  isAttempt: boolean;
+  /** Görev doğru yapıldı mı (deneme değilse anlamsız, false) */
+  ok: boolean;
+  /** Deterministik pes tespiti — pes eden doğru SAYILAMAZ */
+  surrendered: boolean;
+}
+
+/**
+ * Hüküm → "adım tamam mı?" (sunucunun döndürdüğü `beatDone`). Tek yerde tanımlı:
+ * sunucu bunu döndürür, aynı fonksiyon modele verilen talimatı da kurar.
+ */
+export function judgedBeatDone(beat: FlowBeat, attempt: number, v: TurnVerdict): boolean {
+  if (!v.isAttempt) return false;
+  const correct = v.ok && !v.surrendered;
+  if (beat.kind === "open_response") return correct || attempt + 1 >= beat.maxAttempts;
+  return correct;
+}
+
+/**
+ * Bu söz için hoca konuştuktan SONRA ne olacak — ilerleme mi, aynı görevde bekleme mi?
+ *
+ * KÖK İLKE: hocanın SÖZÜ bu sonuçtan türetilir. Sunucu modele her olası hüküm için
+ * "bundan sonra şu olacak, ona göre konuş" talimatını BU fonksiyonla hesaplar;
+ * istemci akışı AYNI fonksiyonla (decideAfterTutorReply) yürütür. Söz ve akış aynı
+ * girdilerden aynı sonucu çıkardığı için ayrışamaz. Eskiden prompt'taki koşullar
+ * elle yazılıyordu ve iki kez ayrıştı: hoca cevabı söyleyip soruyu yeniden bekledi;
+ * açık uçlu soruda "tekrar dene" deyip akış ilerledi.
+ *
+ * `before`: bu söz İŞLENMEDEN önceki sayaçlar (istemcinin gönderdiği).
+ */
+export function outcomeOfVerdict(
+  beat: FlowBeat,
+  before: { exchanges: number; attempt: number },
+  v: TurnVerdict,
+): "advance" | "wait" {
+  return decideAfterTutorReply(beat, {
+    exchanges: before.exchanges + 1,
+    attempt: before.attempt,
+    beatDone: judgedBeatDone(beat, before.attempt, v),
+    isAttempt: v.isAttempt,
+  }).kind === "advance"
+    ? "advance"
+    : "wait";
 }

@@ -1,40 +1,57 @@
+import type { ReactNode } from "react";
 import { ActivityIndicator, Pressable, Text } from "react-native";
-import colors from "../../../colors";
+import { useThemeColors } from "../../theme/useThemeColors";
 
-/**
- * Tasarım sistemi butonu — tek bileşen, NativeWind.
- * `variant` büyüdükçe buraya eklenir; ekranlar kendi butonunu YAZMAZ.
- */
-interface ButtonProps {
-  title: string;
+const VARIANT = {
+  primary: "bg-primary",
+  outline: "border border-border bg-card",
+  ghost: "",
+  destructive: "bg-destructive/10",
+} as const;
+const LABEL = {
+  primary: "text-primary-foreground",
+  outline: "text-foreground",
+  ghost: "text-foreground",
+  destructive: "text-destructive",
+} as const;
+const SIZE = { sm: "h-9 rounded-lg px-3", md: "h-12 rounded-xl px-4", lg: "h-14 rounded-2xl px-5" } as const;
+
+/** İkincil eylemler (ana eylem CtaButton'dır). */
+export function Button({
+  label,
+  onPress,
+  variant = "outline",
+  size = "md",
+  icon,
+  busy = false,
+  disabled = false,
+  className = "",
+}: {
+  label: string;
   onPress: () => void;
+  variant?: keyof typeof VARIANT;
+  size?: keyof typeof SIZE;
+  icon?: ReactNode;
+  busy?: boolean;
   disabled?: boolean;
-  loading?: boolean;
-  variant?: "primary" | "outline";
-}
-
-export function Button({ title, onPress, disabled, loading, variant = "primary" }: ButtonProps) {
-  const base = "h-12 flex-row items-center justify-center rounded-xl px-4";
-  const style =
-    variant === "primary"
-      ? "bg-primary active:opacity-80"
-      : "border border-border bg-card active:bg-surface";
+  className?: string;
+}) {
+  const colors = useThemeColors();
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ busy, disabled }}
       onPress={onPress}
-      disabled={disabled || loading}
-      className={`${base} ${style} ${disabled || loading ? "opacity-40" : ""}`}
+      disabled={busy || disabled}
+      className={`flex-row items-center justify-center gap-2 active:opacity-80 ${SIZE[size]} ${VARIANT[variant]} ${disabled ? "opacity-50" : ""} ${className}`}
     >
-      {loading ? (
-        <ActivityIndicator color={variant === "primary" ? colors.onPrimary : colors.primary} />
+      {busy ? (
+        <ActivityIndicator color={variant === "primary" ? colors["primary-foreground"] : colors.foreground} />
       ) : (
-        <Text
-          className={
-            variant === "primary" ? "text-base font-semibold text-onPrimary" : "text-base font-medium text-foreground"
-          }
-        >
-          {title}
-        </Text>
+        <>
+          {icon}
+          <Text className={`${size === "sm" ? "text-sm" : "text-base"} font-semibold ${LABEL[variant]}`}>{label}</Text>
+        </>
       )}
     </Pressable>
   );

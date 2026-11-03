@@ -26,14 +26,40 @@ export type NodeState = "completed" | "current" | "ready" | "upcoming";
 /** Seviye başlığının üç hâli — profil seviyesine göre */
 export type LevelState = "completed" | "active" | "upcoming";
 
-/** Zikzak: ünite içi sıraya göre yatay kayma — fotoğraftan ölçüldü (merkez, sol, merkez, sağ) */
-export type NodeSide = -1 | 0 | 1;
-const SIDES: NodeSide[] = [0, -1, 0, 1];
+/**
+ * YUMUŞAK DALGA (3 Kas 2026, kullanıcı kararı — keskin zikzak emekli; düğüm
+ * yapısı Duolingo'ya benzer, renkler bizim): düğümler ünite içi sıralarına göre
+ * bir sinüs üstünde durur. `step` ünitedeki sıradır (0'dan, test dahil); yatay
+ * kayma `waveX(step)`. Etiket YOK — dokununca düğümün altında kart açılır.
+ */
+export const WAVE_AMPLITUDE = 72;
+const WAVE_PERIOD = 8;
+
+export function waveX(step: number): number {
+  return Math.round(WAVE_AMPLITUDE * Math.sin((2 * Math.PI * step) / WAVE_PERIOD) * 10) / 10;
+}
 
 export type PathRow =
   | { kind: "level"; key: string; level: CefrLevel; label: string; state: LevelState }
-  | { kind: "unit"; key: string; title: string }
-  | { kind: "lesson"; key: string; lesson: CurriculumLesson; state: NodeState; side: NodeSide }
+  | {
+      kind: "unit";
+      key: string;
+      level: CefrLevel;
+      unitIndex: number;
+      title: string;
+      goal: string;
+      done: number;
+      total: number;
+    }
+  | {
+      kind: "lesson";
+      key: string;
+      lesson: CurriculumLesson;
+      state: NodeState;
+      step: number;
+      /** Ünitedeki ders sayısı — kartta "Ders 3 / 6" */
+      unitSize: number;
+    }
   | {
       kind: "test";
       key: string;
@@ -41,17 +67,22 @@ export type PathRow =
       unitIndex: number;
       unitTitle: string;
       state: NodeState;
-      side: NodeSide;
+      step: number;
     };
 
 /** Satır yükseklikleri SABİT — FlatList `getItemLayout` bunlarla ölçüm yapmadan kaydırır. */
 export const LEVEL_ROW_H = 96;
-export const UNIT_ROW_H = 72;
-export const NODE_ROW_H = 154;
+/** Ünite kartı: illüstrasyon + üstünde başlık/`goal` + ilerleme (kart 184 + boşluklar) */
+export const UNIT_ROW_H = 232;
+/** Düğüm (72 yüz + 8 dudak) + boşluk */
+export const NODE_ROW_H = 104;
+/** Kaldığın dersin üstündeki "BAŞLA" balonu için ek yükseklik */
+export const CURRENT_EXTRA_H = 48;
 
 export function rowHeight(row: PathRow): number {
   if (row.kind === "level") return LEVEL_ROW_H;
-  return row.kind === "unit" ? UNIT_ROW_H : NODE_ROW_H;
+  if (row.kind === "unit") return UNIT_ROW_H;
+  return row.state === "current" ? NODE_ROW_H + CURRENT_EXTRA_H : NODE_ROW_H;
 }
 
 /** Profil seviyesinin dilimi — odak ve "kaldığı ders" YALNIZ burada aranır. */
@@ -106,7 +137,8 @@ export function buildPathRows(curriculum: CurriculumResponse): PathRow[] {
             : lesson.id === currentId
               ? "current"
               : "upcoming",
-        side: SIDES[i % SIDES.length]!,
+        step: i,
+        unitSize: unit.lessons.length,
       }));
 
       // Ünitenin kapanış düğümü. ASLA "current" olmaz: test ilerlemenin önünde durmaz.
@@ -125,10 +157,21 @@ export function buildPathRows(curriculum: CurriculumResponse): PathRow[] {
             : allLessonsDone
               ? "ready"
               : "upcoming",
-        side: SIDES[unit.lessons.length % SIDES.length]!,
+        step: unit.lessons.length,
       };
 
-      return [{ kind: "unit", key: `${lvl.level}-u${unit.index}`, title: unit.title }, ...lessons, test];
+      const done = forceDone ? unit.lessons.length : unit.lessons.filter((l) => l.status === "completed").length;
+      const header: PathRow = {
+        kind: "unit",
+        key: `${lvl.level}-u${unit.index}`,
+        level: lvl.level,
+        unitIndex: unit.index,
+        title: unit.title,
+        goal: unit.goal,
+        done,
+        total: unit.lessons.length,
+      };
+      return [header, ...lessons, test];
     });
 
     return [

@@ -9,13 +9,18 @@ import { CostCard } from "@/screens/user-detail/CostCard";
 import { MemoriesCard } from "@/screens/user-detail/MemoriesCard";
 import { ProfileCard } from "@/screens/user-detail/ProfileCard";
 import { ProgressCard } from "@/screens/user-detail/ProgressCard";
-import { SessionsCard } from "@/screens/user-detail/SessionsCard";
+import { QuotaCard } from "@/screens/user-detail/QuotaCard";
+import { SubscriptionCard } from "@/screens/user-detail/SubscriptionCard";
 import { UserDetailHeader } from "@/screens/user-detail/UserDetailHeader";
 import { UserDetailSkeleton } from "@/screens/user-detail/UserDetailSkeleton";
+import { UserSessionsCard } from "@/screens/user-detail/UserSessionsCard";
 
-/** Kullanıcı detayı — salt okunur; hesap, profil, ilerleme, oturumlar, hafıza, maliyet. */
+/**
+ * Kullanıcı detayı: hesap, profil, maliyet, abonelik (tek yazma: Pro tanıma), bugünkü
+ * kota, ilerleme, oturumlar + hafıza (sunucu sayfalı), ünite testleri.
+ */
 export function UserDetailScreen({ userId }: { userId: string }) {
-  const { detail, error } = useUserDetailStore();
+  const { detail, error, proBusy } = useUserDetailStore();
 
   useEffect(() => {
     void UserDetailController.load(userId);
@@ -31,10 +36,14 @@ export function UserDetailScreen({ userId }: { userId: string }) {
         <ProfileCard user={detail.user} profile={detail.profile} />
         <CostCard cost={detail.cost} />
       </div>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <SubscriptionCard userId={userId} entitlement={detail.entitlement} busy={proBusy} />
+        <QuotaCard quota={detail.quota} />
+      </div>
       <ProgressCard progress={detail.progress} />
-      <SessionsCard sessions={detail.sessions} />
+      <UserSessionsCard userId={userId} />
       <div className="grid gap-4 lg:grid-cols-2">
-        <MemoriesCard memories={detail.memories} />
+        <MemoriesCard userId={userId} />
         <CheckpointsCard checkpoints={detail.checkpoints} />
       </div>
     </div>

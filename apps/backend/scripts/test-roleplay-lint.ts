@@ -52,7 +52,7 @@ const dupIds = errorsOf(
     ],
   }),
 );
-check("tekrar eden hedef kimliği → HATA", dupIds.some((e) => e.includes("benzersiz")));
+check("tekrar eden hedef kimliği → HATA", dupIds.some((e) => e.includes("unique")));
 
 // Onaylanan sözleşmenin 4. maddesinin yayın-zamanı yarısı
 const thinSupported = errorsOf(
@@ -66,15 +66,15 @@ const thinSupported = errorsOf(
   }),
 );
 check("supportedFrom iki aktif hedef vermiyor → HATA",
-  thinSupported.some((e) => e.includes("aktif hedef veriyor")), thinSupported[0] ?? "yok");
+  thinSupported.some((e) => e.includes("active objective")), thinSupported[0] ?? "yok");
 
 const inconsistent = errorsOf(withSpec({ supportedFrom: "B2", recommendedFrom: "A1" }));
 check("recommendedFrom supportedFrom'un altında → HATA",
-  inconsistent.some((e) => e.includes("altında olamaz")));
+  inconsistent.some((e) => e.includes("cannot be below")));
 
 // Sızan bir değer senaryoyu açan HERKESE servis edilir — gizlilik denetimi
 const leak = errorsOf(withSpec({ scene: "A trattoria where Saeb eats every Friday." }), ["Saeb"]);
-check("kullanıcıya özel değer sızmış → HATA", leak.some((e) => e.includes("paylaşımlı")));
+check("kullanıcıya özel değer sızmış → HATA", leak.some((e) => e.includes("shared")));
 
 console.log("\n=== UYARAN AMA ENGELLEMEYEN ===");
 
@@ -87,7 +87,7 @@ const worldState = withSpec({
   ],
 });
 check("dünya durumu hedefi → UYARI (hata değil)",
-  warningsOf(worldState).some((w) => w.includes("sonuç fiili")) && errorsOf(worldState).length === 0);
+  warningsOf(worldState).some((w) => w.includes("outcome verb")) && errorsOf(worldState).length === 0);
 
 const noHint = withSpec({
   objectives: [{ ...base.objectives[0]!, openingHint: undefined }, base.objectives[1]!],
@@ -111,7 +111,7 @@ const legit = withSpec({
   ],
 });
 check("meşru iletişim adımları uyarı üretmiyor",
-  !warningsOf(legit).some((w) => w.includes("sonuç fiili")), warningsOf(legit).join(" | "));
+  !warningsOf(legit).some((w) => w.includes("outcome verb")), warningsOf(legit).join(" | "));
 
 check("soru işaretinden sonra boşluk açılışı bozmuyor",
   !errorsOf(withSpec({ opening: "Good evening — do you have a booking?  " }))

@@ -1,12 +1,14 @@
-// AVATAR PROFİLLERİ — sahnenin modele bakan tüm bilgisi tek kayıtta.
+// AVATAR PROFİLLERİ — 3D sahnenin modele bakan tüm bilgisi tek kayıtta
+// (2.5D sprite avatarlar lib/spriteRigs.ts'te; ikisini resolveAvatar birleştirir).
 //
 // AvatarScene motoru kanonik adlarla konuşur (Oculus viseme'leri + ARKit ifade
 // adları + mantıksal kemik adları); her avatar bu kanonik dile kendi rig'ini
 // bu profille bağlar. Yeni avatar eklemek = GLB (public/avatars/) + buraya bir
 // kayıt + contracts AVATAR_IDS'e id. Aktif olanı admin seçer (app_settings.avatar).
-import type { AvatarId } from "@glotmate/contracts";
+import { AVATAR_SYSTEM_OF, DEFAULT_AVATAR_ID, avatarIdSchema, type AvatarId } from "@glotmate/contracts";
 import { VISEME_TO_ARKIT } from "./arkitVisemes";
 import { VISEME_TO_CC } from "./ccVisemes";
+import { SPRITE_RIGS, type SpriteRig } from "./spriteRigs";
 
 export type LogicalBone =
   | "Head"
@@ -144,14 +146,72 @@ const EMMA: AvatarProfile = {
   jawBone: { name: "CC_Base_JawRoot", axis: "z", openRad: 0.24 },
 };
 
-export const AVATAR_PROFILES: Record<AvatarId, AvatarProfile> = {
-  fatman: FATMAN,
-  emma: EMMA,
+// Meshy görüntüden-3B büstü + Blender/FaceIt hattı: ARKit 52 morph (göz kırpma
+// prosedürel, bakış 25° tavanlı), ayrı göz küreleri/diş/dil, düz büst iskeleti
+// (Hips→Head). Kol yok → selam ve kol duruşu kapalı.
+const MEADOW: AvatarProfile = {
+  id: "meadow",
+  modelUrl: "/avatars/meadow.glb",
+  animationUrl: "/idle.fbx", // kullanılmıyor; prop uyumu için
+  rigMode: "cc4", // normal ebeveyn zinciri, poz klibi yok — cc4 yolu aynen uyar
+  headBone: "Head",
+  boneAliases: {
+    Head: ["Head"],
+    Neck: ["Neck"],
+    Spine: ["Spine"],
+    Spine1: ["Spine1"],
+    Spine2: ["Spine2"],
+    Hips: ["Hips"],
+    LeftShoulder: [],
+    RightShoulder: [],
+  },
+  poseClips: [],
+  restAim: [], // büst: nişan alınacak kol zinciri yok
+  flatArmRest: false,
+  greetEnabled: false,
+  // Kafa kemiği boyun üstünde (y≈1.50); kadraj topuz tepesi (≈1.83) ile göğüs
+  // (≈1.33) arası — bakış noktası kemiğin 10 cm üstü (negatif drop)
+  framing: { distance: 1.15, drop: -0.1, initialHeadY: 1.595 },
+  visemeCombos: VISEME_TO_ARKIT,
+  morphAliases: {}, // ARKit adları modelde birebir var
+  emotionMorph: null,
+  jawBone: null,
 };
 
-export const DEFAULT_AVATAR_ID: AvatarId = "fatman";
+// Raven'ın 3D hâli (2.5D sprite "raven" ile aynı karakter): Tripo görüntüden-3B
+// (2M üçgen) → yüz korumalı inceltme + doku yeniden pişirme (Tripo atlası boşluksuz,
+// inceltme dikiş açıyordu) → kafa 8° düzeltildi → Meadow hattı (ağız kesimi, göz
+// küreleri, FaceIt ARKit 52). Dudak kenarı hareketi taraf-ayrık yumuşatıldı (bone
+// heat 0.2 mm yarığı aşıp sarkıt üretiyordu). Büst: kol yok.
+const RAVEN3D: AvatarProfile = {
+  ...MEADOW,
+  id: "raven3d",
+  modelUrl: "/avatars/raven3d.glb",
+  // Kafa kemiği y≈1.48 (çene altı); gözler 1.60, saç tepesi 1.78, göğüs ≈1.25
+  framing: { distance: 1.05, drop: -0.1, initialHeadY: 1.58 },
+};
 
-/** Bilinmeyen/boş id güvenle varsayılana düşer (embed ?avatar= parametresi için) */
-export function resolveAvatarProfile(id: string | null | undefined): AvatarProfile {
-  return AVATAR_PROFILES[(id ?? DEFAULT_AVATAR_ID) as AvatarId] ?? AVATAR_PROFILES[DEFAULT_AVATAR_ID];
+export const AVATAR_PROFILES: Partial<Record<AvatarId, AvatarProfile>> = {
+  fatman: FATMAN,
+  emma: EMMA,
+  meadow: MEADOW,
+  raven3d: RAVEN3D,
+};
+
+/** Çizilecek avatar: sistemi (contracts AVATAR_SYSTEM_OF) hangi çiziciyi kuracağını söyler */
+export type AvatarSpec = { system: "3d"; profile: AvatarProfile } | { system: "2.5d"; rig: SpriteRig };
+
+function specOf(id: AvatarId): AvatarSpec | null {
+  if (AVATAR_SYSTEM_OF[id] === "2.5d") {
+    const rig = SPRITE_RIGS[id];
+    return rig ? { system: "2.5d", rig } : null;
+  }
+  const profile = AVATAR_PROFILES[id];
+  return profile ? { system: "3d", profile } : null;
+}
+
+/** Bilinmeyen/boş id güvenle varsayılana düşer (embed ?avatar= parametresi, /v1/avatar cevabı) */
+export function resolveAvatar(id: string | null | undefined): AvatarSpec {
+  const parsed = avatarIdSchema.safeParse(id);
+  return (parsed.success ? specOf(parsed.data) : null) ?? specOf(DEFAULT_AVATAR_ID)!;
 }

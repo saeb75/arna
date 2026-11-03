@@ -16,6 +16,7 @@ export function UsersTable({ users }: { users: AdminUser[] }) {
           <TableRow className="hover:bg-transparent">
             <TableHead className="pl-4">Account</TableHead>
             <TableHead>Profile</TableHead>
+            <TableHead className="w-28">Plan</TableHead>
             <TableHead className="w-28">Lessons</TableHead>
             <TableHead className="w-36">Sessions</TableHead>
             <TableHead className="w-24 text-right">LLM cost</TableHead>

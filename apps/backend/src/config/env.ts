@@ -36,6 +36,17 @@ const envSchema = z.object({
   /** Konuşma hızı (SSML prosody rate: "-10%", "0.9"); boşsa biraz yavaş varsayılan, "0" = doğal hız (etiket yok) */
   AZURE_SPEECH_RATE: z.string().optional(),
 
+  // Abonelik (RevenueCat). Anahtar yoksa mağaza doğrulaması KAPALI: Pro yalnız
+  // admin tanımasından ya da webhook'tan gelir, kota yine zorlanır.
+  /** RevenueCat → Project settings → API keys → Secret key (sk_…) */
+  REVENUECAT_SECRET_KEY: z.string().optional(),
+  REVENUECAT_ENTITLEMENT_ID: z.string().default("pro"),
+  /** Webhook'un Authorization başlığına yazılan değer (RevenueCat panelinde aynısı) */
+  REVENUECAT_WEBHOOK_SECRET: z.string().optional(),
+  /** Ücretsiz kullanıcının günde açabileceği FARKLI ders / rol yapma sayısı */
+  FREE_DAILY_LESSONS: z.coerce.number().int().min(0).default(1),
+  FREE_DAILY_ROLEPLAYS: z.coerce.number().int().min(0).default(1),
+
   /** Virgülle ayrılmış izinli origin listesi */
   CORS_ORIGINS: z.string().default("http://localhost:6567"),
 });

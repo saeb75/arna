@@ -3,8 +3,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function UsersSkeleton() {
   return (
     <div className="flex flex-col gap-5">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, i) => (
           <Skeleton key={i} className="h-20 rounded-xl" />
         ))}
       </div>

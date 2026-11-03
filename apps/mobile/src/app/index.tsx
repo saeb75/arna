@@ -1,8 +1,8 @@
 import { Redirect } from "expo-router";
-import { useAuthStore } from "../stores/useAuthStore";
+import { useMeStore } from "../stores/useMeStore";
 
-/** Auth kapısı: oturum varsa dersler, yoksa login. */
+/** Kapı: profil varsa dersler, yoksa onboarding. (Kök, açılış bitmeden bunu çizmez.) */
 export default function Index() {
-  const session = useAuthStore((s) => s.session);
-  return <Redirect href={session ? "/lessons" : "/login"} />;
+  const hasProfile = useMeStore((s) => !!s.me?.profile);
+  return <Redirect href={hasProfile ? "/lessons" : "/onboarding"} />;
 }

@@ -5,13 +5,17 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { SessionDetailController } from "@/controllers/SessionDetailController";
 import { useSessionDetailStore } from "@/stores/useSessionDetailStore";
 import { LlmCallsCard } from "@/screens/session-detail/LlmCallsCard";
+import { RoleplayCard } from "@/screens/session-detail/RoleplayCard";
 import { SessionDetailHeader } from "@/screens/session-detail/SessionDetailHeader";
 import { SessionDetailSkeleton } from "@/screens/session-detail/SessionDetailSkeleton";
 import { SessionPositionCard } from "@/screens/session-detail/SessionPositionCard";
 import { SessionSummaryCard } from "@/screens/session-detail/SessionSummaryCard";
 import { TranscriptView } from "@/screens/session-detail/TranscriptView";
 
-/** Oturum detayı: transkript ana alan, sağda imleç/özet/LLM çağrıları. Salt okunur. */
+/**
+ * Oturum detayı: transkript ana alan, sağda roleplay denemesi (varsa) / imleç / özet /
+ * LLM çağrıları. Roleplay oturumunda ders imleci yoktur — kart yalnız imleç varsa çizilir.
+ */
 export function SessionDetailScreen({ sessionId }: { sessionId: string }) {
   const { detail, error } = useSessionDetailStore();
 
@@ -24,11 +28,14 @@ export function SessionDetailScreen({ sessionId }: { sessionId: string }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <SessionDetailHeader session={detail.session} layers={detail.layers} />
+      <SessionDetailHeader session={detail.session} layers={detail.layers} roleplay={detail.roleplay} />
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <TranscriptView turns={detail.turns} hitTurns={detail.practiceHitTurns} />
+        <TranscriptView turns={detail.turns} hitTurns={detail.practiceHitTurns} roleplay={detail.roleplay} />
         <div className="flex flex-col gap-4">
-          <SessionPositionCard position={detail.position} hitTurns={detail.practiceHitTurns} />
+          {detail.roleplay && <RoleplayCard roleplay={detail.roleplay} />}
+          {(!detail.roleplay || detail.position) && (
+            <SessionPositionCard position={detail.position} hitTurns={detail.practiceHitTurns} />
+          )}
           <SessionSummaryCard summary={detail.summary} />
           <LlmCallsCard calls={detail.llmCalls} />
         </div>

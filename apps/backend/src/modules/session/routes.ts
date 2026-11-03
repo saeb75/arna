@@ -1,4 +1,4 @@
-import { catalogLessonIdSchema, sessionSyncBodySchema } from "@glotmate/contracts";
+import { catalogLessonIdSchema, hasWordContent, sessionSyncBodySchema } from "@glotmate/contracts";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
@@ -13,11 +13,14 @@ import {
   translate,
   tts,
 } from "./service.js";
+import { assertQuota, QuotaError, quotaErrorBody } from "../billing/quota.js";
 
 const sessionParams = z.object({ sessionId: z.string().uuid() });
 const lessonParams = z.object({ catalogLessonId: catalogLessonIdSchema });
 const chatBody = z.object({
-  text: z.string().trim().min(1).max(1000),
+  // Yalnız noktalama (",,", "?!") cevap da selam da değildir — modele gitmez.
+  // İstemciler zaten göndermez; bu, başka istemcilere karşı ikinci kapı.
+  text: z.string().trim().min(1).max(1000).refine(hasWordContent),
   phase: z.enum(["lecture", "practice", "wrapup"]).optional(),
   /** Lecture fazında aktif beat */
   beatId: z.string().max(40).optional(),
@@ -25,6 +28,8 @@ const chatBody = z.object({
   turnIndex: z.number().int().min(0).max(20).optional(),
   /** Alıştırmada kaçıncı deneme (0-tabanlı) */
   attempt: z.number().int().min(0).max(5).optional(),
+  /** Bu adımda bu sözden ÖNCE geçen LLM turu (istemci sayacı) — hocanın sözü akışla aynı sonuçtan türer */
+  exchanges: z.number().int().min(0).max(20).optional(),
   /** Soru penceresinin son turu — hoca kapanış yapar, yeni soru davet etmez */
   lastExchange: z.boolean().optional(),
 });
@@ -81,8 +86,11 @@ export default async function sessionRoutes(app: FastifyInstance) {
       const params = lessonParams.safeParse(request.params);
       if (!params.success) return reply.code(400).send({ error: "invalid_input" });
       try {
+        // Günlük ücretsiz kota — aynı dersi bugün yeniden açmak (Baştan başla) hak yakmaz
+        await assertQuota(request.userId, "lesson", params.data.catalogLessonId);
         return reply.code(201).send(await openSession(request.userId, params.data.catalogLessonId));
       } catch (err) {
+        if (err instanceof QuotaError) return reply.code(402).send(quotaErrorBody(err));
         return sendError(reply, err);
       }
     },
@@ -145,6 +153,7 @@ export default async function sessionRoutes(app: FastifyInstance) {
           beatId: body.data.beatId,
           turnIndex: body.data.turnIndex ?? 0,
           attempt: body.data.attempt ?? 0,
+          exchanges: body.data.exchanges,
           lastExchange: body.data.lastExchange ?? false,
         });
       } catch (err) {

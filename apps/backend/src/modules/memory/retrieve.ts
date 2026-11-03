@@ -10,6 +10,17 @@ const ALWAYS_RECENT = 3;
 /** Blok tavanı — prompt'u şişirmemek için. */
 const MAX_BLOCK_CHARS = 700;
 
+/**
+ * GERİ GETİRME ŞİMDİLİK KAPALI (3 Kas 2026, kullanıcı kararı).
+ *
+ * Selamlamadaki hafıza cümlesi canlıda iyi çalışmıyordu; üzerinde ayrıca
+ * çalışılacak. Kapalıyken hafıza ne selamlamaya ne canlı sohbet prompt'una girer:
+ * selamlama yalnız chrome şablonundan kurulur (ad + bugünün konusu), embed çağrısı
+ * da yapılmaz. ÇIKARIM (ders sonu `extract.ts`) AÇIK kalır — veri birikmeye devam
+ * eder, yeniden açınca boş başlanmaz. Açmak için `true` yap.
+ */
+export const MEMORY_RECALL_ENABLED = false;
+
 export interface MemoryLessonContext {
   topic: string;
   focus: string;
@@ -31,6 +42,8 @@ export async function buildMemoryBlock(
   lesson: MemoryLessonContext,
   opts: { excludeSessionId?: string } = {},
 ): Promise<string | null> {
+  if (!MEMORY_RECALL_ENABLED) return null;
+
   const [continuity, facts] = await Promise.all([
     lastSummary(userId, opts.excludeSessionId),
     relevantFacts(userId, lesson),

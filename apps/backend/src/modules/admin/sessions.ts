@@ -1,6 +1,10 @@
 import {
+  objectiveHitSchema,
+  roleplaySpecSchema,
   sessionPositionSchema,
   type AdminSession,
+  type AdminSessionRoleplay,
+  type ObjectiveHit,
   type AdminSessionDetail,
   type AdminSessionsQuery,
   type AdminSessionsResponse,
@@ -14,6 +18,7 @@ import { db, sql } from "../../db/client.js";
 import {
   catalogLessons,
   llmCalls,
+  roleplayAttempts,
   roleplayRevisions,
   sessions,
   sessionSummaries,
@@ -51,6 +56,7 @@ const sessionSelect = {
   lessonTitle: catalogLessons.title,
   level: catalogLessons.level,
   roleplayId: roleplayRevisions.roleplayId,
+  roleplayTitle: dsql<string | null>`${roleplayRevisions.spec}->>'title'`,
   userName: userProfiles.displayName,
   startedAt: sessions.startedAt,
   endedAt: sessions.endedAt,
@@ -122,6 +128,7 @@ async function decorate(rows: BaseRow[]): Promise<AdminSession[]> {
       lessonTitle: r.lessonTitle ?? null,
       level: (r.level as CefrLevel | null) ?? null,
       roleplayId: r.roleplayId ?? null,
+      roleplayTitle: r.roleplayTitle ?? null,
       track: r.track,
       tutorLanguage: r.tutorLanguage,
       startedAt: started.toISOString(),
@@ -324,6 +331,47 @@ export async function getAdminSessionDetail(sessionId: string): Promise<AdminSes
       latencyMs: c.latencyMs,
       createdAt: c.createdAt.toISOString(),
     })),
+    roleplay: await roleplayView(sessionId),
     layers: { coreId: x.coreId, sceneSetId: x.sceneSetId, localeId: x.localeId },
+  };
+}
+
+/** Roleplay oturumunun deneme satırı + senaryo görünümü; ders oturumunda null */
+async function roleplayView(sessionId: string): Promise<AdminSessionRoleplay | null> {
+  const [row] = await db
+    .select({
+      revisionId: roleplayRevisions.id,
+      roleplayId: roleplayRevisions.roleplayId,
+      revision: roleplayRevisions.revision,
+      spec: roleplayRevisions.spec,
+      playedLevel: roleplayAttempts.playedLevel,
+      activeObjectiveIds: roleplayAttempts.activeObjectiveIds,
+      complicationId: roleplayAttempts.complicationId,
+      objectiveHits: roleplayAttempts.objectiveHits,
+      levelPolicyVersion: roleplayAttempts.levelPolicyVersion,
+    })
+    .from(sessions)
+    .innerJoin(roleplayRevisions, eq(roleplayRevisions.id, sessions.roleplayRevisionId))
+    .innerJoin(roleplayAttempts, eq(roleplayAttempts.sessionId, sessions.id))
+    .where(eq(sessions.id, sessionId))
+    .limit(1);
+  if (!row) return null;
+  const spec = roleplaySpecSchema.safeParse(row.spec);
+  const hits = ((row.objectiveHits as ObjectiveHit[]) ?? []).filter((h) => objectiveHitSchema.safeParse(h).success);
+  const hitIds = new Set(hits.map((h) => h.objectiveId));
+  const activeIds = (row.activeObjectiveIds as string[]) ?? [];
+  const labels = new Map((spec.success ? spec.data.objectives : []).map((o) => [o.id, o.label]));
+  return {
+    roleplayId: row.roleplayId,
+    title: spec.success ? spec.data.title : row.roleplayId,
+    revision: row.revision,
+    revisionId: row.revisionId,
+    playedLevel: row.playedLevel as CefrLevel,
+    complicationId: row.complicationId,
+    complicationText:
+      (spec.success ? spec.data.complications.find((c) => c.id === row.complicationId)?.text : null) ?? null,
+    objectives: activeIds.map((id) => ({ id, label: labels.get(id) ?? id, done: hitIds.has(id) })),
+    hits,
+    levelPolicyVersion: row.levelPolicyVersion,
   };
 }

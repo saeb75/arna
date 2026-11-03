@@ -9,7 +9,7 @@
 // NİHAİ settle sahibi VoiceService'in watchdog'u: köprü ölürse onError/timeout
 // üzerinden expo-audio fallback devreye girer, ders ASLA kilitlenmez.
 
-import type { AvatarClip, AvatarCommand, AvatarEvent } from "@glotmate/contracts";
+import type { AvatarActivity, AvatarClip, AvatarCommand, AvatarEvent } from "@glotmate/contracts";
 
 interface WebViewHandle {
   inject: (js: string) => void;
@@ -27,6 +27,9 @@ let handle: WebViewHandle | null = null;
 let ready = false;
 let sceneReady = false;
 let pending: PendingSpeak | null = null;
+// Ekranın bildirdiği öğrenci durumu (dinliyor/düşünüyor) — avatar boşta davranışını
+// buna göre değiştirir. Sayfa yeniden yüklenince `ready`de yeniden gönderilir.
+let activity: AvatarActivity = "idle";
 
 function send(cmd: AvatarCommand): void {
   if (!handle) return;
@@ -75,6 +78,13 @@ export const AvatarBridge = {
     send({ type: "speak", id, clips });
   },
 
+  /** Öğrenci konuşuyor / sunucu yanıt hazırlıyor / boşta — yalnız değişince gönderilir */
+  setActivity(next: AvatarActivity): void {
+    if (next === activity) return;
+    activity = next;
+    if (ready) send({ type: "activity", activity: next });
+  },
+
   stop(): void {
     pending = null; // durdurulan konuşmanın ended'i artık kimseyi ilgilendirmez
     send({ type: "stop" });
@@ -105,6 +115,8 @@ export const AvatarBridge = {
     switch (event.type) {
       case "ready":
         ready = true;
+        // sayfa (yeniden) yüklendi: süren durumu kaybetmesin
+        if (activity !== "idle") send({ type: "activity", activity });
         break;
       case "sceneReady":
         sceneReady = true;
