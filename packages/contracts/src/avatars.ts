@@ -9,7 +9,7 @@
 // avatarProtocol.ts tip-only'dir ve öyle kalır — runtime sabitleri bu dosyada.
 import { z } from "zod";
 
-export const AVATAR_IDS = ["fatman", "emma", "meadow", "raven", "raven3d", "kai", "lena"] as const;
+export const AVATAR_IDS = ["fatman", "emma", "meadow", "raven", "raven3d", "kai", "lena", "theo"] as const;
 export const avatarIdSchema = z.enum(AVATAR_IDS);
 export type AvatarId = z.infer<typeof avatarIdSchema>;
 
@@ -26,6 +26,7 @@ export const AVATAR_SYSTEM_OF: Record<AvatarId, AvatarSystem> = {
   raven3d: "3d",
   kai: "2.5d",
   lena: "2.5d",
+  theo: "2.5d",
 };
 
 /** Ayar satırı yoksa / bozuksa ve istemci ayarı henüz almadıysa kullanılan avatar */
@@ -40,6 +41,7 @@ export const AVATAR_LABELS: Record<AvatarId, string> = {
   raven3d: "Raven (3D)",
   kai: "Kai (2.5D)",
   lena: "Lena (2.5D)",
+  theo: "Theo (2.5D)",
 };
 
 export const AVATAR_SYSTEM_LABELS: Record<AvatarSystem, string> = {

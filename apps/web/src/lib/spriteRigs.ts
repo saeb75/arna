@@ -15,6 +15,8 @@ import kaiEyes from "./rigs/kaiEyes.json";
 import kaiMouthAtlas from "./rigs/kaiMouthAtlas.json";
 import lenaEyes from "./rigs/lenaEyes.json";
 import lenaMouthAtlas from "./rigs/lenaMouthAtlas.json";
+import theoEyes from "./rigs/theoEyes.json";
+import theoMouthAtlas from "./rigs/theoMouthAtlas.json";
 import ravenMouthAtlas from "./rigs/ravenMouthAtlas.json";
 
 /** Timeline şekil ailesi — "F" (f/v: üst dişler alt dudakta) atlasında FV pozu olmayan rig'de yayvana düşer */
@@ -261,8 +263,57 @@ const LENA: SpriteRig = {
   },
 };
 
+// Theo: gözlüklü, sakallı öğretmen — Gemini hattı, 14 görsel (12 temel + kapalı/dişli gülümseme).
+// Poz seti tutarlı: açıklık serisi dengeli, E pozları nötre yakın → varsayılan eksenler, yalnız O
+// ekseni doğrudan O_mid (Lena gibi). Gözlük çerçevesi kapalı göz görselinde aynı yerde (fark yok
+// denecek kadar) → göz yamasına girmesi zararsız. Mercek arkasında sklera renk eşiği tutmadı →
+// kapak çizgisi elle ölçülmüş noktalarla (irislayers "points"). Sol iris çemberi sağdan aynalandı.
+// Ayarlar: ~/Desktop/imtiyaz/sprite-avatar/characters/theo/
+const THEO_DIR = "/avatars/theo";
+const THEO: SpriteRig = {
+  id: "theo",
+  width: 1024,
+  height: 1024,
+  base: `${THEO_DIR}/portrait_base.jpg`,
+  sclera: `${THEO_DIR}/eyes_sclera.png`,
+  scleraRect: [369, 265, 295, 117],
+  eyes: (["L", "R"] as const).map((k) => ({
+    iris: `${THEO_DIR}/iris_${k}.png`,
+    irisRect: theoEyes[k].iris,
+    aperture: `${THEO_DIR}/aperture_${k}.png`,
+    shadow: `${THEO_DIR}/lidshadow_${k}.png`,
+    apertureRect: theoEyes[k].aperture,
+  })),
+  mouth: {
+    src: `${THEO_DIR}/mouth_atlas.webp`,
+    roi: theoMouthAtlas.roi,
+    tileSize: theoMouthAtlas.tileSize,
+    slots: theoMouthAtlas.slots,
+    axes: theoMouthAtlas.axes,
+  },
+  focus: { x: 0.5, y: 0.38 },
+  mouthAmplitude: 0.8,
+  roundMax: 0.5,
+  gazeScale: 0.6,
+  // ızgarayla ölçüldü (1024): kaşlar (440,268)/(594,265), gözler 318, ağız ≈475, sakal/çene ≈590,
+  // çene altı gölgesi 590–610, yaka ≥620
+  motion: {
+    neck: [512, 612],
+    headFade: [588, 640],
+    headHalfWidth: [200, 260],
+    face: [512, 380],
+    faceSigma: [110, 150],
+    browL: [440, 268],
+    browR: [594, 265],
+    browSigma: [58, 16],
+    chest: [660, 1024],
+    sway: [512, 720],
+  },
+};
+
 export const SPRITE_RIGS: Partial<Record<AvatarId, SpriteRig>> = {
   raven: RAVEN,
   kai: KAI,
   lena: LENA,
+  theo: THEO,
 };
