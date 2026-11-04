@@ -115,3 +115,17 @@ apps/mobile/.git.disabled/
 
 # Avatar kaynak varlıkları git dışı — prod hedefi R2/CDN (392MB kaynak asla commit edilmez)
 docs/*.glb
+
+# --- Ham tasarım/kaynak dosyaları (5 Kas 2026: kökte 250MB .blend push'u GitHub
+# sınırına takıldı). Uygulamanın kullandığı varlık apps/*/public|assets altındadır;
+# indirilen paketler, ham AI görselleri ve 3B kaynaklar repo'ya girmez.
+*.blend
+*.blend1
+/*.zip
+/*.glb
+/*.png
+/*.jpg
+/*.jpeg
+/AI_Tutor_README.md
+/2/
+/gemini/
