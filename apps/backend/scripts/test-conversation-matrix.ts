@@ -27,8 +27,9 @@ import { MODEL_BY_PURPOSE } from "../src/modules/llm/models.js";
 import { runLectureTurn } from "../src/modules/session/turn/index.js";
 import { describeTask, runsToPlain } from "../src/modules/session/turn/prompt.js";
 import type { Learner, TurnLlm } from "../src/modules/session/turn/types.js";
-import { buildCases, buildConvCases, type Case, type ConvCase } from "./conversation/cases.js";
+import { buildCases, buildConvCases, buildInterjectCases, type Case, type ConvCase, type InterjectCase } from "./conversation/cases.js";
 import { runConversationTurn } from "../src/modules/session/turn/conversation.js";
+import { runInterjectionTurn } from "../src/modules/session/turn/interjection.js";
 import { normalizeUtterance } from "@glotmate/contracts";
 
 const args = Object.fromEntries(
@@ -117,7 +118,7 @@ function momentStory(c: Case): string {
     lines.push(
       beat.purpose === "readiness"
         ? `MOMENT: lesson start. Emma greeted and asked if the student is ready. After Emma's reply the lesson ALWAYS continues to the explanation (so Emma must not ask anything).`
-        : `MOMENT: question window after the explanation — the student may ask about the topic. ${c.moment.lastExchange ? "This is the LAST question Emma can take; after her reply the exercises start." : "After Emma's reply the student can ask another question."}`,
+        : `MOMENT: question window after the explanation — the student may ask about the topic. The system also decides whether the student is done with questions (done=true closes the window: the app itself announces the exercises right after Emma's reply, so Emma must not announce them or ask anything). ${c.moment.lastExchange ? "This is the LAST question Emma can take; after her reply the exercises start." : "When done=false the student can ask another question after Emma's reply."}`,
     );
   } else if (beat.kind === "exercise" || beat.kind === "open_response") {
     lines.push(`MOMENT: mid-lesson task. Emma already greeted and taught earlier.`, `TASK:`, ...describeTask(beat));
@@ -132,6 +133,8 @@ function momentStory(c: Case): string {
 }
 
 function nextStep(r: CaseResult): string {
+  if (r.windowDone === true) return `the question window closes — the app announces the exercises itself right after Emma's reply`;
+  if (r.windowDone === false) return `the question window stays open — the student can ask another question`;
   if (r.kind === undefined) return `the lesson continues as described in MOMENT`;
   if (r.outcome === "advance") return `the task is over — the lesson moves to the next step right after Emma's reply`;
   if (r.reAsk) return `the app shows the same task on screen and reads it aloud again right after Emma's reply; the student still has a try`;
@@ -150,6 +153,7 @@ interface CaseResult {
   outcome?: string;
   reAsk?: boolean;
   repaired?: boolean;
+  windowDone?: boolean;
   reply: RichText;
   latencyMs: number;
   structural: string[];
@@ -187,8 +191,13 @@ async function runCase(c: Case, llm: TurnLlm, graderLlm: TurnLlm): Promise<CaseR
       },
       llm,
     );
+    if (!out) throw new Error(`adım bulunamadı: ${c.moment.beatId}`);
     base.latencyMs = Date.now() - t0;
     base.reply = out.reply;
+    base.windowDone = out.windowDone;
+    if (c.expect.windowDone !== undefined && out.windowDone !== c.expect.windowDone) {
+      base.structural.push(`windowDone=${out.windowDone}, beklenen ${c.expect.windowDone}`);
+    }
     if (out.task) {
       base.kind = out.task.kind;
       base.correct = out.task.ok;
@@ -211,7 +220,7 @@ async function runCase(c: Case, llm: TurnLlm, graderLlm: TurnLlm): Promise<CaseR
         user: [
           momentStory(c),
           ``,
-          `SYSTEM DECISION: ${base.kind ? `kind=${base.kind}, correct=${base.correct}` : "(no classification at this moment)"}${c.expect.kinds ? ` — acceptable kinds for this test: ${c.expect.kinds.join(", ")}` : ""}`,
+          `SYSTEM DECISION: ${base.kind ? `kind=${base.kind}, correct=${base.correct}` : base.windowDone !== undefined ? `done=${base.windowDone}` : "(no classification at this moment)"}${c.expect.kinds ? ` — acceptable kinds for this test: ${c.expect.kinds.join(", ")}` : ""}`,
           `WHAT HAPPENS NEXT: ${nextStep(base)}.`,
           c.focus ? `TEST NOTE (what this case probes): ${c.focus}` : ``,
           ``,
@@ -222,7 +231,7 @@ async function runCase(c: Case, llm: TurnLlm, graderLlm: TurnLlm): Promise<CaseR
         maxTokens: 600,
         temperature: 0,
       });
-      base.issues = g.issues;
+      base.issues = g.issues ?? [];
     } catch (err) {
       base.issues = [{ rule: "GRADER", severity: "minor", why: `değerlendirici düştü: ${String(err).slice(0, 120)}` }];
     }
@@ -289,7 +298,60 @@ async function runConvCase(c: ConvCase, llm: TurnLlm, graderLlm: TurnLlm): Promi
         maxTokens: 600,
         temperature: 0,
       });
-      base.issues = g.issues;
+      base.issues = g.issues ?? [];
+    } catch (err) {
+      base.issues = [{ rule: "GRADER", severity: "minor", why: `değerlendirici düştü: ${String(err).slice(0, 120)}` }];
+    }
+  }
+  return base;
+}
+
+function interjectStory(c: InterjectCase): string {
+  const learner = LEARNERS[c.lang];
+  const m = c.moment;
+  return [
+    `LESSON: ${m.core.topic} — ${m.core.focus}`,
+    `STUDENT: ${learner.name}, native language ${learner.l1Name}, native-tutor mode (Emma explains in ${learner.l1Name}).`,
+    `MOMENT: mid-lesson. Emma was speaking (not waiting for an answer) and the student CUT IN. What Emma was saying: ${JSON.stringify(m.interruptedText)}. After Emma's reply the lesson continues ON ITS OWN with what comes next — so Emma must answer briefly, ask NO question (major), never start, invent or announce a task, and never say goodbye. The student's words are NOT an answer to any task.`,
+    ``,
+    `RECENT DIALOGUE:`,
+    ...m.recent.map((t) => `  ${t.role === "tutor" ? "Emma" : learner.name}: ${JSON.stringify(t.text)}`),
+    `  ${learner.name} (latest, cut in): ${JSON.stringify(c.input)}`,
+  ].join("\n");
+}
+
+async function runInterjectCase(c: InterjectCase, llm: TurnLlm, graderLlm: TurnLlm): Promise<CaseResult> {
+  const base: CaseResult = { id: c.id, label: c.moment.label, lang: c.lang, input: c.input, reply: [], latencyMs: 0, structural: [], issues: [] };
+  const t0 = Date.now();
+  try {
+    const out = await runInterjectionTurn(
+      {
+        core: c.moment.core,
+        beatId: c.moment.beatId,
+        learner: LEARNERS[c.lang],
+        recent: c.moment.recent,
+        studentText: c.input,
+        interruptedText: c.moment.interruptedText,
+      },
+      llm,
+    );
+    base.latencyMs = Date.now() - t0;
+    base.reply = out.reply;
+  } catch (err) {
+    base.error = err instanceof Error ? err.message : String(err);
+    return base;
+  }
+  if (GRADE) {
+    try {
+      const g = await graderLlm({
+        system: gradeSystem(),
+        user: [interjectStory(c), `WHAT HAPPENS NEXT: the lesson continues on its own right after Emma's reply.`, c.focus ? `TEST NOTE (what this case probes): ${c.focus}` : ``, ``, `EMMA'S REPLY (language-tagged runs): ${JSON.stringify(base.reply)}`].join("\n"),
+        schema: gradeSchema,
+        promptVersion: "conv-grade.v1",
+        maxTokens: 600,
+        temperature: 0,
+      });
+      base.issues = g.issues ?? [];
     } catch (err) {
       base.issues = [{ rule: "GRADER", severity: "minor", why: `değerlendirici düştü: ${String(err).slice(0, 120)}` }];
     }
@@ -324,15 +386,19 @@ async function main() {
   let convCases = buildConvCases();
   if (args.only) convCases = convCases.filter((c) => c.id.includes(args.only!) || c.moment.label.includes(args.only!));
   if (args.lang) convCases = convCases.filter((c) => c.lang === args.lang);
+  let interjectCases = buildInterjectCases();
+  if (args.only) interjectCases = interjectCases.filter((c) => c.id.includes(args.only!) || c.moment.label.includes(args.only!));
+  if (args.lang) interjectCases = interjectCases.filter((c) => c.lang === args.lang);
 
   const timing: Timed = { latencies: [] };
   const llm = makeLlm(MODEL, timing);
   const graderLlm = makeLlm(GRADER, { latencies: [] });
 
-  console.log(`Konuşma taraması — model=${MODEL} değerlendirici=${GRADE ? GRADER : "kapalı"} vaka=${cases.length + convCases.length}`);
+  console.log(`Konuşma taraması — model=${MODEL} değerlendirici=${GRADE ? GRADER : "kapalı"} vaka=${cases.length + convCases.length + interjectCases.length}`);
   const results = [
     ...(await pool(cases, CONCURRENCY, (c) => runCase(c, llm, graderLlm))),
     ...(await pool(convCases, CONCURRENCY, (c) => runConvCase(c, llm, graderLlm))),
+    ...(await pool(interjectCases, CONCURRENCY, (c) => runInterjectCase(c, llm, graderLlm))),
   ];
 
   const failed = results.filter((r) => r.error || r.structural.length || r.issues.some((i) => i.severity === "major"));

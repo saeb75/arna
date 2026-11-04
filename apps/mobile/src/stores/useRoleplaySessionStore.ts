@@ -27,6 +27,8 @@ interface RoleplaySessionState {
   lastHit: string | null;
   debrief: RoleplayDebriefView | null;
   error: string | null;
+  /** Kısa sistem uyarısı (NoticeBar) — STT/sohbet/ses aksadığında; eskiden sessizdi */
+  notice: string | null;
 
   speaking: boolean;
   recording: boolean;
@@ -54,6 +56,7 @@ const initial = {
   lastHit: null as string | null,
   debrief: null,
   error: null,
+  notice: null as string | null,
   speaking: false,
   recording: false,
   busy: false,

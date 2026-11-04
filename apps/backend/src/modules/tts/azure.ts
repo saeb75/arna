@@ -235,6 +235,7 @@ export const azureProvider: TtsProvider = {
   configured: () => Boolean(env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION),
   defaultVoiceId: () => env.AZURE_SPEECH_VOICE ?? AZURE_DEFAULT_VOICE,
   languageCode: azureLocale,
+  languageTags: true,
 
   async coverage(voiceId) {
     const voices = await fetchVoiceList();

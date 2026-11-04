@@ -23,8 +23,20 @@ buradaki desene uyar. Desen tartışılacaksa önce bu dosya güncellenir, sonra
 | expo-notifications | SDK | günlük YEREL hatırlatıcı — yalnız `services/NotificationsService` |
 | expo-apple-authentication | SDK | Sign in with Apple — yalnız `services/AppleAuthService` |
 
-**Native bağımlılık = fingerprint değişir = yeni dev build.** Ekleme/çıkarma
-kullanıcıya SORULMADAN yapılmaz (12 Eki 2026'da dördü onayla eklendi).
+**Native bağımlılık = yeni build.** Ekleme/çıkarma kullanıcıya SORULMADAN
+yapılmaz (12 Eki 2026'da dördü onayla eklendi).
+
+**OTA güncelleme SÜRÜM bazlıdır** (`runtimeVersion.policy: "appVersion"`, 5 Kas 2026,
+kullanıcı kararı — fingerprint emekli; 1.0.0 (10) fingerprint uyuşmazlığıyla hiç
+güncelleme alamadı). `eas update` aynı `expo.version`'daki TÜM build'lere gider.
+Bu yüzden native değişiklik (native paket, `app.json` plugin/izin/ikon/splash)
+içeren her build'den önce `app.json` → `version` ARTIRILIR; artırılmazsa JS
+güncellemesi o native kodu taşımayan eski build'e iner ve uygulama çöker.
+Yalnız JS/asset değişikliği → sürüm aynı kalır, `eas update` yeter.
+
+**Marka varlıkları** `assets/brand/` (GlotCast deseni): `icon.png` (kaynak),
+`icon-dark`/`icon-tinted` (iOS), `splash-mark.png` (gradyan, şeffaf), `adaptive-*`
+(Android). Hepsi tek kaynak görselden türetilir.
 
 Kurulum kuralı: Expo'ya bağlı her paket **`npx expo install`** ile eklenir —
 sürüm uyumunu Expo çözer, elle sürüm sabitlenmez. Expo dışı paketler (zustand,
@@ -345,13 +357,22 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
 - **MCQ cevabı butonla** — web'de canlı hatadan öğrenildi: tek harf STT için en
   kötü girdi. Şıklar tıklanabilir; mikrofon/klavye açık kalır.
 - **SÖZ KESME (barge-in):** hoca konuşurken girdi ASLA kilitlenmez. Mikrofona
-  basmak ya da yazılanı göndermek sesi anında keser (`VoiceService.skipSpeaking`:
-  sesi durdurur ve bekleyen `onEnd`'i ZORLA çalıştırır — akış o zincirde yaşadığı
-  için kesme kapanışı yutarsa ders kilitlenir). Sonra `fastForward` devreye girer:
-  balonlar, transkript ve imleç aynen akar, yalnız TTS atlanır; akış cevabın
-  beklendiği ilk noktaya varınca (`arrive`) ileri sarma kapanır ve kuyruktaki söz
-  (`pendingInput`) oraya teslim edilir. Beat makinesi kesmeyi HİÇ görmez —
-  `lessonFlow.ts` kararları ve sunucu sözleşmesi değişmez.
+  basmak ya da yazılanı göndermek sesi anında keser. Yol, YÜRÜYEN ADIMIN
+  (konuşma ya da iki söz arasındaki kısa bekleme — `speak(runs, onEnd, leadsToAwait)`
+  / `later(ms, fn)`) devamına göre seçilir (`interrupt`):
+  · **Devam aynı adımın sorusuna varıyorsa** (görevi okumak, "hazır mısın?",
+    practice/wrapup): `VoiceService.skipSpeaking` sesi durdurur ve bekleyen `onEnd`'i
+    ZORLA çalıştırır; `fastForward` devreye girer — balonlar, transkript ve imleç
+    aynen akar, yalnız TTS atlanır; akış cevabın beklendiği ilk noktaya varınca
+    (`arrive`) ileri sarma kapanır ve kuyruktaki söz (`pendingInput`) oraya teslim edilir.
+  · **Devam dersi ilerletiyorsa** (anlatım, geçiş, övgü — 4 Kas 2026): ARAYA GİRME.
+    `hold()` sesi `stopPlayback` ile durdurur (kapanış abandon — `onEnd` ÇALIŞMAZ),
+    devamı `held`'e alır; söz `/chat`'e `interjection: true` ile gider, hocanın kısa
+    cevabı söylenir, sonra bekletilen devam TAM BİR KEZ çalışır (ders kaldığı yerden).
+    Eskiden ileri sarma sözü bir SONRAKİ — duyulmamış — görevin cevabı yapıyordu.
+    Mikrofonla araya girilip STT boş/başarısız dönerse devam hemen sürer. Jeton
+    (`Pending.token`): `hold` devamı aldıktan sonra yolda kalan kapanış no-op olur.
+  Beat makinesi kesmeyi HİÇ görmez — `lessonFlow.ts` kararları değişmez.
   · `awaiting`in tek yazarı `arrive()`: ileri sarmayı girdiye değil BEKLEME
     NOKTASINA bağlamak şart (öğrenci mikrofona basıp hiç konuşmayabilir; STT boş
     dönünce ders sonuna kadar sessiz oynardı).
@@ -362,9 +383,18 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
     olması da yasak: RN `onPressOut`u düşürür, kayıt sahipsiz kalır.
   · Girdi kilidi TEK ifade: `busy || grace`. `grace`, her yeni hoca balonundan
     sonraki 500ms (`INPUT_GRACE_MS`) — kullanıcı okumadan yanlışlıkla kesmesin.
-  · Ekrandan çıkışta (`leave`/`exit`/`finish`) `stopped` kurulur: ileri sarma ağ
-    beklemediği için zincir aksi hâlde ekran kapandıktan sonra saniyelerce balon
-    ve imleç yazmaya devam ederdi.
+  · Ekrandan çıkışta (`leave`/`exit`/`finish`) `stopped` kurulur ve bekletilen
+    devam bırakılır (`dropPending`): ileri sarma ağ beklemediği için zincir aksi
+    hâlde ekran kapandıktan sonra saniyelerce balon ve imleç yazmaya devam ederdi.
+- **GÖRÜNÜR HATA (4 Kas 2026):** STT (`VoiceService.stopRecording` → `SttResult`:
+  `text | empty | failed`), sohbet (`chat` → null) ya da TTS (`speak`'in `onFail`'i)
+  düşünce controller `NoticeBar` uyarısı gösterir (`components/shared/NoticeBar`,
+  metin `i18n/tr.ts` → `notice.*`, 7 sn ya da yeni girdiye kadar). Hak yanmaz, akış
+  kilitlenmez. Eskiden üçü de sessizdi — "cevap veriyorum, hoca cevap vermiyor".
+  Ders ve rol yapma ekranı aynı deseni kullanır.
+- **Transkript sırası:** istemcinin çözdüğü söz + cevabı (`praise`, davet, veda)
+  TEK `/sync` isteğinde gider (`logTurns`) — iki ayrı fire-and-forget isteği yarışıyor,
+  "Tam isabet!" öğrencinin cevabından önce kaydediliyordu.
 - **Avatar WebView ile** (kök CLAUDE.md kararı; native Three.js ayrı faz —
   expo-gl'de draco/postprocessing/52-morph desteği güvenilmez). Kurulum:
   `EXPO_PUBLIC_AVATAR_URL` → apps/web `/embed/avatar`; boşsa avatar kapalı,

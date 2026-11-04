@@ -25,14 +25,15 @@ export const EN_CHROME: ChromeBundle = {
   ack: { yes: [], no: [], proceed: [] },
   surrender: [], // İngilizce pes ifadeleri lessonFlow.SURRENDER_EN'de — çekirdek küme her dilde geçerli
   script: {
-    greeting: "Hello {name}! {callback}Today we're going to learn about {topic}. Are you ready to start?",
+    greeting: "Hello {name}! {callback}Today's lesson: {topic}. Are you ready to start?",
     teachIntro: "Let me explain today's point.",
     askQuestions: "Before we practise — do you have any questions?",
-    exercisesAnnounce: "Great. Now let's try a few quick questions.",
-    practiceIntro: "Well done! Now let's practise in a short role play: {scenario}",
+    // Performans iddiası yok — şablon öğrencinin ne yaptığını bilmez (bkz. tr.ts)
+    exercisesAnnounce: "Now let's try a few quick questions.",
+    practiceIntro: "Now let's practise in a short role play: {scenario}",
     inviteQuestion: "Of course — what would you like to ask?",
     praise: ["Exactly right!", "Well done!", "Perfect!", "That's it!"],
-    wrapup: "That's the end of today's lesson — you did really well with {topic}. Is there anything you'd like to ask me?",
-    farewell: "Great work today. See you in the next lesson!",
+    wrapup: "That's the end of today's lesson. Is there anything you'd like to ask me?",
+    farewell: "Thanks for your effort today. See you in the next lesson!",
   },
 };

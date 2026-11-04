@@ -63,6 +63,11 @@ interface LessonSessionState {
    */
   promptMessageId: string | null;
   hint: RichText | null;
+  /**
+   * Kısa sistem uyarısı (NoticeBar): STT düştü, cevap alınamadı, ses çalınamadı.
+   * Eskiden bu anlar sessizdi. Yalnız sunum — akış kararı DEĞİLDİR.
+   */
+  notice: string | null;
 
   speaking: boolean;
   recording: boolean;
@@ -119,6 +124,7 @@ const initial = {
   messages: [] as LessonMessage[],
   promptMessageId: null as string | null,
   hint: null as RichText | null,
+  notice: null as string | null,
   speaking: false,
   recording: false,
   busy: false,

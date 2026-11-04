@@ -15,6 +15,8 @@ export const chatResponseSchema = z.object({
   segmentDone: z.boolean(),
   beatDone: z.boolean().optional(),
   isAttempt: z.boolean().optional(),
+  /** Yalnız ders soru penceresi: öğrencinin sorusu kalmadı (yapısal) → pencere kapanır */
+  windowDone: z.boolean().optional(),
   /** Yalnız roleplay: hedef ilerlemesi */
   progress: z.object({ done: z.number().int(), total: z.number().int() }).optional(),
   /** Yalnız roleplay: bu turda kabul edilen yeni tikler */

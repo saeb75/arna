@@ -61,6 +61,13 @@ export interface TtsProvider {
    */
   synthesizeRuns?(req: SynthesizeRunsRequest): Promise<SynthesizeResult>;
   /**
+   * Tek klipte okurken dili PARÇA ETİKETLERİNDEN mi alıyor (Azure SSML `<lang>`)?
+   * Yalnız öyleyse L1 düzyazının içindeki İngilizce anmalar ayrıştırılır
+   * (`inlineEnglish.ts`). Tam cümle okuyan sağlayıcı (ElevenLabs) dili bağlamdan
+   * kendisi çıkarır — ona parçalar birleşik metin olarak gider.
+   */
+  languageTags?: boolean;
+  /**
    * Sesin konuşabildiği dil kodları (sağlayıcı biçiminde); `null` = bilinmiyor,
    * gateway hepsine izin verir. `languageCode` saf kalır; kapsam ağdan gelir.
    */

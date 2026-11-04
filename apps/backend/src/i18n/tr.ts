@@ -7,8 +7,11 @@ import type { ChromeBundle } from "@glotmate/contracts";
  */
 export const TR_CHROME: ChromeBundle = {
   language: "tr",
+  // SESLE OKUNAN her sabit cümle `scripts/tts-chrome-probe.ts` ile ölçülür (4 Kas 2026):
+  // çok dilli İngilizce ses 1-2 kelimelik Türkçeyi İngilizce okuyor ("Boşluğu doldur" →
+  // "Bush Lou Dolder", "Tam isabet!" → "Tommy Sabat"); ölçümden geçen hâller burada.
   labels: {
-    exerciseFillBlank: "Boşluğu doldur:",
+    exerciseFillBlank: "Cümledeki boşluğu doldur:",
     exerciseMcq: "Hangisi doğru?",
     exerciseSaySentence: "Cümlenin tamamını söyle:",
     hint: "Şöyle diyebilirsin:",
@@ -23,14 +26,19 @@ export const TR_CHROME: ChromeBundle = {
   },
   surrender: ["bilmiyorum", "bilmem", "fikrim yok", "emin değilim", "emin degilim", "geç", "gec", "pas", "boş ver", "bos ver"],
   script: {
-    greeting: "Merhaba {name}! {callback}Bugün seninle {topic} konusunu öğreneceğiz. Başlamaya hazır mısın?",
+    // {topic} = dersin İNGİLİZCE adı (`en` parçası). Türkçe ek İngilizce ada bağlanmaz
+    // ("…konusunu" yok): ad iki noktadan sonra tek başına durur.
+    greeting: "Merhaba {name}! {callback}Bugünkü dersimiz: {topic}. Başlamaya hazır mısın?",
     teachIntro: "Şimdi konuyu kısaca açıklayayım.",
     askQuestions: "Alıştırmalara geçmeden — sormak istediğin bir şey var mı?",
-    exercisesAnnounce: "Harika. Şimdi birkaç kısa soruyla pekiştirelim.",
-    practiceIntro: "Çok iyi gidiyorsun! Şimdi kısa bir canlandırma yapalım: {scenario}",
+    // Şablon öğrencinin ne yaptığını BİLMEZ: performans iddiası taşımaz (4 Kas 2026 —
+    // üç kez takılan öğrenciye "Çok iyi gidiyorsun!" okunuyordu). Övgü yalnız `praise`'te,
+    // o da yalnız birebir doğru cevaptan sonra.
+    exercisesAnnounce: "Şimdi birkaç kısa soruyla pekiştirelim.",
+    practiceIntro: "Şimdi kısa bir canlandırma yapalım: {scenario}",
     inviteQuestion: "Tabii — neyi merak ediyorsun?",
-    praise: ["Tam isabet!", "Aferin, çok doğru!", "Harika!", "İşte bu!"],
-    wrapup: "Bugünkü dersin sonuna geldik — {topic} konusunda gerçekten iyiydin. Bana sormak istediğin bir şey var mı?",
-    farewell: "Bugün harikaydın. Bir sonraki derste görüşürüz!",
+    praise: ["Tam isabet, çok doğru!", "Harika, doğru cevap!", "İşte bu, çok güzel!", "Evet, aynen böyle!"],
+    wrapup: "Bugünkü dersin sonuna geldik. Bana sormak istediğin bir şey var mı?",
+    farewell: "Emeğine sağlık! Bir sonraki derste görüşürüz.",
   },
 };

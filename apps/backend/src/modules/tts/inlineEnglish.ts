@@ -295,7 +295,16 @@ export function refineRunsForInlineEnglish<T extends { lang: "en" | "l1"; text: 
   chrome?: unknown,
 ): Array<TextRun | T> {
   if (!core) return runs;
-  const lex = buildEnglishLexicon(core, chrome);
+  return refineWithLexicon(runs, buildEnglishLexicon(core, chrome));
+}
+
+/**
+ * Önceden kurulmuş sözlükle aynı inceltme — bir dersin TÜM metinleri (anlatım,
+ * görevler, ipuçları) tek sözlükle işaretlenir. 4 Kas 2026'dan beri yalnız TTS için
+ * değil EKRAN için de: "ekranda vurgulanan = İngilizce okunan" (canlıda selamlamadaki
+ * "Am, Is, Are Kullanımı" ne vurgulanıyor ne İngilizce okunuyordu).
+ */
+export function refineWithLexicon<T extends { lang: "en" | "l1"; text: string }>(runs: T[], lex: EnglishLexicon): Array<TextRun | T> {
   const out: Array<TextRun | T> = [];
   for (const r of runs) {
     if (r.lang !== "l1") {

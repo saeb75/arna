@@ -326,6 +326,14 @@ export const tr = {
     tutorName: "Emma",
   },
 
+  /** Ses/sohbet aksadığında ders ve rol yapma ekranında görünen kısa uyarılar (NoticeBar) */
+  notice: {
+    replyFailed: "Sözün iletilemedi — bağlantıda bir sorun var. Tekrar dener misin?",
+    sttFailed: "Sesini şu an anlayamadım. Tekrar dener misin? İstersen yazarak da cevap verebilirsin.",
+    didntHear: "Seni duyamadım — mikrofona basılı tutarak konuşur musun?",
+    audioFailed: "Ses şu an çalınamıyor; söylenenleri ekrandan okuyabilirsin.",
+  },
+
   checkpoint: {
     preparing: "Test hazırlanıyor…",
     check: "Kontrol et",

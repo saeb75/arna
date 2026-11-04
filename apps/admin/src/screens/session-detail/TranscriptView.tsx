@@ -35,6 +35,9 @@ export function TranscriptView({
         <h2 className="text-sm font-semibold">Transcript</h2>
         <span className="text-xs text-muted-foreground">
           {turns.length} turns · {turns.filter((t) => t.source === "chat").length} via LLM
+          {turns.some((t) => t.source === "failed") && (
+            <span className="text-destructive"> · {turns.filter((t) => t.source === "failed").length} unanswered</span>
+          )}
         </span>
       </header>
       <ol className="flex flex-col gap-3 p-4">

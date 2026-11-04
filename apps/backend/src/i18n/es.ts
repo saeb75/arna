@@ -19,14 +19,15 @@ export const ES_CHROME: ChromeBundle = {
   },
   surrender: ["no sé", "no se", "ni idea", "no estoy seguro", "no estoy segura", "paso", "me rindo"],
   script: {
-    greeting: "¡Hola {name}! {callback}Hoy vamos a aprender {topic}. ¿Empezamos?",
+    greeting: "¡Hola {name}! {callback}La lección de hoy: {topic}. ¿Empezamos?",
     teachIntro: "Deja que te lo explique brevemente.",
     askQuestions: "Antes de practicar — ¿tienes alguna pregunta?",
-    exercisesAnnounce: "Muy bien. Ahora vamos con unas preguntas rápidas.",
-    practiceIntro: "¡Lo estás haciendo genial! Ahora practiquemos con una breve escena: {scenario}",
+    // Performans iddiası yok — şablon öğrencinin ne yaptığını bilmez (bkz. tr.ts)
+    exercisesAnnounce: "Ahora vamos con unas preguntas rápidas.",
+    practiceIntro: "Ahora practiquemos con una breve escena: {scenario}",
     inviteQuestion: "Claro — ¿qué te gustaría saber?",
     praise: ["¡Exacto!", "¡Muy bien!", "¡Perfecto!", "¡Eso es!"],
-    wrapup: "Hemos llegado al final de la lección de hoy — lo hiciste muy bien con {topic}. ¿Hay algo que quieras preguntarme?",
-    farewell: "Excelente trabajo hoy. ¡Nos vemos en la próxima lección!",
+    wrapup: "Hemos llegado al final de la lección de hoy. ¿Hay algo que quieras preguntarme?",
+    farewell: "¡Gracias por tu esfuerzo de hoy! Nos vemos en la próxima lección.",
   },
 };

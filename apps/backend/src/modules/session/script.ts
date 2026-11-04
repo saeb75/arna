@@ -2,6 +2,7 @@ import type { ChromeBundle, LessonCore, RichText, SessionScript, TextRun } from 
 import { z } from "zod";
 import { completeJson } from "../llm/index.js";
 import { languageName } from "../../lib/language.js";
+import { buildEnglishLexicon, refineWithLexicon } from "../tts/inlineEnglish.js";
 
 // v3: selamlamanın TAMAMI değil, yalnız hafıza cümlesi üretiliyor (~150 → ~60
 // token). Bu sabit yalnızca `llm_calls` maliyet kaydında kullanılıyor, önbellek
@@ -54,22 +55,56 @@ const greetingCallbackSchema = z.object({
     }),
 });
 
+/**
+ * Şablonu {anahtar} sınırlarından bölüp parçaları dil etiketleriyle dizer.
+ *
+ * METİN değişkenleri (ad, hafıza cümlesi, L1 başlık, sahne) çevresindeki L1 metne
+ * GÖMÜLÜR; yalnız dil etiketli parça (İngilizce konu) ayrı run olur. Eskiden her
+ * değişken ayrı run'dı; parçalar boşlukla birleşince ekranda ve transkriptte
+ * "Merhaba saeb ! Bugün…" çıkıyordu (canlı, her derste).
+ */
 function interpolateRuns(template: string, vars: Record<string, TextRun[] | string>): RichText {
-  // Şablonu {anahtar} sınırlarından bölüp parçaları dil etiketleriyle diz
   const out: TextRun[] = [];
-  const parts = template.split(/(\{\w+\})/);
-  for (const part of parts) {
+  let buf = "";
+  const flush = () => {
+    const text = buf.replace(/\s+/g, " ").trim();
+    if (text) out.push({ lang: "l1", text });
+    buf = "";
+  };
+  // Parça kendi noktalamasıyla bitiyorsa ("Do You Live Here?") şablonun ardından gelen
+  // noktası düşer — "Here?." olmasın
+  let endsWithStop = false;
+  for (const part of template.split(/(\{\w+\})/)) {
     const m = part.match(/^\{(\w+)\}$/);
     if (!m) {
-      if (part.trim()) out.push({ lang: "l1", text: part });
+      buf += endsWithStop ? part.replace(/^\./, "") : part;
+      endsWithStop = false;
       continue;
     }
     const v = vars[m[1]!];
-    if (typeof v === "string") {
-      if (v.trim()) out.push({ lang: "l1", text: v });
-    } else if (v) out.push(...v);
+    if (typeof v === "string") buf += v;
+    else if (v?.length) {
+      flush();
+      out.push(...v);
+      endsWithStop = /[.?!…]\s*$/.test(v[v.length - 1]!.text);
+      continue;
+    }
+    endsWithStop = false;
   }
+  flush();
   return out.length ? out : [{ lang: "l1", text: template }];
+}
+
+/**
+ * Konuşmada kullanılacak ad: küçük harfle yazılmışsa ilk harf büyür ("saeb" → "Saeb"),
+ * dilin kuralıyla (tr: "ilker" → "İlker"). Büyük harfle başlayan ad olduğu gibi kalır.
+ */
+export function speakableName(name: string, locale: string): string {
+  const t = name.trim();
+  const first = Array.from(t)[0];
+  if (!first) return t;
+  const upper = first.toLocaleUpperCase(locale);
+  return upper !== first && first === first.toLocaleLowerCase(locale) ? upper + t.slice(first.length) : t;
 }
 
 /** İngilizce chrome'da (english modda) parçalar `en` etiketi almalı */
@@ -90,12 +125,20 @@ export function templateGreeting(opts: {
   displayName: string;
   /** Hafıza cümlesi (LLM). Boşsa şablon tek başına doğru cümle kurar. */
   callback?: string;
+  /**
+   * DERSİN ADI — İngilizce katalog başlığı ("Hello, I'm…", "Do You Live Here?").
+   * Kullanıcı kararı (4 Kas 2026): ders adı İngilizcedir; çevrilince ("Bugün Benim
+   * adım dersine çalışacağız") saçma duruyordu. Ad her zaman `en` parçasıdır — ekranda
+   * vurgulanır, ses İngilizce okur. Yoksa çekirdeğin konu tarifine düşülür.
+   */
+  lessonTitle?: string;
 }): RichText {
   const isNative = opts.tutorLanguage === "native" && opts.chrome.language !== "en";
   const cb = (opts.callback ?? "").trim();
+  const title = opts.lessonTitle?.trim() || opts.topic;
   const runs = interpolateRuns(opts.chrome.script.greeting, {
-    name: opts.displayName,
-    topic: [{ lang: "en", text: opts.topic, emphasis: true }],
+    name: speakableName(opts.displayName, opts.chrome.language),
+    topic: [{ lang: "en", text: title, emphasis: true }],
     callback: cb ? `${cb} ` : "",
   });
   return retag(runs, isNative ? "l1" : "en");
@@ -114,16 +157,43 @@ export interface RenderScriptOptions {
   memoryBlock: string | null;
   userId: string;
   sessionId: string;
+  /** Dersin İngilizce adı (katalog `title`) — selamlamada okunur */
+  lessonTitle?: string;
+}
+
+/**
+ * EKRANDA VURGULANAN = İNGİLİZCE OKUNAN: script satırlarının L1 parçalarındaki
+ * İngilizce anmalar (L1 başlıktaki "Am, Is, Are Kullanımı" gibi) dersin çekirdek
+ * sözlüğüyle `en` parçasına ayrılır — ekranda vurgulanır, ses İngilizce okur.
+ * Canlı (4 Kas 2026): selamlama tek `l1` parçasıydı, "Am, Is, Are" beyaz göründü
+ * ve Türkçe aksanla okundu.
+ */
+function tagScript(script: SessionScript, core: LessonCore, chrome: ChromeBundle): SessionScript {
+  const lex = buildEnglishLexicon(core, chrome);
+  const tag = (runs: RichText): RichText => refineWithLexicon(runs, lex) as RichText;
+  return {
+    ...script,
+    beats: Object.fromEntries(Object.entries(script.beats).map(([k, v]) => [k, tag(v)])),
+    practiceIntro: tag(script.practiceIntro),
+    inviteQuestion: tag(script.inviteQuestion),
+    wrapup: tag(script.wrapup),
+    farewell: tag(script.farewell),
+    praise: script.praise.map(tag),
+  };
 }
 
 export async function renderSessionScript(opts: RenderScriptOptions): Promise<SessionScript> {
+  return tagScript(await buildSessionScript(opts), opts.core, opts.chrome);
+}
+
+async function buildSessionScript(opts: RenderScriptOptions): Promise<SessionScript> {
   const isNative = opts.tutorLanguage === "native" && opts.chrome.language !== "en";
   const tagOf: "en" | "l1" = isNative ? "l1" : "en";
   const c = opts.chrome.script;
 
-  // Konu adı İngilizce bir terim — native modda bile `en` parçası olarak gider
-  const topicRun: TextRun[] = [{ lang: "en", text: opts.core.topic, emphasis: true }];
-  const nameStr = opts.displayName;
+  // Ders adı İngilizce (katalog başlığı) — native modda bile `en` parçası
+  const topicRun: TextRun[] = [{ lang: "en", text: opts.lessonTitle?.trim() || opts.core.topic, emphasis: true }];
+  const nameStr = speakableName(opts.displayName, opts.chrome.language);
 
   const template = (t: string, vars: Record<string, TextRun[] | string> = {}): RichText =>
     retag(interpolateRuns(t, { name: nameStr, topic: topicRun, ...vars }), tagOf);
@@ -140,7 +210,8 @@ export async function renderSessionScript(opts: RenderScriptOptions): Promise<Se
                 chrome: opts.chrome,
                 tutorLanguage: opts.tutorLanguage,
                 topic: opts.core.topic,
-                displayName: nameStr,
+                lessonTitle: opts.lessonTitle,
+                displayName: opts.displayName,
               })
             : template(c.askQuestions);
         break;
@@ -209,6 +280,7 @@ export async function renderSessionScript(opts: RenderScriptOptions): Promise<Se
         chrome: opts.chrome,
         tutorLanguage: opts.tutorLanguage,
         topic: opts.core.topic,
+        lessonTitle: opts.lessonTitle,
         displayName: opts.displayName,
         callback,
       });

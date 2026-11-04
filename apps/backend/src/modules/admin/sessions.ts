@@ -307,7 +307,7 @@ export async function getAdminSessionDetail(sessionId: string): Promise<AdminSes
     text: t.text,
     runs: (t.runs as RichText | null) ?? null,
     phase: t.phase,
-    source: t.source === "script" ? "script" : "chat",
+    source: t.source === "script" || t.source === "failed" ? t.source : "chat",
     latencyMs: t.latencyMs,
     createdAt: t.createdAt.toISOString(),
   }));

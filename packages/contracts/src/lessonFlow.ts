@@ -108,12 +108,17 @@ function containsTokenSeq(haystackTokens: string[], phrase: string): boolean {
  * Kısa onay sınıflandırması — LLM'siz, deterministik, dil-bağımsız (kümeler
  * chrome + ACK_EN'den gelir).
  *
- * TAM eşleşme yetmiyordu: canlıda "Yok, bu kadar yeterli." tanınmadı (listede
- * "yok" var ama dize eşit değil), serbest metin sanılıp LLM'e gitti ve hoca soru
- * penceresinde iki tur boşa döndü. Kural: ≤4 kelimelik sözde bir kümenin ifadesi
- * KELİME SINIRIYLA geçiyorsa o sınıftır; birden fazla SINIF birden eşleşirse
- * belirsizdir (null → LLM karar versin). Uzunluk kapısı yanlış pozitifin asıl
- * sigortası: soru cümleleri 4 kelimeyi aşar.
+ * SAF ONAY KURALI (4 Kas 2026): sözün HER kelimesi bir onay ifadesinin parçası
+ * olmalı. Eskiden ≤4 kelimede onay kelimesinin GEÇMESİ yetiyordu; canlıda
+ * "tamam ama yoruldum" `proceed` sayıldı, ders ilerledi ve "yoruldum" hiç
+ * duyulmadı — kestirme anlamı yutuyordu. Fazladan söz anlam taşır → null →
+ * söz hocaya (LLM) gider. "Yok, bu kadar yeterli." de artık LLM'e gider; soru
+ * penceresini kapatma kararını oradan YAPISAL `windowDone` getirir
+ * (bkz. decideAfterTutorReply) — eskiden içerme kuralı bu yüzden konmuştu.
+ *
+ * Birden fazla SINIF birden eşleşirse belirsizdir (null → LLM karar versin);
+ * yalnız yes+proceed çelişki değildir ("evet, hazırım"). Uzunluk kapısı da
+ * yerinde: soru cümleleri 4 kelimeyi aşar.
  */
 export function classifyAck(text: string, sets: AckSets): AckKind | null {
   const t = normalizeShort(text);
@@ -125,11 +130,26 @@ export function classifyAck(text: string, sets: AckSets): AckKind | null {
   if (sets.proceed.includes(t)) return "proceed";
 
   const tokens = t.split(" ");
-  const hit = (list: readonly string[]) => list.some((p) => containsTokenSeq(tokens, normalizeShort(p)));
+  const covered = tokens.map(() => false);
+  const hit = (list: readonly string[]) => {
+    let any = false;
+    for (const p of list) {
+      const phrase = normalizeShort(p);
+      if (!phrase || !containsTokenSeq(tokens, phrase)) continue;
+      any = true;
+      const want = phrase.split(" ");
+      for (let i = 0; i + want.length <= tokens.length; i++) {
+        if (want.every((w, j) => tokens[i + j] === w)) want.forEach((_, j) => (covered[i + j] = true));
+      }
+    }
+    return any;
+  };
   const matches: AckKind[] = [];
   if (hit(sets.no)) matches.push("no");
   if (hit(sets.yes)) matches.push("yes");
   if (hit(sets.proceed)) matches.push("proceed");
+  // Onay ifadesine ait olmayan tek bir kelime bile varsa söz onaydan fazlasıdır
+  if (!covered.every(Boolean)) return null;
   if (matches.length === 1) return matches[0]!;
   // "Evet, hazırım" / "yes, I'm ready": onay + ilerleme birlikte çelişki DEĞİL,
   // en doğal onaydır — proceed kazanır. (Canlı hata 25 Ağu 2026: null'a düşünce
@@ -307,6 +327,13 @@ export interface TutorReplyContext {
    * Geriye uyum için varsayılan true.
    */
   isAttempt?: boolean;
+  /**
+   * Soru penceresinde sunucunun yapısal "öğrencinin sorusu kalmadı / devam etmek
+   * istiyor" kararı (`ask-turn` şemasındaki `done`). Saf onay kuralıyla "Yok, bu
+   * kadar yeterli." gibi sözler LLM'e gidiyor; pencereyi kapatan budur — hocanın
+   * cümlesi değil. Yokluğu "kapanmadı" demek (geriye uyum).
+   */
+  windowDone?: boolean;
 }
 
 /**
@@ -331,7 +358,9 @@ export function decideAfterTutorReply(
     case "ask": {
       if (beat.purpose === "questions") {
         // Soru penceresi: hoca cevapladı, öğrenci başka soru sorabilir.
-        // Pencereden çıkış YALNIZCA öğrencinin "yok" demesiyle ya da tavanla olur.
+        // Pencereden çıkış: öğrencinin "yok" demesi (saf onay ya da yapısal
+        // windowDone) veya tavan.
+        if (ctx.windowDone) return { kind: "advance" };
         return ctx.exchanges >= MAX_BEAT_EXCHANGES
           ? { kind: "advance" }
           : { kind: "wait", awaiting: "ask" };

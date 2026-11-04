@@ -76,6 +76,13 @@ export interface LectureTurnInput {
   askedLine?: string;
   /** ask · questions: bu, pencerenin izin verilen son turu mu (istemci hesaplar) */
   lastExchange?: boolean;
+  /**
+   * Cevap sızıntısı iki kez onarılamazsa söylenecek SON ÇARE: görevin kendisi,
+   * öğrencinin dilindeki yönergeyle (chrome etiketi + İngilizce madde). Eskiden
+   * sabit İngilizce "Let's try once more." native modda da okunuyordu (canlıda 4 kez).
+   * Yoksa (konuşma taraması) İngilizce satıra düşülür.
+   */
+  retryLine?: RichText;
 }
 
 export interface TaskTurnResult {
@@ -94,4 +101,6 @@ export interface TaskTurnResult {
 
 export interface AskTurnResult {
   reply: RichText;
+  /** Yalnız soru penceresi: öğrencinin sorusu kalmadı (yapısal) → contracts windowDone */
+  done?: boolean;
 }

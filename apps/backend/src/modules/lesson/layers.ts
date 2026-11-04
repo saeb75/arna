@@ -9,12 +9,15 @@ import {
   permuteChoices,
   sceneSetSchema,
   TRACKS,
+  type ChromeBundle,
   type LessonContentV7,
   type LessonCore,
   type LessonLocalePack,
+  type RichText,
   type SceneSet,
   type Track,
 } from "@glotmate/contracts";
+import { buildEnglishLexicon, refineWithLexicon } from "../tts/inlineEnglish.js";
 import { and, asc, eq, gt } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { catalogLessons, lessonCores, lessonLocales, lessonSceneSets, userProfiles } from "../../db/schema.js";
@@ -361,15 +364,19 @@ export async function resolveLesson(userId: string, catalogLessonId: string): Pr
   }
 
   const chrome = getChrome(pack ? language : "en");
-  const content = assembleLesson({
+  const content = tagInlineEnglishInContent(
+    assembleLesson({
+      core,
+      scene,
+      track,
+      pack,
+      chrome,
+      nativeLanguage: language,
+      titleEn: lesson.title,
+    }),
     core,
-    scene,
-    track,
-    pack,
     chrome,
-    nativeLanguage: language,
-    titleEn: lesson.title,
-  });
+  );
 
   return {
     content,
@@ -380,6 +387,31 @@ export async function resolveLesson(userId: string, catalogLessonId: string): Pr
     localeId,
     track,
     catalog: { id: lesson.id, titleEn: lesson.title, themeHint: lesson.themeHint, level: lesson.level },
+  };
+}
+
+/**
+ * EKRANDA VURGULANAN = İNGİLİZCE OKUNAN (4 Kas 2026). Dil paketi İngilizce örnekleri
+ * `core_ref` ile ayrı `en` parçası yapar, ama düzyazının İÇİNDEKİ anmalar ("'am'
+ * sadece 'I' ile…") `l1` metinde kalıyordu: ekranda vurgulanmıyor, tam cümle okuyan
+ * ses de onları ana dil aksanıyla okuyordu. Dersin çekirdek sözlüğüyle (yalnız dersin
+ * öğrettiği İngilizce — genel sözlük yok, dile özgü kural yok) `en` parçasına ayrılır.
+ * Paylaşımlı satır DEĞİŞMEZ; yalnız servis edilen kopya.
+ */
+function tagInlineEnglishInContent(content: LessonContentV7, core: LessonCore, chrome: ChromeBundle): LessonContentV7 {
+  if (content.tutorLanguage !== "native") return content; // İngilizce modda her parça zaten `en`
+  const lex = buildEnglishLexicon(core, chrome);
+  const tag = (runs: RichText): RichText => refineWithLexicon(runs, lex) as RichText;
+  return {
+    ...content,
+    lecture: {
+      ...content.lecture,
+      beats: content.lecture.beats.map((b) => {
+        if (b.kind === "teach") return { ...b, points: b.points.map((p) => ({ ...p, runs: tag(p.runs) })) };
+        if (b.kind === "exercise" || b.kind === "open_response") return { ...b, runs: tag(b.runs), hint: tag(b.hint) };
+        return b;
+      }),
+    },
   };
 }
 

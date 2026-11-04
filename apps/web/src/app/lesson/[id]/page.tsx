@@ -559,6 +559,9 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
         attempt,
         beatDone: res.beatDone,
         isAttempt: res.isAttempt,
+        // Soru penceresi: "Yok, bu kadar yeterli." gibi sözler LLM'e gider (saf onay
+        // kuralı); pencereyi sunucunun yapısal windowDone'u kapatır
+        windowDone: res.windowDone,
       });
       void voice.speak(replyRuns, () => {
         if (after.kind === "wait") setAwaiting(after.awaiting);
@@ -662,7 +665,7 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
     return (
       <main className="flex h-dvh items-center justify-center p-4">
         <Card className="w-full max-w-md text-center">
-          <CardHeader><CardTitle>{lesson.title}</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{lesson.titleEn}</CardTitle></CardHeader>
           <CardContent className="grid gap-4">
             <p className="text-sm text-muted-foreground" dir="auto">
               📖 {lesson.focus} · 🎬 {lesson.theme} · ~{lesson.estMinutes} dk
@@ -684,7 +687,7 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
           <CardHeader><CardTitle className="text-2xl">🎉 Ders tamamlandı!</CardTitle></CardHeader>
           <CardContent className="grid gap-3">
             <p className="text-sm text-muted-foreground" dir="auto">📝 {lesson.summary}</p>
-            <p className="text-muted-foreground" dir="auto">{lesson.title}</p>
+            <p className="text-muted-foreground" dir="auto">{lesson.titleEn}</p>
           </CardContent>
         </Card>
         {/* Mini test buradan KALDIRILDI: maddeler artık ünite sonu testinde

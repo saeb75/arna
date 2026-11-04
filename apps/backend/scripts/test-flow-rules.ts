@@ -106,6 +106,11 @@ expect("gerçek soru → hocaya sor", decideOnStudentInput(questions, input()), 
 // Artık metin fonksiyona GEÇİRİLEMİYOR — aynı sayaçla her zaman aynı karar çıkmalı.
 expect("cevap sonrası → BEKLE", decideAfterTutorReply(questions, reply({ exchanges: 1 })), { kind: "wait", awaiting: "ask" });
 expect("2. cevap sonrası → BEKLE", decideAfterTutorReply(questions, reply({ exchanges: 2 })), { kind: "wait", awaiting: "ask" });
+// SAF ONAY (4 Kas 2026): "Yok, bu kadar yeterli." artık LLM'e gider; pencereyi
+// kapatan sunucunun YAPISAL windowDone'udur — hocanın cümlesi değil.
+expect("windowDone → ilerle", decideAfterTutorReply(questions, reply({ exchanges: 1, windowDone: true })), { kind: "advance" });
+expect("windowDone=false → bekle", decideAfterTutorReply(questions, reply({ exchanges: 1, windowDone: false })), { kind: "wait", awaiting: "ask" });
+expect("windowDone readiness'ta etkisiz → zaten ilerle", decideAfterTutorReply(readiness, reply({ exchanges: 1, windowDone: false })), { kind: "advance" });
 expect(
   `${MAX_BEAT_EXCHANGES}. turda → ilerle (sonsuz döngü kesilir)`,
   decideAfterTutorReply(questions, reply({ exchanges: MAX_BEAT_EXCHANGES })),
@@ -399,23 +404,32 @@ expect(
 // LLM'e gitti, hoca DERSİ BAŞTAN TANITTI (çifte selamlama). yes+proceed çelişki
 // DEĞİL, en doğal onaydır → proceed kazanır. "no" içeren çoklu eşleşme
 // belirsiz kalır (LLM karar verir).
-console.log("— classifyAck (içerme + çelişki koruması) —");
+// SAF ONAY KURALI (4 Kas 2026, CANLI HATA 3): "tamam ama yoruldum" proceed sayıldı,
+// "yoruldum" hiç duyulmadı. Artık sözün HER kelimesi bir onay ifadesine ait olmalı;
+// fazladan söz anlam taşır → null → LLM. CANLI HATA 1'in ("Yok, bu kadar yeterli.")
+// karşılığı artık yapısal windowDone (yukarıda); CANLI HATA 2'nin ("Merhaba, evet,
+// hazırım.") karşılığı konuşma motorunun hazır-mısın satırları + GREETING_RULE
+// (konuşma taramasında "merhaba"/"hello" vakaları) — çifte selam motorda kapalı.
+console.log("— classifyAck (saf onay + çelişki koruması) —");
 {
   const sets = {
-    yes: ["evet", "var", "yes", "i have a question"],
+    yes: ["evet", "var", "sorum var", "yes", "i have a question"],
     no: ["hayır", "yok", "sorum yok", "no"],
-    proceed: ["tamam", "hazırım", "devam", "ok", "ready"],
+    proceed: ["tamam", "hazırım", "devam", "ok", "ready", "i'm ready"],
   };
   const cases: Array<[string, ReturnType<typeof classifyAck>]> = [
-    ["Yok, bu kadar yeterli.", "no"],
-    ["Yok, başka sorum yok.", "no"],
-    ["no thanks that's all", "no"],
-    ["Evet, bir sorum var!", "yes"], // "evet" + "var" aynı sınıf — çelişki değil
+    ["tamam ama yoruldum", null], // CANLI HATA 3 — "yoruldum" yutulmamalı
+    ["Yok, bu kadar yeterli.", null], // LLM + windowDone kapatır
+    ["Yok, başka sorum yok.", null],
+    ["no thanks that's all", null],
+    ["Evet, bir sorum var!", null], // "bir" onay değil → hoca soruyu sormaya davet eder
+    ["Merhaba, evet, hazırım.", null], // selam + onay → hoca kısa karşılık verir, ders ilerler
     ["yes", "yes"],
+    ["evet sorum var", "yes"], // her kelime onay ifadesine ait
+    ["yok yok", "no"],
     ["Tamam, hazırım!", "proceed"],
-    ["Merhaba, evet, hazırım.", "proceed"], // CANLI HATA 2 — selamlamalı onay
-    ["yes, I'm ready", "proceed"], // aynı hatanın İngilizcesi
-    ["evet tamam", "proceed"], // yes+proceed = olumlu onay, çelişki değil (revize)
+    ["yes, I'm ready", "proceed"], // yes+proceed = olumlu onay, çelişki değil
+    ["evet tamam", "proceed"],
     ["yok tamam", null], // no+proceed GERÇEK çelişki → LLM karar versin
     ["Bu konuyu hiç anlamadım açıkçası ve tekrar ister misin", null], // >4 kelime
   ];

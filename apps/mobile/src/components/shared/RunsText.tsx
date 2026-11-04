@@ -1,10 +1,17 @@
 import { Text } from "react-native";
 import type { RichText } from "@glotmate/contracts";
 
-/** Ardışık parçalar bitişik yazılmasın ("başlayalım.Today" canlı hatası) */
+/**
+ * Ardışık parçalar bitişik yazılmasın ("başlayalım.Today" canlı hatası) — ama
+ * kapanış noktalaması ve kesmeyle başlayan ek bir öncekine YAPIŞIR: "saeb !",
+ * "are 'ı" ve "about . Are" görüntüleri buradan geliyordu. Açılış işaretinden
+ * ("(", "¿", "«") sonra da boşluk girmez. Kural noktalamaya bakar, dile değil.
+ */
 function needsSpace(prev: string | undefined, cur: string): boolean {
   if (!prev) return false;
-  return !/\s$/.test(prev) && !/^\s/.test(cur);
+  if (/\s$/.test(prev) || /^\s/.test(cur)) return false;
+  if (/^[.,!?;:…)\]}'’»”%]/.test(cur)) return false;
+  return !/[(\[{¿¡«“]$/.test(prev);
 }
 
 /**

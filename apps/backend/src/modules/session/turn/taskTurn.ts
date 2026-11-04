@@ -26,7 +26,7 @@ import {
 } from "./prompt.js";
 import type { LectureTurnInput, TaskTurnResult, TurnLlm } from "./types.js";
 
-export const TASK_TURN_VERSION = "task-turn.v1";
+export const TASK_TURN_VERSION = "task-turn.v2";
 
 type TaskBeat = Extract<CoreBeat, { kind: "exercise" | "open_response" }>;
 
@@ -66,7 +66,8 @@ function consequenceLines(beat: TaskBeat, input: LectureTurnInput): string[] {
   const flow = flowBeatOf(beat);
   const at = (v: TurnVerdict) => outcomeOfVerdict(flow, input.counters, v);
   const reveal = revealLine(beat);
-  const ends = `This task ENDS after your reply — the lesson moves on by itself, so do NOT invite another try.`;
+  // "Denemeye devam!" gibi bir teşvik de "tekrar dene" diye duyuluyor (tarama, 4 Kas)
+  const ends = `This task ENDS after your reply — the lesson moves on by itself, so do NOT invite another try (no "try again", no "keep trying").`;
   // Açık uçlu soruda ekranda okunacak bir CÜMLE yok — model "ekrandaki cümleyi
   // söyle" diyordu (tarama). Görev neyse adıyla anılır.
   const reAsked =
@@ -76,7 +77,9 @@ function consequenceLines(beat: TaskBeat, input: LectureTurnInput): string[] {
   const noAnswer = `Your reply must NOT contain the correct answer in any form (not the sentence, not the option letter, not a quote of it) — they still get to try.`;
   // CANLI TARAMA: "my'ı name'den önce, is'i sonra koy" düzeltmeyi harfiyen veriyordu;
   // "name kelimesine dikkat et" tek şıkkı yüzey ipucuyla gösteriyordu.
-  const hintRule = `A hint points at WHAT is wrong or missing and why ("a word is missing in the middle", "think about which helper verb goes with he") — it never spells out the fix word for word, and in multiple choice it never singles out an option by a surface clue ("look for the word X"). Explaining why their chosen option is wrong is good.`;
+  // Tarama (4 Kas): "kadınlardan bahsederken hangi yardımcı fiil" — yardımcı fiili
+  // cinsiyete bağlayan YANLIŞ gramer. İpucu gramer sebebini söyler (kişi, sayı, zaman).
+  const hintRule = `A hint points at WHAT is wrong or missing and why ("a word is missing in the middle", "think about which helper verb goes with he") — it never spells out the fix word for word, and in multiple choice it never singles out an option by a surface clue ("look for the word X"). The "why" is the grammar reason (person, number, tense, word order), never a meaning feature such as gender. Explaining why their chosen option is wrong is good.`;
 
   const wrong = at({ isAttempt: true, ok: false, surrendered: false });
   const giveUp = at({ isAttempt: true, ok: false, surrendered: true });
@@ -231,8 +234,9 @@ export async function runTaskTurn(
       /* yeniden üretim düşerse aşağıdaki son çare devreye girer */
     }
     if (leaksAnswer(runsToPlain(reply), answers)) {
-      // Son çare: sızan metin ASLA seslendirilmez. Görev istemcide zaten ekranda.
-      reply = [{ lang: "en", text: "Let's try once more." }];
+      // Son çare: sızan metin ASLA seslendirilmez. Görevi öğrencinin dilindeki
+      // yönergeyle yeniden okumak doğal bir "bir kez daha" olur (çağıran kurar).
+      reply = input.retryLine ?? [{ lang: "en", text: "Let's try once more." }];
     }
   }
 

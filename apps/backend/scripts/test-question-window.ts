@@ -145,11 +145,13 @@ const answer = await chatTurn(testUserId, sessionId, "Where do I put 'always' wi
 console.log("\n[öğrenci] Where do I put 'always' with 'be'?");
 console.log("[Emma]   ", answer.text);
 check("soru cevaplandı", answer.text.length > 0);
+// YAPISAL denetim (anahtar kelime değil — CLAUDE.md): örnek cümle ayrı bir `en`
+// parçasıdır ve hedef zarfı içerir. Eski sürüm "for example" gibi işaret kelimesi
+// arıyordu; "She is always on time." gibi çıplak örnekte yanlış negatif veriyordu.
 check(
-  "cevapta somut bir örnek cümle var",
-  /for example|you can say|e\.g\.|["“]/i.test(answer.text) &&
-    /\b(always|usually|never|often|sometimes)\b/i.test(answer.text),
-  "(örnek işareti + hedef zarf aranıyor)",
+  "cevapta somut bir örnek cümle var (hedef zarflı `en` parçası)",
+  (answer.runs ?? []).some((r) => r.lang === "en" && /\b(always|usually|never|often|sometimes)\b/i.test(r.text) && r.text.trim().split(/\s+/).length >= 3),
+  JSON.stringify(answer.runs),
 );
 // Model dersin kuralıyla ÇELİŞMEMELİ: 'be' ile zarf SONRA gelir.
 // (Anlatım maddeleri bağlama eklenmeden önce "before the verb 'be'" diyordu.)
@@ -183,10 +185,15 @@ check(
   !/\?\s*$/.test(closing.text.trim()),
   closing.text,
 );
+// 4 Kas 2026: son turda Emma alıştırmaları KENDİSİ DUYURMAZ — hemen ardından
+// uygulamanın `say` adımı ("Şimdi birkaç kısa soruyla pekiştirelim.") duyuruyor;
+// ikisi birlikte çifte duyuru oluyordu. Akış zaten ilerler (aşağıdaki karar).
 check(
-  "son turda alıştırmalara geçeceğini söylüyor",
-  /practice|question|exercise|move on|next/i.test(closing.text),
-  closing.text,
+  "son turdan sonra akış İLERLİYOR (tavan) — duyuruyu uygulama yapar",
+  decideAfterTutorReply(
+    { kind: "ask", purpose: "questions" },
+    { exchanges: 3, attempt: 0, beatDone: false },
+  ).kind === "advance",
 );
 
 // readiness beat'i regresyon: hâlâ soru SORMAMALI

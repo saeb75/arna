@@ -9,6 +9,8 @@ import {
   sessionPositionSchema,
   triageAnswer,
   type AnswerReview,
+  type ChromeBundle,
+  type CoreBeat,
   type LessonContentV7,
   type LessonCore,
   type LessonPhase,
@@ -45,9 +47,11 @@ import { resolveLesson, LayerError } from "../lesson/layers.js";
 import { extractSessionMemory } from "../memory/extract.js";
 import { buildMemoryBlock, MEMORY_RECALL_ENABLED } from "../memory/retrieve.js";
 import { renderSessionScript } from "./script.js";
+import { isPromptEcho } from "./sttEcho.js";
 import { appendToBeatLog, historyFor, runLectureTurn, type BeatLog, type Learner, type TurnLlm } from "./turn/index.js";
 import { runConversationTurn } from "./turn/conversation.js";
-import { replyRunsSchema } from "./turn/prompt.js";
+import { runInterjectionTurn } from "./turn/interjection.js";
+import { OPTION_LETTERS, replyRunsSchema } from "./turn/prompt.js";
 import { roleplayDebrief, roleplayTurn, type RoleplayDebrief } from "../roleplay/service.js";
 
 export class SessionError extends Error {
@@ -195,6 +199,8 @@ export async function openSession(userId: string, catalogLessonId: string) {
     memoryBlock,
     userId,
     sessionId,
+    // Ders adı İNGİLİZCE (katalog başlığı) — kullanıcı kararı 4 Kas 2026
+    lessonTitle: content.titleEn,
   });
 
   await db
@@ -280,7 +286,7 @@ export async function resumeLesson(
         text: r.text,
         runs: (r.runs as RichText | null) ?? null,
         phase: r.phase,
-        source: (r.source as "chat" | "script") ?? "chat",
+        source: r.source === "script" || r.source === "failed" ? r.source : "chat",
       })),
     },
   };
@@ -437,6 +443,33 @@ export interface ChatOptions {
    * akış ilerliyor ve ders kendiyle çelişiyor (canlı görülen hata).
    */
   lastExchange?: boolean;
+  /**
+   * ARAYA GİRME: öğrenci, hoca cevap BEKLEMEYEN bir şey söylerken (anlatım, geçiş,
+   * övgü) söz aldı; istemci sesi durdurdu ve kısa cevaptan sonra dersi kaldığı yerden
+   * sürdürecek. Söz hiçbir görevin cevabı DEĞİLDİR (bkz. turn/interjection.ts).
+   */
+  interjection?: boolean;
+  /** Sözü kesildiğinde hocanın ekrandaki son cümlesi (araya girmenin bağlamı) */
+  interruptedText?: string;
+}
+
+/**
+ * Cevap sızıntısının son çaresi: görevi öğrencinin dilindeki yönergeyle yeniden
+ * okumak. Eskiden sabit İngilizce "Let's try once more." native modda da okunuyordu.
+ */
+function retryLineFor(beat: CoreBeat, chrome: ChromeBundle, native: boolean): RichText | undefined {
+  if (beat.kind !== "exercise") return undefined;
+  const label =
+    beat.format === "fill_blank"
+      ? chrome.labels.exerciseFillBlank
+      : beat.format === "mcq"
+        ? chrome.labels.exerciseMcq
+        : chrome.labels.exerciseSaySentence;
+  return [
+    { lang: native ? "l1" : "en", text: label },
+    { lang: "en", text: beat.item },
+    ...(beat.options ?? []).map((o, i) => ({ lang: "en" as const, text: `${OPTION_LETTERS[i]}) ${o}` })),
+  ];
 }
 
 
@@ -472,7 +505,8 @@ async function lectureTurn(a: {
   learner: Learner;
   surrenderTokens: readonly string[];
   askedLine: string;
-}): Promise<{ text: string; runs: RichText; segmentDone: boolean; beatDone?: boolean; isAttempt?: boolean }> {
+  retryLine?: RichText;
+}): Promise<{ text: string; runs: RichText; segmentDone: boolean; beatDone?: boolean; isAttempt?: boolean; windowDone?: boolean }> {
   const history = historyFor(a.state?.beatLog, a.beatId);
   // Sayaçlar istemciden (akışı o yürütür). Eski istemci `exchanges` göndermez:
   // son-tur bayrağından ya da adım kaydındaki öğrenci turlarından türetilir.
@@ -505,6 +539,7 @@ async function lectureTurn(a: {
       surrenderTokens: a.surrenderTokens,
       askedLine: a.askedLine || undefined,
       lastExchange: a.opts.lastExchange,
+      retryLine: a.retryLine,
     },
     llm,
   );
@@ -528,26 +563,110 @@ async function lectureTurn(a: {
     .set({ state: sql`coalesce(${sessions.state}, '{}'::jsonb) || ${JSON.stringify({ beatLog })}::jsonb` })
     .where(eq(sessions.id, a.sessionId));
 
-  return out.task
-    ? { text: plain, runs: out.reply, segmentDone: false, beatDone: out.task.beatDone, isAttempt: out.task.isAttempt }
+  if (out.task) {
+    return { text: plain, runs: out.reply, segmentDone: false, beatDone: out.task.beatDone, isAttempt: out.task.isAttempt };
+  }
+  return out.windowDone !== undefined
+    ? { text: plain, runs: out.reply, segmentDone: false, windowDone: out.windowDone }
     : { text: plain, runs: out.reply, segmentDone: false };
 }
 
-export async function chatTurn(
-  userId: string,
-  sessionId: string,
-  text: string,
-  opts: ChatOptions = {},
-): Promise<{
+/**
+ * Araya girme turu — öğrenci hoca cevap beklemeyen bir şey söylerken söz aldı.
+ * Bağlam sunucunun kendi transkriptinden (son lecture satırları; istemcinin
+ * logladığı script satırları dahil); söz hiçbir görevin cevabı sayılmaz, beatLog'a
+ * yazılmaz. Akış kararı yok: ders bu cevaptan sonra kaldığı yerden sürer.
+ */
+async function interjectionTurn(a: {
+  userId: string;
+  sessionId: string;
+  text: string;
+  core: LessonCore;
+  beatId?: string;
+  learner: Learner;
+  interruptedText?: string;
+}): Promise<{ text: string; runs: RichText; segmentDone: boolean }> {
+  const rows = await db
+    .select({ role: transcriptTurns.role, text: transcriptTurns.text, source: transcriptTurns.source })
+    .from(transcriptTurns)
+    .where(and(eq(transcriptTurns.sessionId, a.sessionId), eq(transcriptTurns.phase, "lecture")))
+    .orderBy(desc(transcriptTurns.id))
+    .limit(8);
+  const recent = rows
+    .reverse()
+    .filter((r) => r.source !== "failed")
+    .map((r) => ({ role: r.role === "user" ? ("student" as const) : ("tutor" as const), text: r.text }));
+
+  const llm: TurnLlm = (req) =>
+    completeJson({
+      purpose: "chat",
+      system: req.system,
+      user: req.user,
+      schema: req.schema,
+      promptVersion: req.promptVersion,
+      userId: a.userId,
+      sessionId: a.sessionId,
+      maxTokens: req.maxTokens,
+      temperature: req.temperature,
+    });
+
+  const t0 = Date.now();
+  const out = await runInterjectionTurn(
+    {
+      core: a.core,
+      beatId: a.beatId ?? "",
+      learner: a.learner,
+      recent,
+      studentText: a.text,
+      interruptedText: a.interruptedText,
+    },
+    llm,
+  );
+  const plain = runsToPlain(out.reply);
+  await db.insert(transcriptTurns).values([
+    { sessionId: a.sessionId, role: "user", text: a.text, phase: "lecture" },
+    { sessionId: a.sessionId, role: "assistant", text: plain, runs: out.reply, phase: "lecture", latencyMs: Date.now() - t0 },
+  ]);
+  return { text: plain, runs: out.reply, segmentDone: false };
+}
+
+type ChatTurnResult = {
   text: string;
   runs?: RichText;
   segmentDone: boolean;
   beatDone?: boolean;
   isAttempt?: boolean;
+  windowDone?: boolean;
   /** Roleplay oturumlarında dolu — ders istemcisi bunları yok sayar (geriye uyumlu) */
   progress?: { done: number; total: number };
   newHits?: Array<{ objectiveId: string; evidence: string }>;
-}> {
+};
+
+/**
+ * Sohbet turu. Başarısız tur artık KAYDA GEÇER: eskiden sunucu öğrenci ve hoca
+ * satırını yalnız LLM başarılı olunca yazıyordu; kredi biten, zaman aşımına düşen
+ * her tur iz bırakmadan kayboluyor, "hoca cevap vermedi" anları admin'de görünmüyordu.
+ * Öğrencinin sözü `source: "failed"` ile yazılır, hata yine fırlatılır (istemci
+ * öğrenciye "alınamadı, tekrar dener misin" der). SessionError'lar (sahiplik,
+ * kapalı oturum) iş kuralıdır — kaydedilmez.
+ */
+export async function chatTurn(userId: string, sessionId: string, text: string, opts: ChatOptions = {}): Promise<ChatTurnResult> {
+  try {
+    return await chatTurnInner(userId, sessionId, text, opts);
+  } catch (err) {
+    if (!(err instanceof SessionError)) {
+      console.error(`[chat] tur cevaplanamadı (session ${sessionId}):`, err instanceof Error ? err.message : err);
+      try {
+        await db.insert(transcriptTurns).values({ sessionId, role: "user", text, phase: opts.phase ?? "lecture", source: "failed" });
+      } catch {
+        /* kayıt da düştüyse (DB) yapılacak bir şey yok — asıl hata yine istemciye gider */
+      }
+    }
+    throw err;
+  }
+}
+
+async function chatTurnInner(userId: string, sessionId: string, text: string, opts: ChatOptions): Promise<ChatTurnResult> {
   const owned = await getOwnedSession(userId, sessionId);
   if (!owned) throw new SessionError("not_found", "Oturum bulunamadı");
   if (owned.session.endedAt) throw new SessionError("session_ended", "Oturum kapatılmış");
@@ -580,6 +699,29 @@ export async function chatTurn(
   // beatId aktif çekirdekte doğrulanır; yanlış/bayat kimlik genel yola düşer.
   const activeBeat =
     phase === "lecture" && core ? core.lecture.beats.find((b) => b.id === opts.beatId) : undefined;
+  const learner: Learner = {
+    name: profile?.displayName ?? "Student",
+    cefrLevel: profile?.cefrLevel ?? "A2",
+    nativeLanguage,
+    l1Name: languageName(nativeLanguage),
+    tutorLanguage,
+  };
+
+  // ARAYA GİRME — öğrenci hoca cevap beklemeyen bir şey söylerken söz aldı. Hangi
+  // adımda olunursa olunsun söz hiçbir görevin CEVABI sayılmaz (eskiden sonraki
+  // görevin cevabı sanılıyordu); kısa cevap, ders kaldığı yerden sürer.
+  if (opts.interjection && phase === "lecture" && core) {
+    return await interjectionTurn({
+      userId,
+      sessionId,
+      text,
+      core,
+      beatId: activeBeat?.id,
+      learner,
+      interruptedText: opts.interruptedText,
+    });
+  }
+
   if (core && activeBeat && (activeBeat.kind === "exercise" || activeBeat.kind === "open_response" || activeBeat.kind === "ask")) {
     return await lectureTurn({
       userId,
@@ -589,15 +731,10 @@ export async function chatTurn(
       core,
       beatId: activeBeat.id,
       state,
-      learner: {
-        name: profile?.displayName ?? "Student",
-        cefrLevel: profile?.cefrLevel ?? "A2",
-        nativeLanguage,
-        l1Name: languageName(nativeLanguage),
-        tutorLanguage,
-      },
+      learner,
       surrenderTokens: chrome.surrender,
       askedLine: runsToPlain(script?.beats[activeBeat.id]),
+      retryLine: retryLineFor(activeBeat, chrome, tutorLanguage === "native" && chrome.language !== "en"),
     });
   }
 
@@ -682,13 +819,7 @@ export async function chatTurn(
             phase,
             core,
             scene,
-            learner: {
-              name: profile?.displayName ?? "Student",
-              cefrLevel: profile?.cefrLevel ?? "A2",
-              nativeLanguage,
-              l1Name: languageName(nativeLanguage),
-              tutorLanguage,
-            },
+            learner,
             occupation: profile?.occupation ?? null,
             interests: Array.isArray(profile?.interests) ? (profile.interests as string[]) : [],
             memoryBlock,
@@ -793,12 +924,14 @@ export async function tts(
       console.warn(`[tts] "${native}" ${active.provider.name} kapsamı dışı — L1 parçaları sessiz bırakıldı`);
     }
 
-    // Tek-klip sağlayıcıda L1 düzyazının içindeki İngilizce anmalar ("am, is veya
-    // are'ı") çekirdek sözlüğüyle kendi `en` parçasına ayrılır → SSML'de doğru dil.
-    // Dil-başına-klip yolunda YAPILMAZ: mikro klipler prosodiyi parçalar.
-    const source = active.provider.synthesizeRuns
-      ? refineRunsForInlineEnglish(runs, owned.core, getChrome(native))
-      : runs;
+    // Dili PARÇA ETİKETİNDEN okuyan tek-klip sağlayıcıda (Azure SSML) L1 düzyazının
+    // içindeki İngilizce anmalar ("am, is veya are'ı") çekirdek sözlüğüyle kendi `en`
+    // parçasına ayrılır → SSML'de doğru dil. Tam cümle okuyan sağlayıcıda (ElevenLabs)
+    // gereksiz — dili bağlamdan kendisi çıkarır; dil-başına-klip yolunda da YAPILMAZ.
+    const source =
+      active.provider.synthesizeRuns && active.provider.languageTags
+        ? refineRunsForInlineEnglish(runs, owned.core, getChrome(native))
+        : runs;
 
     const coded: TtsRun[] = [];
     for (const run of source) {
@@ -868,13 +1001,20 @@ export async function stt(
     .where(eq(userProfiles.userId, userId))
     .limit(1);
   const l1 = languageName(nativeLanguageOf(profile));
+  const prompt = `The speaker is learning English; their native language is ${l1}. They speak English, sometimes ${l1}.`;
 
   try {
     const result = await openaiClient.audio.transcriptions.create({
       file: await toFile(buffer, `speech.${ext}`, { type: mimetype }),
       model: "gpt-4o-mini-transcribe",
-      prompt: `The speaker is learning English; their native language is ${l1}. They speak English, sometimes ${l1}.`,
+      prompt,
     });
+    // Sessiz/kısa kayıtta model ipucunu geri okuyabiliyor — öğrenci sözü DEĞİL, boş say
+    // (istemci "seni duyamadım" der; hoca uydurma söze cevap vermez).
+    if (isPromptEcho(result.text, prompt)) {
+      console.warn(`[stt] ipucu yankısı elendi (session ${sessionId}): ${result.text.slice(0, 80)}`);
+      return { text: "" };
+    }
     return { text: result.text };
   } catch (err) {
     throw new SessionError(

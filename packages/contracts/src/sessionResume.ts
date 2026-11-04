@@ -28,6 +28,9 @@ export const sessionPositionSchema = z.object({
 });
 export type SessionPosition = z.infer<typeof sessionPositionSchema>;
 
+export const TRANSCRIPT_SOURCES = ["chat", "script", "failed"] as const;
+export type TranscriptSource = (typeof TRANSCRIPT_SOURCES)[number];
+
 /** Devam görünümünde ve admin panelde kullanılan transkript satırı */
 export const transcriptTurnSchema = z.object({
   id: z.number().int(),
@@ -35,8 +38,12 @@ export const transcriptTurnSchema = z.object({
   text: z.string(),
   runs: richTextSchema.nullable(),
   phase: z.string().nullable(),
-  /** chat = sunucu LLM yolu · script = istemcinin logladığı script/deterministik satır */
-  source: z.enum(["chat", "script"]),
+  /**
+   * chat = sunucu LLM yolu · script = istemcinin logladığı script/deterministik satır ·
+   * failed = sunucuya ulaşan ama cevaplanamayan öğrenci sözü (LLM hatası). Eskiden
+   * başarısız tur HİÇ yazılmıyordu; "hoca cevap vermedi" anları kayıtta görünmüyordu.
+   */
+  source: z.enum(TRANSCRIPT_SOURCES),
 });
 export type TranscriptTurn = z.infer<typeof transcriptTurnSchema>;
 

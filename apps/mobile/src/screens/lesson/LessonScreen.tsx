@@ -4,6 +4,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MessageBubble } from "../../components/shared/MessageBubble";
+import { NoticeBar } from "../../components/shared/NoticeBar";
 import { CtaButton } from "../../components/ui/CtaButton";
 import { LoadFailed } from "../../components/ui/LoadFailed";
 import { Skeleton } from "../../components/ui/Skeleton";
@@ -36,7 +37,7 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
   const insets = useSafeAreaInsets();
   const {
     lesson, loadError, started, phase, beatIndex, awaiting, practiceTurn, avatarId,
-    messages, promptMessageId, hint, speaking, recording, busy, grace, resume,
+    messages, promptMessageId, hint, notice, speaking, recording, busy, grace, resume,
   } = useLessonSessionStore();
   const scrollRef = useRef<ScrollView>(null);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
@@ -101,7 +102,8 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
   if (!started) {
     return (
       <LessonStart
-        title={lesson.title}
+        // Ders adı İngilizce (katalog başlığı) — ders yolundaki adla aynı (4 Kas 2026 kararı)
+        title={lesson.titleEn}
         theme={lesson.theme}
         hasResume={!!resume}
         busy={busy}
@@ -170,6 +172,7 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
       </ScrollView>
 
       {hint && <HintCard hint={hint} label={lesson.ui.labels.hint} />}
+      {notice && <NoticeBar text={notice} />}
       {phase === "wrapup" && (
         <Animated.View entering={FadeInDown.duration(320)} className="px-4 pb-1 pt-2">
           <CtaButton label={tr.lesson.finish} onPress={() => void LessonSessionController.finish()} />

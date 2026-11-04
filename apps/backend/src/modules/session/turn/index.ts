@@ -12,6 +12,8 @@ export interface LectureTurnOutput {
   reply: RichText;
   /** Soru bekleyen adımlarda (alıştırma / açık uçlu) yapısal hüküm; ask adımında yok */
   task?: TaskTurnResult;
+  /** Soru penceresi: öğrencinin sorusu kalmadı (yapısal) — contracts windowDone */
+  windowDone?: boolean;
 }
 
 /**
@@ -27,7 +29,7 @@ export async function runLectureTurn(input: LectureTurnInput, llm: TurnLlm): Pro
   }
   if (beat.kind === "ask") {
     const out = await runAskTurn(input, beat, llm);
-    return { reply: out.reply };
+    return beat.purpose === "questions" ? { reply: out.reply, windowDone: out.done ?? false } : { reply: out.reply };
   }
   return null;
 }

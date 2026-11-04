@@ -11,6 +11,7 @@ import { azureProvider } from "./azure.js";
 import { elevenlabsProvider } from "./elevenlabs.js";
 import { inworldProvider } from "./inworld.js";
 import { getTtsSettings, invalidateTtsSettingsCache, saveTtsSettings } from "./settings.js";
+import { speakableText } from "./speakable.js";
 import { TtsError, type SynthesizeResult, type TtsProvider, type TtsRun } from "./types.js";
 
 export { TtsError } from "./types.js";
@@ -134,9 +135,12 @@ export async function synthesizeRunsClip(active: ActiveTts, runs: TtsRun[]): Pro
  */
 export async function synthesizeRunsToClips(
   active: ActiveTts,
-  runs: TtsRun[],
+  rawRuns: TtsRun[],
   maxCharsPerClip = 600,
 ): Promise<Array<SynthesizeResult & { lang: string }>> {
+  // Ekrandaki metin değişmez; sağlayıcıya seslendirilebilir kopya gider
+  // ("___" → durak, "hello / my name is" → virgül — "slash"/"underscore" okunuyordu)
+  const runs = rawRuns.map((r) => ({ ...r, text: speakableText(r.text) })).filter((r) => r.text);
   if (runs.length === 0) return [];
   if (active.provider.synthesizeRuns) {
     const clip = await synthesizeRunsClip(active, runs);

@@ -46,6 +46,9 @@ let generation = 0;
  */
 let current: { settle: () => void; abandon: () => void } | null = null;
 
+/** Kayıt sonucu: metin, boş (ses yok / çok kısa / STT yankısı) ya da başarısız istek */
+export type SttResult = { kind: "text"; text: string } | { kind: "empty" } | { kind: "failed" };
+
 /**
  * Watchdog süre tahmini için bit hızı TABANI. Sağlayıcıların mp3'leri bunun
  * üstünde (Azure 48k, ElevenLabs 128k, Inworld varsayılan) — taban düşük
@@ -81,8 +84,10 @@ export const VoiceService = {
   /**
    * Parçaları seslendir; ses bitince (ya da TTS düşünce) onEnd — TAM BİR KEZ.
    * Sunucu ardışık aynı-dil parçaları tek klipte birleştirir; klipler sırayla çalar.
+   * `onFail`: TTS isteği düştü (akış yine ilerler) — çağıran öğrenciye "ses şu an
+   * çalınamıyor" der; eskiden Emma sebepsizce susuyordu.
    */
-  async speak(sessionId: string, runs: RichText, onEnd: () => void): Promise<void> {
+  async speak(sessionId: string, runs: RichText, onEnd: () => void, onFail?: () => void): Promise<void> {
     // SIRA KRİTİK: önce eskiyi sustur (generation++ yapar), SONRA bu konuşmanın
     // neslini al. İlk sürüm tersini yapıyordu ve kendi neslini anında geçersiz
     // kılıyordu — TTS cevabı gelir gelmez `gen !== generation` tutuyor, klipler
@@ -116,6 +121,7 @@ export const VoiceService = {
       clips = (res.data as { clips: AvatarClip[] }).clips ?? [];
     } catch {
       // TTS düştü — metin ekranda, akış İLERLEMELİ (ders kilidi kök hatası)
+      if (gen === generation) onFail?.();
       settle();
       return;
     }
@@ -299,8 +305,13 @@ export const VoiceService = {
     return attempt;
   },
 
-  /** Kaydı durdur, STT'ye gönder, metni döndür. Kısa/boş kayıtta null — hak yemez. */
-  async stopRecording(sessionId: string): Promise<string | null> {
+  /**
+   * Kaydı durdur, STT'ye gönder. Sonuç ÜÇ türlü — eskiden `null` hem "boş" hem
+   * "hata" demekti ve ikisi de sessizce yutuluyordu: öğrenci konuşuyor, hiçbir şey
+   * olmuyordu. `empty` = ses yok/çok kısa (STT de ipucu yankısını boş döner),
+   * `failed` = istek düştü. İkisi de hak yemez; çağıran öğrenciye ne olduğunu söyler.
+   */
+  async stopRecording(sessionId: string): Promise<SttResult> {
     // Parmak, startRecording'in hazırlığından önce kalktıysa hazırlığı bekle —
     // yoksa currentRecorder hâlâ null ve mikrofon açık kalır.
     if (startPromise) {
@@ -312,7 +323,7 @@ export const VoiceService = {
     if (!recorder) {
       // Kayıt hiç kurulamadı ama mod açılmış olabilir — geri al (bkz. init()).
       await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false }).catch(() => {});
-      return null;
+      return { kind: "empty" };
     }
     try {
       await recorder.stop();
@@ -321,7 +332,7 @@ export const VoiceService = {
       const uri = recorder.uri;
       if (!uri) {
         console.warn("[voice] kayıt durdu ama dosya URI'si yok");
-        return null;
+        return { kind: "failed" };
       }
 
       const form = new FormData();
@@ -332,14 +343,14 @@ export const VoiceService = {
       });
       const text = (res.data as { text?: string }).text?.trim();
       if (!text) console.warn("[voice] STT boş metin döndürdü — mikrofona ses gitmiyor olabilir (simülatörde Mac mikrofon girişini kontrol et)");
-      // Sessizlikte STT "." / "..." döndürebiliyor — boş sayılır (null hak yemez,
+      // Sessizlikte STT "." / "..." döndürebiliyor — boş sayılır (hak yemez,
       // releaseMic kuyruktaki sözü teslim eder)
-      return text && hasWordContent(text) ? text : null;
+      return text && hasWordContent(text) ? { kind: "text", text } : { kind: "empty" };
     } catch (err) {
       // audio_too_short dahil hak yemez; ama SEBEBİ terminalde görünsün
       const e = err as { response?: { status?: number; data?: unknown }; message?: string };
       console.warn("[voice] STT gönderimi başarısız:", e.response?.status ?? "", e.response?.data ?? e.message ?? err);
-      return null;
+      return { kind: "failed" };
     }
   },
 

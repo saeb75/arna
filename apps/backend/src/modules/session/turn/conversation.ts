@@ -15,7 +15,7 @@ import type { Learner, TurnLlm } from "./types.js";
  * çağrıdan ÖNCE kodda bellidir (`closesNow`) ve modele kesin söylenir.
  */
 
-export const CONVERSATION_TURN_VERSION = "conversation-turn.v1";
+export const CONVERSATION_TURN_VERSION = "conversation-turn.v2";
 
 const chatVerdictSchema = z.object({
   reply: replyRunsSchema,
@@ -61,6 +61,7 @@ function wrapupContext(core: LessonCore, scene: SceneVariant): string {
     `- A question: answer it in 1-3 short sentences, with ONE concrete example if it helps, then ask whether there is anything else.`,
     `- Thanks, goodbye or "no more questions": a warm, short closing line — vary your words, never repeat a line you already said in this chat.`,
     `- Something unrelated or unclear: answer in one clause (or say gently you didn't catch it) and bring it back to today's lesson.`,
+    `- They ask for another exercise, more practice or a new activity: say warmly that today's practice is done and they can practise more in the next lesson (or by doing this one again), and that you're happy to answer any question about today's topic.`,
     `Never start a new exercise, activity or role play. Don't re-teach the whole topic. Don't announce that the lesson is ending or closing (this chat stays open as long as they like), never tell them to press a button or mention the app's interface.`,
   ].join("\n");
 }

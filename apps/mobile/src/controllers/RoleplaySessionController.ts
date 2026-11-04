@@ -35,6 +35,9 @@ import { RoleplayController } from "./RoleplayController";
 
 const GRACE_MS = 500;
 let graceTimer: ReturnType<typeof setTimeout> | null = null;
+/** Sistem uyarısı (NoticeBar) ekranda bu kadar kalır; yeni girdi onu hemen siler */
+const NOTICE_MS = 7_000;
+let noticeTimer: ReturnType<typeof setTimeout> | null = null;
 let seq = 0;
 const nextId = () => `r${++seq}`;
 const runsText = (runs: RichText) => runs.map((r) => r.text).join(" ");
@@ -42,6 +45,22 @@ const runsText = (runs: RichText) => runs.map((r) => r.text).join(" ");
 export class RoleplaySessionController {
   private static store() {
     return useRoleplaySessionStore.getState();
+  }
+
+  /**
+   * Kısa sistem uyarısı — STT/sohbet/ses aksadığında. Eskiden bu anlar sessizdi
+   * (söz ekranda kalıyor, persona susuyordu, öğrenci nedenini bilmiyordu).
+   */
+  private static notify(text: string): void {
+    this.store().set({ notice: text });
+    if (noticeTimer) clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(() => this.store().set({ notice: null }), NOTICE_MS);
+  }
+
+  private static clearNotice(): void {
+    if (noticeTimer) clearTimeout(noticeTimer);
+    noticeTimer = null;
+    if (this.store().notice) this.store().set({ notice: null });
   }
 
   private static pushPersona(runs: RichText): void {
@@ -55,10 +74,15 @@ export class RoleplaySessionController {
     const { session, stopped } = this.store();
     if (stopped || !session) return;
     this.store().set({ speaking: true, awaiting: false });
-    void VoiceService.speak(session.sessionId, runs, () => {
-      if (this.store().stopped) return;
-      this.store().set({ speaking: false, awaiting: true });
-    });
+    void VoiceService.speak(
+      session.sessionId,
+      runs,
+      () => {
+        if (this.store().stopped) return;
+        this.store().set({ speaking: false, awaiting: true });
+      },
+      () => this.notify(tr.notice.audioFailed),
+    );
   }
 
   /** Oyun ekranı açılışı: aktif avatar + ses hazırlığı (oturum burada AÇILMAZ — "Başla"da açıldı) */
@@ -115,6 +139,7 @@ export class RoleplaySessionController {
     const { session, busy, stopped, phase } = this.store();
     // Yalnız noktalama boş girdidir — sunucu da reddeder (bkz. hasWordContent)
     if (!hasWordContent(t) || !session || busy || stopped || phase !== "playing") return;
+    this.clearNotice();
     if (this.store().speaking) VoiceService.skipSpeaking(); // söz kesme
     this.store().push({ id: nextId(), role: "user", text: t });
     this.store().set({ busy: true, awaiting: false });
@@ -133,7 +158,9 @@ export class RoleplaySessionController {
       this.pushPersona(runs);
       this.speak(runs);
     } catch {
-      // Aktarım hatası: söz ekranda kalır, öğrenci yeniden deneyebilir — akış kilitlenmez
+      // Aktarım hatası: söz ekranda kalır, öğrenci yeniden deneyebilir — akış kilitlenmez.
+      // Artık SÖYLENİR: eskiden persona sebepsizce susuyordu.
+      if (!this.store().stopped) this.notify(tr.notice.replyFailed);
       this.store().set({ awaiting: true });
     } finally {
       this.store().set({ busy: false });
@@ -143,19 +170,26 @@ export class RoleplaySessionController {
   static async pressMic(): Promise<void> {
     const { busy, stopped, phase } = this.store();
     if (busy || stopped || phase !== "playing") return;
+    this.clearNotice();
     if (this.store().speaking) VoiceService.skipSpeaking();
     // Bayrak BASIŞ ANINDA (ders dersi: kısa basışta await sonrası kurulan bayrak kaçıyordu)
     this.store().set({ recording: true });
     const ok = await VoiceService.startRecording();
-    if (!ok) this.store().set({ recording: false });
+    if (!ok) {
+      this.store().set({ recording: false });
+      this.notify(tr.notice.sttFailed);
+    }
   }
 
   static async releaseMic(): Promise<void> {
     const { session, recording } = this.store();
     this.store().set({ recording: false });
     if (!session || !recording) return;
-    const text = await VoiceService.stopRecording(session.sessionId);
-    if (text) await this.say(text);
+    const result = await VoiceService.stopRecording(session.sessionId);
+    if (this.store().stopped) return;
+    if (result.kind === "text") return void (await this.say(result.text));
+    // Boş ya da başarısız kayıt hak yemez — ama artık sessiz değil
+    this.notify(result.kind === "failed" ? tr.notice.sttFailed : tr.notice.didntHear);
   }
 
   /**

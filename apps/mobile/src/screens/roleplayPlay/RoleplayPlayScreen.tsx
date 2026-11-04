@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AvatarStage } from "../../components/shared/AvatarStage";
 import { InputDock } from "../../components/shared/InputDock";
 import { MessageBubble } from "../../components/shared/MessageBubble";
+import { NoticeBar } from "../../components/shared/NoticeBar";
 import { RoleplaySessionController } from "../../controllers/RoleplaySessionController";
 import { tr } from "../../i18n/tr";
 import { useRoleplaySessionStore } from "../../stores/useRoleplaySessionStore";
@@ -90,6 +91,8 @@ export function RoleplayPlayScreen({ slug }: { slug: string }) {
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => <MessageBubble role={item.role} text={item.text} runs={item.runs} plain />}
       />
+
+      {s.notice && <NoticeBar text={s.notice} />}
 
       <InputDock
         locked={locked}

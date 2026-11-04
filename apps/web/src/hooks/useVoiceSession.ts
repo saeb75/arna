@@ -234,6 +234,8 @@ export function useVoiceSession(sessionId: string | null) {
       beatDone: boolean;
       /** Alıştırma/açık uçlu adımda: öğrencinin sözü cevap denemesi miydi? */
       isAttempt: boolean;
+      /** Soru penceresi: öğrencinin sorusu kalmadı (yapısal) → pencere kapanır */
+      windowDone: boolean;
       /** Roleplay oturumlarında dolu — ders sayfası bunları yok sayar */
       progress?: { done: number; total: number };
       newHits?: Array<{ objectiveId: string; evidence: string }>;
@@ -249,6 +251,7 @@ export function useVoiceSession(sessionId: string | null) {
           segmentDone?: boolean;
           beatDone?: boolean;
           isAttempt?: boolean;
+          windowDone?: boolean;
           progress?: { done: number; total: number };
           newHits?: Array<{ objectiveId: string; evidence: string }>;
         }>(
@@ -270,6 +273,7 @@ export function useVoiceSession(sessionId: string | null) {
           beatDone: data.beatDone === true,
           // Sunucu bu alanı yollamadıysa (ask/practice turları) deneme sayılır
           isAttempt: data.isAttempt !== false,
+          windowDone: data.windowDone === true,
           progress: data.progress,
           newHits: data.newHits,
         };

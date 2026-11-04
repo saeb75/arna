@@ -32,6 +32,10 @@ const chatBody = z.object({
   exchanges: z.number().int().min(0).max(20).optional(),
   /** Soru penceresinin son turu — hoca kapanış yapar, yeni soru davet etmez */
   lastExchange: z.boolean().optional(),
+  /** Öğrenci hoca cevap beklemeyen bir şey söylerken söz aldı (araya girme) */
+  interjection: z.boolean().optional(),
+  /** Sözü kesildiğinde hocanın ekrandaki son cümlesi — yalnız bağlam */
+  interruptedText: z.string().max(2000).optional(),
 });
 /**
  * v7: dil etiketli parçalar; toplam uzunluk tavanı parça BAŞINA değil TOPLAMDA.
@@ -155,6 +159,8 @@ export default async function sessionRoutes(app: FastifyInstance) {
           attempt: body.data.attempt ?? 0,
           exchanges: body.data.exchanges,
           lastExchange: body.data.lastExchange ?? false,
+          interjection: body.data.interjection ?? false,
+          interruptedText: body.data.interruptedText,
         });
       } catch (err) {
         return sendError(reply, err);
