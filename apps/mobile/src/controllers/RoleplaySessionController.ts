@@ -8,13 +8,12 @@ import {
 } from "@glotmate/contracts";
 import { Alert } from "react-native";
 import { router } from "expo-router";
-import { api, errorCode, quotaKindOf } from "../api";
+import { api, errorCode } from "../api";
 import { tr } from "../i18n/tr";
 import { VoiceService } from "../lib/voice";
 import { HapticsService } from "../services/HapticsService";
 import { useRoleplaySessionStore } from "../stores/useRoleplaySessionStore";
 import { MeController } from "./MeController";
-import { PaywallController } from "./PaywallController";
 import { RoleplayController } from "./RoleplayController";
 
 /**
@@ -115,18 +114,12 @@ export class RoleplaySessionController {
         phase: "playing",
         done: Object.fromEntries(session.objectives.map((o) => [o.id, false])),
       });
-      void MeController.load(); // kota göstergesi tazelensin
       router.push(`/roleplay/${slug}/play`);
       const opening: RichText = [{ lang: "en", text: session.opening }];
       this.pushPersona(opening);
       this.speak(opening);
     } catch (err) {
       this.store().set({ phase: "idle" });
-      if (quotaKindOf(err)) {
-        void MeController.load();
-        PaywallController.open("quota_roleplay");
-        return;
-      }
       this.store().set({ error: errorCode(err) });
     } finally {
       this.store().set({ busy: false });

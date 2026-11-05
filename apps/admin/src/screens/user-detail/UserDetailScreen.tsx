@@ -9,7 +9,6 @@ import { CostCard } from "@/screens/user-detail/CostCard";
 import { MemoriesCard } from "@/screens/user-detail/MemoriesCard";
 import { ProfileCard } from "@/screens/user-detail/ProfileCard";
 import { ProgressCard } from "@/screens/user-detail/ProgressCard";
-import { QuotaCard } from "@/screens/user-detail/QuotaCard";
 import { SubscriptionCard } from "@/screens/user-detail/SubscriptionCard";
 import { UserDetailHeader } from "@/screens/user-detail/UserDetailHeader";
 import { UserDetailSkeleton } from "@/screens/user-detail/UserDetailSkeleton";
@@ -36,10 +35,7 @@ export function UserDetailScreen({ userId }: { userId: string }) {
         <ProfileCard user={detail.user} profile={detail.profile} />
         <CostCard cost={detail.cost} />
       </div>
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <SubscriptionCard userId={userId} entitlement={detail.entitlement} busy={proBusy} />
-        <QuotaCard quota={detail.quota} />
-      </div>
+      <SubscriptionCard userId={userId} entitlement={detail.entitlement} busy={proBusy} />
       <ProgressCard progress={detail.progress} />
       <UserSessionsCard userId={userId} />
       <div className="grid gap-4 lg:grid-cols-2">

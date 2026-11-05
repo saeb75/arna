@@ -25,7 +25,6 @@ import {
   userProfiles,
 } from "../../db/schema.js";
 import { ADMIN_GRANT_FOREVER, setAdminGrant, viewOf } from "../billing/entitlements.js";
-import { getQuota } from "../billing/quota.js";
 import { AdminError } from "./queries.js";
 
 /**
@@ -259,7 +258,6 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
       byPurpose: costByPurpose.map((r) => ({ purpose: r.purpose, calls: r.calls, usd: num(r.usd) })),
     },
     entitlement: entitlementView(entRow[0] ?? null),
-    quota: await getQuota(userId, user!.isPro, p?.timezone),
   };
 }
 

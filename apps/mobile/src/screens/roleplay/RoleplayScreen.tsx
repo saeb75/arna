@@ -5,15 +5,12 @@ import { router, useFocusEffect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Drama } from "lucide-react-native";
 import { atLeastLevel, type CefrLevel, type RoleplayListItem } from "@glotmate/contracts";
-import { QuotaBanner } from "../../components/shared/QuotaBanner";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { LoadFailed } from "../../components/ui/LoadFailed";
 import { ScreenGlow } from "../../components/ui/ScreenGlow";
 import { Skeleton } from "../../components/ui/Skeleton";
-import { PaywallController } from "../../controllers/PaywallController";
 import { RoleplayController } from "../../controllers/RoleplayController";
 import { categoryLook, categoryOrder } from "../../domain/roleplayCategories";
-import { useQuota } from "../../hooks/useQuota";
 import { tr } from "../../i18n/tr";
 import { useMeStore } from "../../stores/useMeStore";
 import { useRoleplayStore } from "../../stores/useRoleplayStore";
@@ -32,7 +29,6 @@ export function RoleplayScreen() {
   const bottom = useTabBarSpace();
   const { list, error } = useRoleplayStore();
   const level = useMeStore((s) => s.me?.profile?.cefrLevel ?? "A1") as CefrLevel;
-  const quota = useQuota();
   const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(
@@ -82,16 +78,6 @@ export function RoleplayScreen() {
           </Text>
           <Text className="text-base text-muted-foreground">{tr.roleplay.subtitle}</Text>
         </Animated.View>
-
-        {quota ? (
-          <Animated.View entering={enter(i++)} className="px-4">
-            <QuotaBanner
-              used={quota.roleplays === 0}
-              label={quota.roleplays === 0 ? tr.quota.roleplayUsed : tr.quota.freeLeft(quota.lessons, quota.roleplays)}
-              onPro={() => PaywallController.open(quota.roleplays === 0 ? "quota_roleplay" : "home")}
-            />
-          </Animated.View>
-        ) : null}
 
         {error && !list ? (
           <View className="px-4">

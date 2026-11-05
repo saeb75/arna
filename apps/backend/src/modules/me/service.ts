@@ -17,7 +17,7 @@ import {
   userEntitlements,
   userProfiles,
 } from "../../db/schema.js";
-import { safeTimezone } from "../billing/quota.js";
+import { safeTimezone } from "../../lib/timezone.js";
 
 export async function getProfile(userId: string): Promise<MeProfile | null> {
   const [p] = await db.select().from(userProfiles).where(eq(userProfiles.userId, userId)).limit(1);

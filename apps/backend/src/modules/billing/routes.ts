@@ -3,7 +3,6 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { env } from "../../config/env.js";
 import { getEntitlement, writeStoreState } from "./entitlements.js";
-import { getQuota } from "./quota.js";
 
 const byUser = (req: FastifyRequest) => (req as { userId?: string }).userId ?? req.ip;
 
@@ -45,7 +44,7 @@ function userIdsOf(ev: z.infer<typeof webhookSchema>["event"]): string[] {
 export default async function billingRoutes(app: FastifyInstance) {
   /**
    * Satın alma / geri yükleme sonrası ZORLA doğrulama — istemci mağaza
-   * işleminden hemen sonra çağırır, kota göstergesi aynı karede açılır.
+   * işleminden hemen sonra çağırır.
    */
   app.post(
     "/me/entitlement/refresh",
@@ -55,8 +54,7 @@ export default async function billingRoutes(app: FastifyInstance) {
     },
     async (request) => {
       const { entitlement } = await getEntitlement(request.userId, { force: true });
-      const quota = await getQuota(request.userId, entitlement.isPro);
-      return { entitlement, quota };
+      return { entitlement };
     },
   );
 

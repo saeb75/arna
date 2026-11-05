@@ -53,7 +53,7 @@ export function SubscriptionCard({
               description={
                 e.rcActive
                   ? "The admin grant is removed. The learner keeps Pro through their active store subscription."
-                  : "The admin grant is removed and the learner falls back to the free daily quota."
+                  : "The admin grant is removed. Everything is currently free, so the learner keeps full access."
               }
               confirmLabel="Revoke"
               destructive

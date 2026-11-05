@@ -205,7 +205,7 @@ Ek klasörler (12 Eki 2026 yeniden yazımı):
 src/theme/        # useScheme, useThemeColors, motion (enter), layout (sekme barı boşluğu)
 src/services/     # cihaz G/Ç: Haptics, Purchases, Notifications, AppleAuth, Browser
 src/domain/       # saf yardımcılar: pro planları, dil adı, kategori/ilgi/track görünümü
-src/hooks/        # store birleşimleri: usePro, useQuota
+src/hooks/        # store birleşimleri: usePro
 src/i18n/tr.ts    # TÜM arayüz metni (bileşende sabit metin YOK)
 src/config/       # yasal URL'ler (EXPO_PUBLIC_* ile ezilir)
 ```
@@ -272,7 +272,7 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
 ## Auth — MİSAFİR ÖNCE (12 Eki 2026 kararı)
 
 - İlk açılışta Supabase **anonim** oturum açılır (`AuthController.boot`):
-  onboarding, paywall ve dersler hesapsız çalışır. Login ekranı YOK.
+  onboarding ve dersler hesapsız çalışır. Login ekranı YOK.
 - "İlerlemeni kaydet" AYNI kullanıcıyı kalıcı yapar: e-posta+şifre
   `updateUser({email,password})` (tek çağrı), Apple `linkIdentity` — kimlik
   değişmediği için ilerleme, hafıza ve satın alma (RevenueCat müşteri kimliği =
@@ -283,16 +283,15 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
 - Kapı: `/` → `me.profile` yoksa `/onboarding`, varsa `/lessons`. Kök, açılış
   bitmeden hiçbir ekranı çizmez (native splash açık kalır).
 
-## Abonelik ve günlük kota
+## Abonelik
 
-- Pro kararı SUNUCUDA (`me.entitlement`); RevenueCat'in anlık durumu
-  (`useProStore.storeActive`) yalnız ekranı hemen açar ve sunucuya "yeniden
-  doğrula" dedirtir (`POST /me/entitlement/refresh`). `usePro()` ikisinin VEYA'sı.
-- Ücretsiz: günde 1 FARKLI ders + 1 FARKLI rol yapma (aynısını yeniden açmak hak
-  yakmaz). Oturum açan uçlar 402 `quota_exceeded` döner → controller paywall'ı
-  açar (`quotaKindOf`), hata göstermez.
-- RevenueCat anahtarı yoksa (`EXPO_PUBLIC_REVENUECAT_IOS_KEY`) paywall önizleme
-  planlarıyla görünür, hiçbir şey satın alınmaz.
+- **HER ŞEY ÜCRETSİZ (5 Kas 2026, kullanıcı kararı):** günlük kota tamamen kalktı —
+  sunucu 402 dönmez, `/me` kota taşımaz, ekranda kota bandı / Pro tacı / Pro afişi yok,
+  onboarding'de paywall adımı yok. Abonelik kurgusu ileride tasarlanacak.
+- Altyapı dokunulmadan duruyor ama HİÇBİR YERDEN AÇILMIYOR: `PaywallController` /
+  `PaywallScreen` (rota `paywall`), RevenueCat (`PurchasesService`, `ProController`),
+  `usePro()`. Admin'in tanıdığı Pro profilde yalnız gösterilir (`ProActiveCard`,
+  abonelik ayarları yalnız Pro'da).
 
 ## API yüzeyi (backend'den doğrulandı — hepsi `/v1` öneki + JWT)
 
@@ -300,7 +299,7 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
 |---|---|
 | `POST /onboarding` | profil oluşturma |
 | `GET /curriculum/current` | seviye listesi + ilerleme |
-| `GET /me` · `GET /me/stats` | profil + abonelik + kota · seri/dakika/7 gün |
+| `GET /me` · `GET /me/stats` | profil + abonelik · seri/dakika/7 gün |
 | `PATCH /me/profile` | profil alanları (seviye, track, açıklama dili, hedef, ad, saat dilimi) — müfredatı döner |
 | `DELETE /me` | hesabı ve kişisel veriyi sil |
 | `POST /me/entitlement/refresh` | satın alma sonrası zorla doğrulama |

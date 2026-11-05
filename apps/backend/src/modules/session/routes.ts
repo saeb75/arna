@@ -14,7 +14,6 @@ import {
   tts,
   ttsStreamTicket,
 } from "./service.js";
-import { assertQuota, QuotaError, quotaErrorBody } from "../billing/quota.js";
 import { getStreamTicket, pipeStreamTicket } from "../tts/index.js";
 
 const sessionParams = z.object({ sessionId: z.string().uuid() });
@@ -86,17 +85,15 @@ export default async function sessionRoutes(app: FastifyInstance) {
     "/lessons/:catalogLessonId/sessions",
     {
       preHandler: app.requireAuth,
-      config: { rateLimit: { max: 20, timeWindow: "1 hour", keyGenerator: byUser } },
+      // Kota yok (5 Kas 2026) — tavan yalnız kötüye kullanım freni; selamlama LLM'i oturum başına bir kez
+      config: { rateLimit: { max: 60, timeWindow: "1 hour", keyGenerator: byUser } },
     },
     async (request, reply) => {
       const params = lessonParams.safeParse(request.params);
       if (!params.success) return reply.code(400).send({ error: "invalid_input" });
       try {
-        // Günlük ücretsiz kota — aynı dersi bugün yeniden açmak (Baştan başla) hak yakmaz
-        await assertQuota(request.userId, "lesson", params.data.catalogLessonId);
         return reply.code(201).send(await openSession(request.userId, params.data.catalogLessonId));
       } catch (err) {
-        if (err instanceof QuotaError) return reply.code(402).send(quotaErrorBody(err));
         return sendError(reply, err);
       }
     },

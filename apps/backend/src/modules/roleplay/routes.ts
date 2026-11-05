@@ -7,7 +7,6 @@ import { eq } from "drizzle-orm";
 import { getPublishedRoleplay, listPublishedRoleplays } from "./queries.js";
 import { openRoleplaySession, RoleplayError } from "./service.js";
 import { lastAttemptsByRoleplay } from "./queries.js";
-import { assertQuota, QuotaError, quotaErrorBody } from "../billing/quota.js";
 
 const slugParams = z.object({ slug: z.string().regex(/^[a-z0-9][a-z0-9-]{1,63}$/) });
 const byUser = (req: FastifyRequest) => (req as { userId?: string }).userId ?? req.ip;
@@ -101,10 +100,8 @@ export default async function roleplayRoutes(app: FastifyInstance) {
       const params = slugParams.safeParse(request.params);
       if (!params.success) return reply.code(400).send({ error: "invalid_params" });
       try {
-        await assertQuota(request.userId, "roleplay", params.data.slug);
         return await openRoleplaySession(request.userId, params.data.slug);
       } catch (err) {
-        if (err instanceof QuotaError) return reply.code(402).send(quotaErrorBody(err));
         return sendError(reply, err);
       }
     },

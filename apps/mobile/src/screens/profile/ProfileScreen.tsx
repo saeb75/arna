@@ -5,7 +5,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 import { ScreenGlow } from "../../components/ui/ScreenGlow";
 import { MeController } from "../../controllers/MeController";
-import { PaywallController } from "../../controllers/PaywallController";
 import { ProController } from "../../controllers/ProController";
 import { usePro } from "../../hooks/usePro";
 import { tr } from "../../i18n/tr";
@@ -17,7 +16,6 @@ import { AccountSettings } from "./AccountSettings";
 import { AppSettings } from "./AppSettings";
 import { LearningSettings } from "./LearningSettings";
 import { ProActiveCard } from "./ProActiveCard";
-import { ProBanner } from "./ProBanner";
 import { ProfileFooter } from "./ProfileFooter";
 import { StatsGrid } from "./StatsGrid";
 import { SubscriptionSettings } from "./SubscriptionSettings";
@@ -63,7 +61,8 @@ export function ProfileScreen() {
         </Animated.View>
         <Animated.View entering={enter(i++)} className="gap-3">
           <AccountCard />
-          {pro ? <ProActiveCard /> : <ProBanner onPress={() => PaywallController.open("profile")} />}
+          {/* Her şey ücretsiz (5 Kas 2026): Pro afişi yok; admin'in tanıdığı Pro yalnız gösterilir */}
+          {pro ? <ProActiveCard /> : null}
         </Animated.View>
         <Animated.View entering={enter(i++)}>
           <StatsGrid />
@@ -75,7 +74,7 @@ export function ProfileScreen() {
           <AppSettings />
         </Animated.View>
         <Animated.View entering={enter(i++)}>
-          <SubscriptionSettings />
+          {pro ? <SubscriptionSettings /> : null}
         </Animated.View>
         <Animated.View entering={enter(i++)}>
           <SupportSettings />

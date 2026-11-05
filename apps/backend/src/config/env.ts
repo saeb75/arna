@@ -47,9 +47,6 @@ const envSchema = z.object({
   REVENUECAT_ENTITLEMENT_ID: z.string().default("pro"),
   /** Webhook'un Authorization başlığına yazılan değer (RevenueCat panelinde aynısı) */
   REVENUECAT_WEBHOOK_SECRET: z.string().optional(),
-  /** Ücretsiz kullanıcının günde açabileceği FARKLI ders / rol yapma sayısı */
-  FREE_DAILY_LESSONS: z.coerce.number().int().min(0).default(1),
-  FREE_DAILY_ROLEPLAYS: z.coerce.number().int().min(0).default(1),
 
   /** Virgülle ayrılmış izinli origin listesi */
   CORS_ORIGINS: z.string().default("http://localhost:6567"),

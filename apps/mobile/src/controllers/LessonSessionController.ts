@@ -15,11 +15,9 @@ import {
 } from "@glotmate/contracts";
 import { Alert } from "react-native";
 import { router } from "expo-router";
-import { api, errorCode, quotaKindOf } from "../api";
+import { api, errorCode } from "../api";
 import { tr } from "../i18n/tr";
 import { VoiceService } from "../lib/voice";
-import { MeController } from "./MeController";
-import { PaywallController } from "./PaywallController";
 import {
   useLessonSessionStore,
   type Awaiting,
@@ -468,16 +466,8 @@ export class LessonSessionController {
         lesson: LessonContentV7;
       };
       this.store().set({ sessionId, script, lesson, resume: null });
-      void MeController.load(); // günlük kota göstergesi tazelensin
       this.enterBeat();
     } catch (err) {
-      // 402: bugünkü ücretsiz ders hakkı bitti — hata değil, paywall. Kart yerinde kalır.
-      if (quotaKindOf(err)) {
-        this.store().set({ started: false });
-        void MeController.load();
-        PaywallController.open("quota_lesson");
-        return;
-      }
       this.store().set({ loadError: errorCode(err), started: false });
     } finally {
       this.store().set({ busy: false });

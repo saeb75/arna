@@ -7,7 +7,6 @@ import { useCurriculumStore } from "../stores/useCurriculumStore";
 import { useOnboardingStore, type OnboardingStep } from "../stores/useOnboardingStore";
 import { MeController } from "./MeController";
 import { NotificationController } from "./NotificationController";
-import { PaywallController } from "./PaywallController";
 
 type Answers = Parameters<ReturnType<typeof useOnboardingStore.getState>["set"]>[0];
 
@@ -77,9 +76,11 @@ export class OnboardingController {
     }
   }
 
-  /** Plan ekranının eylemi: paywall bir ADIM — kapanınca hatırlatıcıya ya da derslere */
+  /**
+   * Plan ekranının eylemi: hatırlatıcıya ya da derslere. Eskiden arada paywall bir
+   * ADIMDI — 5 Kas 2026'da kota/Pro kalktı (her şey ücretsiz), adım da kalktı.
+   */
   static async afterPlan(): Promise<void> {
-    await PaywallController.openUntilClosed("onboarding");
     if (this.store().reminderTime) this.store().set({ step: "notify", backwards: false });
     else this.finish();
   }

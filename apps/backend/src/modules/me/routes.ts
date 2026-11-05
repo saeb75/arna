@@ -5,7 +5,7 @@ import { z } from "zod";
 import { db } from "../../db/client.js";
 import { userProfiles } from "../../db/schema.js";
 import { getEntitlement } from "../billing/entitlements.js";
-import { getQuota, safeTimezone } from "../billing/quota.js";
+import { safeTimezone } from "../../lib/timezone.js";
 import { getCurriculumForUser } from "../curriculum/queries.js";
 import { deleteAccount, getProfile, getStats } from "./service.js";
 
@@ -21,14 +21,12 @@ export default async function meRoutes(app: FastifyInstance) {
       getProfile(request.userId),
       getEntitlement(request.userId),
     ]);
-    const quota = await getQuota(request.userId, entitlement.isPro, profile?.timezone);
     return {
       userId: request.userId,
       email: request.userEmail,
       isAnonymous: request.isAnonymous,
       profile,
       entitlement,
-      quota,
     };
   });
 

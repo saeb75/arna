@@ -13,7 +13,7 @@ import { ProController } from "./ProController";
 import { ToastController } from "./ToastController";
 
 /** Paywall'ın açıldığı yer — ekran başlığı ve analitik için */
-export type PaywallSource = "onboarding" | "home" | "profile" | "quota_lesson" | "quota_roleplay";
+export type PaywallSource = "onboarding" | "home" | "profile";
 
 /** Gösterilen planların mağaza nesneleri (satın alma bunları ister) */
 let offered: PurchasesPackage[] = [];

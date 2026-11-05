@@ -17,9 +17,11 @@ import type { RichText } from "@glotmate/contracts";
  * sonradan prop değişse de yeniden oynamaz. Uzun anlatımda toplam süre tavanlıdır.
  */
 
-const STEP_MS = 32;
-const MAX_TOTAL_MS = 1400;
-const FADE_MS = 260;
+// 5 Kas 2026 geri bildirimi: ilk ayar (32 ms aralık / 260 ms solma) "çok hızlı" bulundu —
+// kelimeler birbirine karışarak, uzun ve yumuşak solmayla gelir
+const STEP_MS = 80;
+const MAX_TOTAL_MS = 4000;
+const FADE_MS = 600;
 
 /** RunsText.needsSpace ile aynı kural — noktalamaya bakar, dile değil */
 function needsSpace(prev: string | undefined, cur: string): boolean {
@@ -102,7 +104,7 @@ export function StreamingRunsText({
         return (
           <Animated.Text
             key={i}
-            entering={animate ? FadeIn.duration(FADE_MS).delay(delay).easing(Easing.out(Easing.cubic)) : undefined}
+            entering={animate ? FadeIn.duration(FADE_MS).delay(delay).easing(Easing.inOut(Easing.quad)) : undefined}
             className={`${text} ${t.en ? `${t.bold ? "font-bold" : "font-semibold"} text-brand` : `text-foreground ${strong ? "font-semibold" : ""}`}`}
           >
             {t.text}

@@ -4,7 +4,7 @@ import { CEFR_LEVELS, cefrLevelSchema, lessonKindSchema } from "./levels.js";
 const CEFR_LEVELS_FOR_QUERY = CEFR_LEVELS;
 import { lessonCoreSchema, sceneVariantSchema } from "./lessonLayers.js";
 import { sessionPositionSchema, transcriptTurnSchema } from "./sessionResume.js";
-import { entitlementSchema, quotaSchema } from "./billing.js";
+import { entitlementSchema } from "./billing.js";
 import { objectiveHitSchema, roleplaySpecSchema } from "./roleplay.js";
 
 /**
@@ -354,8 +354,6 @@ export const adminUserDetailSchema = z.object({
   cost: adminUserCostSchema,
   /** Abonelik görünümü — kaynak ayrıntısıyla */
   entitlement: adminEntitlementSchema,
-  /** Bugünkü ücretsiz kota kullanımı (kullanıcının saat diliminde) */
-  quota: quotaSchema,
 });
 export type AdminUserDetail = z.infer<typeof adminUserDetailSchema>;
 

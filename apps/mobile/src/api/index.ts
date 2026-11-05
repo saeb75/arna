@@ -39,13 +39,3 @@ export function errorCode(err: unknown): string {
   }
   return "unknown";
 }
-
-/**
- * 402 `quota_exceeded` → hangi kota ("lesson" | "roleplay"); başka hata → null.
- * Oturum açan iki uç bunu döner — çağıran paywall'ı açar.
- */
-export function quotaKindOf(err: unknown): "lesson" | "roleplay" | null {
-  if (!axios.isAxiosError(err) || err.response?.status !== 402) return null;
-  const kind = (err.response.data as { kind?: string } | undefined)?.kind;
-  return kind === "lesson" || kind === "roleplay" ? kind : null;
-}

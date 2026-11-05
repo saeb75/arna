@@ -247,9 +247,6 @@ export const tr = {
     restored: "Satın alımın geri yüklendi.",
     nothingToRestore: "Geri yüklenecek bir satın alım bulunamadı.",
     failed: "Satın alma tamamlanamadı.",
-    quotaLesson: "Bugünkü ücretsiz dersini kullandın",
-    quotaRoleplay: "Bugünkü ücretsiz rol yapmanı kullandın",
-    quotaBody: "Yarın yenilenir — ya da Pro ile hemen devam et.",
   },
 
   pro: {
@@ -260,15 +257,6 @@ export const tr = {
     activeBody: "Teşekkürler! Her şey sınırsız.",
     activeAdmin: "Pro sana tanımlandı",
     manage: "Aboneliği yönet",
-  },
-
-  quota: {
-    freeLeft: (lessons: number, roleplays: number) =>
-      `Bugün ${lessons} ücretsiz ders · ${roleplays} rol yapma hakkın var`,
-    lessonUsed: "Bugünkü ücretsiz dersini kullandın",
-    roleplayUsed: "Bugünkü ücretsiz rol yapmanı kullandın",
-    resets: "Yarın yenilenir",
-    goPro: "Pro'ya geç",
   },
 
   home: {

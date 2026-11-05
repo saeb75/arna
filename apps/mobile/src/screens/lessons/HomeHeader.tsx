@@ -1,13 +1,9 @@
 import { Text, View } from "react-native";
-import { Crown } from "lucide-react-native";
-import { RoundIconButton } from "../../components/ui/RoundIconButton";
 import { StreakPill } from "../../components/shared/StreakPill";
 import { tr } from "../../i18n/tr";
-import { useThemeColors } from "../../theme/useThemeColors";
 
-/** Ana ekranın üstü: selam + başlık, seri hapı, (ücretsizde) Pro tacı. Yükseklik SABİT 52. */
-export function HomeHeader({ name, streak, showPro, onPro }: { name: string; streak: number; showPro: boolean; onPro: () => void }) {
-  const colors = useThemeColors();
+/** Ana ekranın üstü: selam + başlık, seri hapı. Yükseklik SABİT 52. (Pro tacı 5 Kas 2026'da kalktı — her şey ücretsiz.) */
+export function HomeHeader({ name, streak }: { name: string; streak: number }) {
   return (
     <View className="h-[52px] flex-row items-center gap-2">
       <View className="flex-1">
@@ -19,7 +15,6 @@ export function HomeHeader({ name, streak, showPro, onPro }: { name: string; str
         </Text>
       </View>
       <StreakPill streak={streak} />
-      {showPro ? <RoundIconButton icon={<Crown color={colors.brand} size={20} strokeWidth={2.4} />} label={tr.pro.bannerTitle} onPress={onPro} /> : null}
     </View>
   );
 }

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { entitlementSchema, quotaSchema } from "./billing.js";
+import { entitlementSchema } from "./billing.js";
 import { cefrLevelSchema } from "./levels.js";
 import { interestSchema, trackSchema, tutorLanguageSchema } from "./profile.js";
 
@@ -34,7 +34,6 @@ export const meResponseSchema = z.object({
   /** null = onboarding bitmemiş (istemci kapısı /onboarding'e yollar) */
   profile: meProfileSchema.nullable(),
   entitlement: entitlementSchema,
-  quota: quotaSchema,
 });
 export type MeResponse = z.infer<typeof meResponseSchema>;
 
@@ -80,5 +79,4 @@ export type MeStats = z.infer<typeof meStatsSchema>;
 
 export const entitlementRefreshResponseSchema = z.object({
   entitlement: entitlementSchema,
-  quota: quotaSchema,
 });

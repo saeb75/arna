@@ -4,7 +4,7 @@ import { db } from "../../db/client.js";
 import { programs, userProfiles } from "../../db/schema.js";
 import { normalizeNativeLanguage } from "../../lib/language.js";
 import { getCurriculumForUser } from "../curriculum/queries.js";
-import { safeTimezone } from "../billing/quota.js";
+import { safeTimezone } from "../../lib/timezone.js";
 
 /**
  * Profili yazar ve kullanıcının seviyesini işaretler, sonra SABİT katalog

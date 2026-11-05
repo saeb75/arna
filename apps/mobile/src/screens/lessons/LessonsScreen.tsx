@@ -2,15 +2,11 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { FlatList, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { QuotaBanner } from "../../components/shared/QuotaBanner";
 import { FadeFill } from "../../components/ui/FadeFill";
 import { LoadFailed } from "../../components/ui/LoadFailed";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { CurriculumController } from "../../controllers/CurriculumController";
 import { MeController } from "../../controllers/MeController";
-import { PaywallController } from "../../controllers/PaywallController";
-import { usePro } from "../../hooks/usePro";
-import { useQuota } from "../../hooks/useQuota";
 import { tr } from "../../i18n/tr";
 import {
   buildPathRows,
@@ -47,7 +43,6 @@ import { UnitCard } from "./UnitCard";
 
 const HEADER_TOP = 52;
 const CARD_H = 84;
-const QUOTA_H = 52;
 const GAP = 10;
 
 export function LessonsScreen() {
@@ -57,14 +52,12 @@ export function LessonsScreen() {
   const { curriculum, error } = useCurriculumStore();
   const me = useMeStore((s) => s.me);
   const stats = useMeStore((s) => s.stats);
-  const pro = usePro();
-  const quota = useQuota();
 
   // Sunumsal yerel durum: açık düğüm kartı (hangi satır, ekranda nerede)
   const [popover, setPopover] = useState<{ row: PathRow; rect: NodeRect } | null>(null);
 
   // ODAKLANMADA tazele: sekme ekranı üstüne ders itildiğinde sökülmüyor — dönüşte
-  // biten ders yeşile dönsün, kota ve bugünkü dakika güncellensin.
+  // biten ders yeşile dönsün, bugünkü dakika güncellensin.
   useFocusEffect(
     useCallback(() => {
       void CurriculumController.getCurriculum();
@@ -81,8 +74,7 @@ export function LessonsScreen() {
   // Sunumsal yerel durum: kartta görünen bağlam (ardışık satırlar aynı nesneyi paylaşır)
   const [scrollCtx, setScrollCtx] = useState<PathContext | null>(null);
 
-  const showQuota = !!quota && quota.lessons === 0;
-  const headerH = HEADER_TOP + GAP + CARD_H + (showQuota ? GAP + QUOTA_H : 0) + 14;
+  const headerH = HEADER_TOP + GAP + CARD_H + 14;
 
   if (error && !curriculum) {
     return (
@@ -176,8 +168,6 @@ export function LessonsScreen() {
           <HomeHeader
             name={me?.profile?.displayName ?? ""}
             streak={stats?.streak ?? 0}
-            showPro={!pro}
-            onPro={() => PaywallController.open("home")}
           />
           <TodayCard
             minutes={stats?.todayMinutes ?? 0}
@@ -187,11 +177,6 @@ export function LessonsScreen() {
             // Dokunuş: kaldığın derse geri kaydır — uzak seviyeye gezinmişken tek dokunuşla dönüş
             onPress={() => listRef.current?.scrollToIndex({ index: startIndex, animated: true })}
           />
-          {showQuota ? (
-            <View className="h-[52px] justify-center">
-              <QuotaBanner used label={tr.quota.lessonUsed} onPro={() => PaywallController.open("quota_lesson")} />
-            </View>
-          ) : null}
         </View>
       </View>
 

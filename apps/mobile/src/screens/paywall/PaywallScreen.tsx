@@ -37,7 +37,6 @@ export function PaywallScreen({ source }: { source: PaywallSource }) {
   const [key, setKey] = useState<string | null>(null);
   const [heroSpace, setHeroSpace] = useState(0);
   const chosen = plans?.find((p) => p.key === key) ?? plans?.[0];
-  const quota = source === "quota_lesson" ? tr.paywall.quotaLesson : source === "quota_roleplay" ? tr.paywall.quotaRoleplay : null;
 
   useEffect(() => {
     PaywallController.mounted();
@@ -66,16 +65,11 @@ export function PaywallScreen({ source }: { source: PaywallSource }) {
 
         <View className="gap-5 px-6 pt-2">
           <View className="items-center gap-1.5">
-            {quota ? (
-              <Animated.Text entering={enter(0, 120)} className="text-center text-xs font-bold tracking-widest text-brand">
-                {quota.toLocaleUpperCase("tr")}
-              </Animated.Text>
-            ) : null}
             <Animated.Text entering={enter(0, 120)} accessibilityRole="header" className="text-center text-3xl font-extrabold leading-tight tracking-tight text-foreground">
               {tr.paywall.title}
             </Animated.Text>
             <Animated.Text entering={enter(1, 120)} className="text-center text-base text-muted-foreground">
-              {quota ? tr.paywall.quotaBody : tr.paywall.subtitle}
+              {tr.paywall.subtitle}
             </Animated.Text>
           </View>
 

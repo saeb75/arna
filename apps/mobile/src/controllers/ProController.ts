@@ -53,8 +53,8 @@ export class ProController {
   static async refreshEntitlement(): Promise<boolean> {
     try {
       const res = await api.post("/v1/me/entitlement/refresh");
-      const { entitlement, quota } = entitlementRefreshResponseSchema.parse(res.data);
-      useMeStore.getState().setEntitlement(entitlement, quota);
+      const { entitlement } = entitlementRefreshResponseSchema.parse(res.data);
+      useMeStore.getState().setEntitlement(entitlement);
       return entitlement.isPro;
     } catch {
       return false;
