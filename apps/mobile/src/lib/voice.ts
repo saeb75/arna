@@ -70,6 +70,18 @@ function clipMaxSeconds(clip: AvatarClip): number {
   return Math.max(fromBytes, fromAlignment);
 }
 
+/**
+ * Konuşulan metnin seslendirilen hâli (sunucu `speakableText` + `joinForSpeech` ile aynı
+ * yaklaşım) — zaman damgası olmayan seste ağız şeklini tahmin etmek için SpeechClock'a gider.
+ */
+function speechTextOf(runs: RichText): string {
+  return runs
+    .map((r) => r.text.replace(/_{2,}/g, "…").replace(/\s+\/\s+|(?<=\p{L})\/(?=\p{L})/gu, ", "))
+    .join(" ")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
 type StreamTimer = ReturnType<typeof setTimeout> | ReturnType<typeof setInterval>;
 
 /** 409 (`stream_unsupported`) sonrası bu süre akış denenmez — her konuşmada boş istek atılmasın */
@@ -109,10 +121,12 @@ function streamPlayback(
 ): void {
   const player = createAudioPlayer({ uri: `${api.defaults.baseURL ?? ""}${path}` });
   currentPlayer = player;
-  SpeechClock.begin(player, null); // zaman damgası yok — ağız ses enerjisiyle
+  SpeechClock.begin(player, null, speechTextOf(runs)); // zaman damgası yok — şekil metinden tahmin, açıklık enerjiden
   let started = false;
   let done = false;
   let stalledSince = 0;
+  let lastT = -1;
+  let lastAdvance = Date.now();
   const release = () => {
     SpeechClock.end(player);
     try {
@@ -156,6 +170,16 @@ function streamPlayback(
     } catch {
       return;
     }
+    let t = 0;
+    try {
+      t = player.currentTime;
+    } catch {
+      /* kaldırılmış */
+    }
+    if (t !== lastT) {
+      lastT = t;
+      lastAdvance = Date.now();
+    }
     if (playing) {
       started = true;
       stalledSince = 0;
@@ -163,6 +187,9 @@ function streamPlayback(
       stalledSince ||= Date.now();
       if (Date.now() - stalledSince > 1_500) finish();
     }
+    // Akış sonunda bazı oynatıcılar "çalıyor + tamponluyor" hâlinde asılı kalıyor: ses
+    // başladıktan sonra saat 3 sn ilerlemezse konuşma bitmiş sayılır (ders takılmasın)
+    if (started && t > 0 && Date.now() - lastAdvance > 3_000) finish();
   }, 250);
   const stop = () => {
     clearTimeout(watchdog);
@@ -275,7 +302,8 @@ export const VoiceService = {
           }
           const player = createAudioPlayer({ uri: path });
           currentPlayer = player;
-          SpeechClock.begin(player, clip.alignment); // native 2.5D avatar ağzı bu oynatıcıdan sürülür
+          // native 2.5D avatar ağzı bu oynatıcıdan sürülür; zaman damgasız TEK klipte (Gemini) şekil metinden tahmin
+          SpeechClock.begin(player, clip.alignment, clips.length === 1 ? speechTextOf(runs) : undefined);
           let clipDone = false; // didJustFinish birden çok status'ta raporlanabilir
           player.addListener("playbackStatusUpdate", (status) => {
             if (gen !== generation) {

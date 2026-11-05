@@ -130,6 +130,11 @@ export function SpriteAvatar({
     let chained = false;
     let last = performance.now();
     let raf = 0;
+    // Yapay hece ritmi: ses enerjisi okunamadığında (bazı akışlarda örnekleme gelmiyor)
+    // ağız sabit açıklıkta DONMASIN — 140–260 ms hecelerle açılıp kapanır, ara sıra kısa
+    // kelime arası. Enerji zarfına gerçek seviye gibi verilir; gerçek seviye gelince devre dışı.
+    let syllableEnd = 0;
+    let syllableLevel = 0;
 
     const frame = (now: number) => {
       const dt = Math.min(0.1, Math.max(0, (now - last) / 1000));
@@ -143,7 +148,15 @@ export function SpriteAvatar({
         spans = tl ? smoothSpans(spansFromTimeline(tl), timing) : [];
       }
       const t = SpeechClock.getTime();
-      const rms = SpeechClock.getLevel();
+      let rms = SpeechClock.getLevel();
+      if (t !== null && rms === null) {
+        if (now >= syllableEnd) {
+          const gap = Math.random() < 0.18; // kelime arası
+          syllableLevel = gap ? 0.01 : 0.05 + Math.random() * 0.12;
+          syllableEnd = now + (gap ? 90 + Math.random() * 120 : 140 + Math.random() * 120);
+        }
+        rms = syllableLevel;
+      }
       // Zaman damgası olmayan sesde (Gemini, akış) şekil ailesi "konuşma" — açıklığı enerji sürer
       const family = t === null ? "REST" : spans.length ? shapeAt(spans, t * 1000) : "talk";
       const energy = stepEnvelope(envelope, rms ?? 0, dt);

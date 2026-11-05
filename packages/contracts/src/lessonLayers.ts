@@ -664,8 +664,10 @@ export function assembleLesson(input: AssembleInput): LessonContentV7 {
           id: b.id,
           kind: "exercise",
           format: b.format,
+          // Yönergeden sonra satır arası (5 Kas 2026): ekranda İngilizce madde ayrı satırda,
+          // seste paragraf arası (dil geçişinde durak — bitişik okununca aksan kayıyordu)
           runs: [
-            native ? l1(instruction) : en(instruction),
+            native ? l1(`${instruction}\n\n`) : en(`${instruction}\n\n`),
             en(b.item),
           ],
           item: b.item,

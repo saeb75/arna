@@ -16,6 +16,15 @@ const cases: Array<[label: string, got: string, want: string]> = [
   ["normal boşluk", joinForSpeech(["Boşluğu doldur:", "Hi, … name is Omar."]), "Boşluğu doldur: Hi, … name is Omar."],
   ["açılış işareti", joinForSpeech(["Lo correcto es:", "¿", "Where are you?"]), "Lo correcto es: ¿Where are you?"],
   ["boş parça atlanır", joinForSpeech(["Tam isabet!", "  ", ""]), "Tam isabet!"],
+  // Satır arası → paragraf arası: yönerge + İngilizce madde, şıklar (5 Kas 2026)
+  ["satır sonu korunur", speakableText("Cümledeki boşluğu doldur:\n\n"), "Cümledeki boşluğu doldur:\n"],
+  ["satır başı korunur", speakableText("\nA) I have tried sushi."), "\nA) I have tried sushi."],
+  ["yönerge sonrası paragraf",
+    joinForSpeech([speakableText("Cümledeki boşluğu doldur:\n\n"), speakableText("When I arrived, ___ already started.")]),
+    "Cümledeki boşluğu doldur:\n\nWhen I arrived, … already started."],
+  ["şıklar ayrı paragraf",
+    joinForSpeech(["Aşağıdakilerden hangisi doğru?\n\n", "", "\nA) I tried sushi.", "\nB) I have tried sushi."]),
+    "Aşağıdakilerden hangisi doğru?\n\nA) I tried sushi.\n\nB) I have tried sushi."],
 ];
 
 let fail = 0;

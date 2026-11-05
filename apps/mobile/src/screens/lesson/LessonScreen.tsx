@@ -162,7 +162,8 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
           }
           if (m.role === "user") return <MessageBubble key={m.id} role="user" text={m.text} runs={m.runs} />;
           if (!m.text.trim() && !m.points?.length && !m.runs?.length) return null;
-          return <CaptionCard key={m.id} message={m} />;
+          // Akan yazı yalnız EN YENİ sözde (geçmiş anında görünür; animate bağlanışta okunur)
+          return <CaptionCard key={m.id} message={m} animate={m.id === lastId} />;
         })}
       </ScrollView>
 

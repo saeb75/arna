@@ -5,7 +5,7 @@ export const ES_CHROME: ChromeBundle = {
   language: "es",
   labels: {
     exerciseFillBlank: "Completa el espacio:",
-    exerciseMcq: "¿Cuál es la correcta?",
+    exerciseMcq: "¿Cuál de las siguientes es correcta?",
     exerciseSaySentence: "Di la frase completa:",
     hint: "Puedes decir, por ejemplo:",
     practiceHint: "Intenta usar:",

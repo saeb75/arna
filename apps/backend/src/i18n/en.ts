@@ -13,7 +13,7 @@ export const EN_CHROME: ChromeBundle = {
   language: "en",
   labels: {
     exerciseFillBlank: "Fill in the blank:",
-    exerciseMcq: "Which one is correct?",
+    exerciseMcq: "Which of the following is correct?",
     exerciseSaySentence: "Say the whole sentence:",
     hint: "Example of what you can say:",
     practiceHint: "Try to use:",

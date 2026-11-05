@@ -12,7 +12,7 @@ export const TR_CHROME: ChromeBundle = {
   // "Bush Lou Dolder", "Tam isabet!" → "Tommy Sabat"); ölçümden geçen hâller burada.
   labels: {
     exerciseFillBlank: "Cümledeki boşluğu doldur:",
-    exerciseMcq: "Hangisi doğru?",
+    exerciseMcq: "Aşağıdakilerden hangisi doğru?",
     exerciseSaySentence: "Cümlenin tamamını söyle:",
     hint: "Şöyle diyebilirsin:",
     practiceHint: "Şunları kullanmayı dene:",

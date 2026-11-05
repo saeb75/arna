@@ -109,9 +109,10 @@ function spokenLine(beat: ViewBeat, script: SessionScript | null): RichText {
 /** Alıştırmanın gösterilen VE seslendirilen hâli — şıklar dahil (web kuralı) */
 function exerciseRuns(beat: Extract<ViewBeat, { kind: "exercise" }>): RichText {
   if (!beat.options?.length) return beat.runs;
+  // Her şık kendi satırında (ekran) ve seste ayrı paragraf (şıklar arası durak)
   const optionRuns: RichText = beat.options.map((o, i) => ({
     lang: "en" as const,
-    text: `${OPTION_LETTERS[i]!.toUpperCase()}) ${o}`,
+    text: `\n${OPTION_LETTERS[i]!.toUpperCase()}) ${o}`,
   }));
   return [...beat.runs, ...optionRuns];
 }

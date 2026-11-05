@@ -10,11 +10,22 @@ import { enter } from "../../theme/motion";
  */
 const LETTERS = ["A", "B", "C", "D"];
 
-export function OptionButtons({ options, disabled, onSelect }: { options: string[]; disabled: boolean; onSelect: (option: string) => void }) {
+export function OptionButtons({
+  options,
+  disabled,
+  onSelect,
+  startDelay = 0,
+}: {
+  options: string[];
+  disabled: boolean;
+  onSelect: (option: string) => void;
+  /** Soru akarak yazılırken şıklar beklesin, akış bitince sırayla gelsin (ms) */
+  startDelay?: number;
+}) {
   return (
     <View className="gap-2.5">
       {options.map((opt, i) => (
-        <Animated.View key={`${i}-${opt}`} entering={enter(i, 0)}>
+        <Animated.View key={`${i}-${opt}`} entering={enter(i, startDelay)}>
           <Pressable
             accessibilityRole="button"
             disabled={disabled}

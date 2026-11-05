@@ -467,9 +467,9 @@ function retryLineFor(beat: CoreBeat, chrome: ChromeBundle, native: boolean): Ri
         ? chrome.labels.exerciseMcq
         : chrome.labels.exerciseSaySentence;
   return [
-    { lang: native ? "l1" : "en", text: label },
+    { lang: native ? "l1" : "en", text: `${label}\n\n` },
     { lang: "en", text: beat.item },
-    ...(beat.options ?? []).map((o, i) => ({ lang: "en" as const, text: `${OPTION_LETTERS[i]}) ${o}` })),
+    ...(beat.options ?? []).map((o, i) => ({ lang: "en" as const, text: `\n${OPTION_LETTERS[i]}) ${o}` })),
   ];
 }
 
