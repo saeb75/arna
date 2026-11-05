@@ -60,6 +60,13 @@ export interface SpriteRigGeometry {
   gazeScale: number;
   /** Yuvarlak (O) ekseninde en uzak konum (0..1, vars. 0.8) — pozu güçlü büzülen rig'de kısılır */
   roundMax?: number;
+  /**
+   * Katmanlı beden (ops., kutular [x, y, w, h] tuval pikseli): portre arka plan + boyun altlığı +
+   * baş + gövde olarak ayrılmış. Varsa native çizici bunları AYRI oynatır — baş boyundan döner,
+   * gövde nefesle kalkar, arka plan yerinde kalır (yüz ağı olmadan derinlik). Yoksa portre bütün
+   * olarak salınır. Dosyalar: layer_bg.jpg, layer_neck/head/body.webp.
+   */
+  layers?: { head: number[]; body: number[]; neck: number[] };
   /** Yüz ağı çapaları (tuval pikseli) */
   motion: {
     /** baş eğiminin dönme noktası (boyun) */
@@ -172,6 +179,9 @@ const KAI: SpriteRigGeometry = {
   mouthAmplitude: 0.85,
   // kalın kirpik irisin üstüne yapışık: büyük kaymada üst kenarda iz kalıyor
   gazeScale: 0.6,
+  // Katmanlar (5 Kas 2026): kişi maskesi birefnet-portrait, baş/gövde sınırı yaka ve tişört
+  // yakası boyunca elle ölçüldü (sprite-avatar/scripts/layers_kai.py) — ek yeri giysinin arkasında
+  layers: { head: [293, 9, 434, 703], body: [9, 565, 1001, 475], neck: [367, 556, 308, 172] },
   // ızgarayla ölçüldü (1024): kaşlar y≈266, gözler 320, ağız 465, çene ≈585, boyun 585–665, yaka ≥680
   motion: {
     neck: [512, 620],

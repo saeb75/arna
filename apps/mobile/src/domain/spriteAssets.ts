@@ -8,6 +8,8 @@ export interface SpriteAssetSet {
   /** göz beyazı, scleraRect kutusuna kırpılmış */
   eyesOpen: number;
   eyes: Record<"L" | "R", { iris: number; shadow: number; frame: number; /** [x, y, w, h] tuval pikseli */ frameRect: [number, number, number, number] }>;
+  /** katmanlı beden (rig.layers kutularıyla) — yoksa portre bütün salınır */
+  layers?: { bg: number; neck: number; head: number; body: number };
 }
 
 export const SPRITE_ASSETS: Partial<Record<AvatarId, SpriteAssetSet>> = {
@@ -28,6 +30,7 @@ export const SPRITE_ASSETS: Partial<Record<AvatarId, SpriteAssetSet>> = {
       L: { iris: require("../../assets/avatars/kai/iris_L.png"), shadow: require("../../assets/avatars/kai/lidshadow_L.png"), frame: require("../../assets/avatars/kai/eyeframe_L.png"), frameRect: [398, 286, 89, 69] },
       R: { iris: require("../../assets/avatars/kai/iris_R.png"), shadow: require("../../assets/avatars/kai/lidshadow_R.png"), frame: require("../../assets/avatars/kai/eyeframe_R.png"), frameRect: [555, 285, 88, 69] },
     },
+    layers: { bg: require("../../assets/avatars/kai/layer_bg.jpg"), neck: require("../../assets/avatars/kai/layer_neck.webp"), head: require("../../assets/avatars/kai/layer_head.webp"), body: require("../../assets/avatars/kai/layer_body.webp") },
   },
   lena: {
     base: require("../../assets/avatars/lena/portrait_base.jpg"),

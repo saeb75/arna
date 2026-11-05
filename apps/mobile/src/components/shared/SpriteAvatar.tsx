@@ -34,9 +34,13 @@ import { SpriteTile } from "./SpriteTile";
  * kapalı) → göz beyazı → kayan irisler → açıklığı oyulmuş göz çerçeveleri → kapak
  * gölgeleri → ağız atlası yığını (nötr eksen + O/E/F/M karışımları).
  *
- * Web'den FARK: yüz ağı esnetmesi (boyun pivotlu baş eğme, kaş, nefes) WebGL ister;
- * native'de yeni paket = OTA'sız build olacağı için portre BÜTÜN olarak küçük
- * salınım + ölçülü eğme/sallama alır. Kaş kalkması yok.
+ * Web'den FARK: yüz ağı esnetmesi (kaş, ağ bükmesi) WebGL ister; native'de yok.
+ * KATMANLI rig'de (rig.layers + assets.layers, 5 Kas 2026) portre arka plan + boyun
+ * altlığı + baş + gövde olarak ayrılmıştır: arka plan uzakta (az kayar), gövde nefesle
+ * kalkar, baş boyundan TAM genlikle döner; yaka gövde katmanında başın ÜSTÜNDE durduğu
+ * için ek yeri giysinin arkasında kalır. Sebep: tek parça salınımda baş, omuz ve arka
+ * plan birlikte kaydığı için yalnız ağız ve göz canlı görünüyordu ("robotik").
+ * Katmansız rig'de portre BÜTÜN olarak küçük salınım + ölçülü eğme/sallama alır.
  *
  * Kare döngüsü JS thread'inde (requestAnimationFrame) saf hesap yapar ve yalnız
  * DEĞİŞEN paylaşımlı değerleri yazar — React render'ı tetiklenmez.
@@ -49,6 +53,11 @@ type Tile = { col: SharedValue<number>; row: SharedValue<number>; opacity: Share
 
 function useTile(): Tile {
   return { col: useSharedValue(0), row: useSharedValue(0), opacity: useSharedValue(0) };
+}
+
+/** Katman kutusu [x, y, w, h] (tuval pikseli) → mutlak konum — rig verisi, çalışma zamanı değeri */
+function rectStyle(r: number[]) {
+  return { position: "absolute" as const, left: r[0], top: r[1], width: r[2], height: r[3] };
 }
 
 /** Değişmişse yaz — UI thread'e gereksiz köprü trafiği gitmesin */
@@ -100,6 +109,12 @@ export function SpriteAvatar({
   const roll = useSharedValue(0);
   const shiftX = useSharedValue(0);
   const shiftY = useSharedValue(0);
+  const bgX = useSharedValue(0);
+  const bgY = useSharedValue(0);
+  const bodyX = useSharedValue(0);
+  const bodyY = useSharedValue(0);
+  const bodyRoll = useSharedValue(0);
+  const layered = !!(rig.layers && assets.layers);
 
   useEffect(() => {
     const slots = rig.mouth.slots;
@@ -192,12 +207,28 @@ export function SpriteAvatar({
       put(gazeX, k * Math.round(pose.gazeX * rig.gazeScale * 8) / 8);
       put(gazeY, k * Math.round(pose.gazeY * rig.gazeScale * 8) / 8);
 
-      // Portre BÜTÜN hareket eder (yüz ağı yok): web'in 2D yedeğindeki salınım +
-      // eğme/sallamanın ölçülü payı — arka plan da kıpırdadığı için tam genlik fazla
       const s = now / 1000;
-      put(roll, k * (0.35 * pose.roll + 0.0025 * Math.sin(s * 0.79)));
-      put(shiftX, k * (0.3 * pose.yaw + 1.5 * Math.sin(s * 0.57)));
-      put(shiftY, k * (0.6 * pose.nod - 0.4 * pose.breath + 1.2 * Math.sin(s * 1.37)));
+      if (layered) {
+        // Elde tutulan kamera gibi çok yavaş kayma; derinlik payı: arka plan %30, beden tam.
+        // Nefes gövdeyi kaldırır, baş gövdenin üstünde biner; eğme/dönme/baş sallama yalnız başta.
+        const cx = 1.1 * Math.sin(s * 0.31) + 0.5 * Math.sin(s * 0.73 + 1.7);
+        const cy = 0.7 * Math.sin(s * 0.43 + 0.9);
+        const lift = 1.1 * pose.breath;
+        put(bgX, k * 0.3 * cx);
+        put(bgY, k * 0.3 * cy);
+        put(bodyX, k * cx);
+        put(bodyY, k * (cy - lift));
+        put(bodyRoll, k * 0.15 * pose.roll);
+        put(roll, k * pose.roll);
+        put(shiftX, k * (cx + 0.6 * pose.yaw));
+        put(shiftY, k * (cy - lift + 0.8 * pose.nod));
+      } else {
+        // Portre BÜTÜN hareket eder: web'in 2D yedeğindeki salınım + eğme/sallamanın
+        // ölçülü payı — arka plan da kıpırdadığı için tam genlik fazla
+        put(roll, k * (0.35 * pose.roll + 0.0025 * Math.sin(s * 0.79)));
+        put(shiftX, k * (0.3 * pose.yaw + 1.5 * Math.sin(s * 0.57)));
+        put(shiftY, k * (0.6 * pose.nod - 0.4 * pose.breath + 1.2 * Math.sin(s * 1.37)));
+      }
 
       raf = requestAnimationFrame(frame);
     };
@@ -205,11 +236,15 @@ export function SpriteAvatar({
     return () => cancelAnimationFrame(raf);
     // Paylaşımlı değerler kararlı referanslar; döngü yalnız rig/hareket tercihiyle yeniden kurulur
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rig, reduced]);
+  }, [rig, reduced, layered]);
 
   const head = useAnimatedStyle(() => ({
     transform: [{ translateX: shiftX.value }, { translateY: shiftY.value }, { rotate: `${roll.value}rad` }],
   }));
+  const body = useAnimatedStyle(() => ({
+    transform: [{ translateX: bodyX.value }, { translateY: bodyY.value }, { rotate: `${bodyRoll.value}rad` }],
+  }));
+  const backdrop = useAnimatedStyle(() => ({ transform: [{ translateX: bgX.value }, { translateY: bgY.value }] }));
   const eyes = useAnimatedStyle(() => ({ opacity: eyesOpen.value }));
   const roundGroup = useAnimatedStyle(() => ({ opacity: roundW.value }));
   const spreadGroup = useAnimatedStyle(() => ({ opacity: spreadW.value }));
@@ -246,17 +281,33 @@ export function SpriteAvatar({
             transformOrigin: "left top",
           }}
         >
+          {layered && rig.layers && assets.layers ? (
+            <>
+              <Animated.View className="absolute inset-0" style={backdrop} pointerEvents="none">
+                <Image source={assets.layers.bg} style={{ width: rig.width, height: rig.height }} contentFit="fill" cachePolicy="memory" transition={0} />
+              </Animated.View>
+              {/* boyun altlığı gövdeyle oynar: baş kayınca yaka ile boyun arasında arka plan görünmesin */}
+              <Animated.View className="absolute inset-0" style={[{ transformOrigin: [rig.motion.sway[0], rig.motion.sway[1], 0] }, body]} pointerEvents="none">
+                <Image source={assets.layers.neck} style={rectStyle(rig.layers.neck)} transition={0} />
+              </Animated.View>
+            </>
+          ) : null}
           <Animated.View
+            className="absolute"
             style={[{ width: rig.width, height: rig.height, transformOrigin: [rig.motion.neck[0], rig.motion.neck[1], 0] }, head]}
           >
-            <Image
-              source={assets.base}
-              style={{ width: rig.width, height: rig.height }}
-              contentFit="fill"
-              cachePolicy="memory"
-              transition={0}
-              onLoad={() => setLoaded((n) => n + 1)}
-            />
+            {layered && rig.layers && assets.layers ? (
+              <Image source={assets.layers.head} style={rectStyle(rig.layers.head)} cachePolicy="memory" transition={0} onLoad={() => setLoaded((n) => n + 1)} />
+            ) : (
+              <Image
+                source={assets.base}
+                style={{ width: rig.width, height: rig.height }}
+                contentFit="fill"
+                cachePolicy="memory"
+                transition={0}
+                onLoad={() => setLoaded((n) => n + 1)}
+              />
+            )}
 
             <Animated.View className="absolute inset-0" style={eyes} pointerEvents="none">
               <Image source={assets.eyesOpen} style={{ position: "absolute", left: sx, top: sy, width: sw, height: sh }} transition={0} />
@@ -291,6 +342,12 @@ export function SpriteAvatar({
               <SpriteTile {...tileProps} {...press} />
             </View>
           </Animated.View>
+          {layered && rig.layers && assets.layers ? (
+            // gövde EN ÜSTTE: yaka ve tişört yakası boynun önünde — baş/ağız yamasının alt kenarını örter
+            <Animated.View className="absolute inset-0" style={[{ transformOrigin: [rig.motion.sway[0], rig.motion.sway[1], 0] }, body]} pointerEvents="none">
+              <Image source={assets.layers.body} style={rectStyle(rig.layers.body)} transition={0} />
+            </Animated.View>
+          ) : null}
         </View>
       ) : null}
 

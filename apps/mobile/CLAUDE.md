@@ -413,9 +413,14 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
   Web Audio mikrofon sonrası ses oturumu değişiminde askıya düşüp sesi yutuyordu
   (ağız oynuyor, ses yok). Görseller paketlenmiş (`assets/avatars/`, OTA ile gider);
   göz çerçeveleri `scripts/sprite-avatars/build.py` ile web varlıklarından türetilir
-  (`src/domain/spriteAssets.ts` ÜRETİLMİŞ). Yüz ağı esnetmesi (kaş, boyun pivotlu
-  baş) WebGL/Skia ister — yeni native paket = OTA'sız build; portre bütün olarak ölçülü
-  salınır. Yeni 2.5D avatar: web'e varlık + contracts `rigs.ts`'e geometri, sonra betik.
+  (`src/domain/spriteAssets.ts` ÜRETİLMİŞ). **KATMANLI BEDEN** (5 Kas 2026, Kai):
+  portre kişi maskesiyle (birefnet-portrait) arka plan + boyun altlığı + baş + gövde
+  olarak ayrılır (`rig.layers`, `layer_*` dosyaları; betik `sprite-avatar/scripts/layers_kai.py`).
+  Arka plan az kayar, gövde nefesle kalkar, baş boyundan tam genlikle döner; gövde başın
+  ÜSTÜNDE çizilir → ek yeri yaka/tişört yakasının arkasında. Skia GEREKMEDİ (OTA ile gider).
+  Sebep: tek parça salınımda yalnız ağız/göz canlı görünüyordu ("robotik"). Katmansız rig
+  portreyi bütün olarak ölçülü salar. Kaş esnetmesi hâlâ yok (WebGL/Skia ister).
+  Yeni 2.5D avatar: web'e varlık + contracts `rigs.ts`'e geometri, sonra betik.
 - **3D avatar WebView ile** (kök CLAUDE.md kararı; native Three.js ayrı faz —
   expo-gl'de draco/postprocessing/52-morph desteği güvenilmez). Kurulum:
   `EXPO_PUBLIC_AVATAR_URL` → apps/web `/embed/avatar`; boşsa avatar kapalı,

@@ -29,6 +29,7 @@ RIG_DATA = ROOT / "packages/contracts/src/avatar/rigData.ts"
 RIGS = ROOT / "packages/contracts/src/avatar/rigs.ts"
 # İris kayma payı (tuval pikseli): bakış ±5 px × gazeScale, + kenar yumuşatma
 MARGIN = 8
+LAYER_FILES = ["layer_bg.jpg", "layer_neck.webp", "layer_head.webp", "layer_body.webp"]
 
 rig_data = RIG_DATA.read_text()
 rigs_src = RIGS.read_text()
@@ -88,7 +89,12 @@ for rid in ["raven", "kai", "lena", "theo"]:
         frame[..., 3] = np.round(alpha * 255).astype(np.uint8)
         Image.fromarray(frame).save(dst / f"eyeframe_{side}.png", optimize=True)
         frames[side] = [fx0, fy0, fx1 - fx0, fy1 - fy0]
-    entries.append((rid, atlas, frames))
+    # 4) katmanlı beden (varsa): arka plan + boyun altlığı + baş + gövde — aynen
+    layered = all((src / f).exists() for f in LAYER_FILES)
+    if layered:
+        for f in LAYER_FILES:
+            shutil.copy(src / f, dst / f)
+    entries.append((rid, atlas, frames, layered))
 
 lines = [
     "// ÜRETİLMİŞ — elle düzenleme: scripts/sprite-avatars/build.py yeniden üretir.",
@@ -101,11 +107,13 @@ lines = [
     "  /** göz beyazı, scleraRect kutusuna kırpılmış */",
     "  eyesOpen: number;",
     "  eyes: Record<\"L\" | \"R\", { iris: number; shadow: number; frame: number; /** [x, y, w, h] tuval pikseli */ frameRect: [number, number, number, number] }>;",
+    "  /** katmanlı beden (rig.layers kutularıyla) — yoksa portre bütün salınır */",
+    "  layers?: { bg: number; neck: number; head: number; body: number };",
     "}",
     "",
     "export const SPRITE_ASSETS: Partial<Record<AvatarId, SpriteAssetSet>> = {",
 ]
-for rid, atlas, frames in entries:
+for rid, atlas, frames, layered in entries:
     p = f"../../assets/avatars/{rid}"
     lines += [
         f"  {rid}: {{",
@@ -119,7 +127,13 @@ for rid, atlas, frames in entries:
             f'      {side}: {{ iris: require("{p}/iris_{side}.png"), shadow: require("{p}/lidshadow_{side}.png"), '
             f'frame: require("{p}/eyeframe_{side}.png"), frameRect: {json.dumps(frames[side])} }},'
         )
-    lines += ["    },", "  },"]
+    lines.append("    },")
+    if layered:
+        lines.append(
+            f'    layers: {{ bg: require("{p}/layer_bg.jpg"), neck: require("{p}/layer_neck.webp"), '
+            f'head: require("{p}/layer_head.webp"), body: require("{p}/layer_body.webp") }},'
+        )
+    lines.append("  },")
 lines += ["};", ""]
 MAP.write_text("\n".join(lines))
-print("ok:", ", ".join(e[0] for e in entries))
+print("ok:", ", ".join(e[0] + (" (katmanlı)" if e[3] else "") for e in entries))
