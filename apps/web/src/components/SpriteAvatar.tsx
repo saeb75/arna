@@ -393,7 +393,8 @@ export default function SpriteAvatar({ rig, timeline, getTime, getLevel, onReady
         // ağız: açıklığı ses enerjisi, şekli timeline ailesi sürer (kademesiz)
         const t = getTimeRef.current();
         const rms = getLevelRef.current();
-        const family = t === null ? "REST" : shapeAt(spansRef.current, t * 1000);
+        // Zaman damgası olmayan sesde (Gemini) şekil ailesi "konuşma" — açıklığı enerji sürer
+        const family = t === null ? "REST" : spansRef.current.length ? shapeAt(spansRef.current, t * 1000) : "talk";
         const energy = stepEnvelope(envelope, rms ?? 0, dt);
         stepMouth(mouth, family, rms === null ? null : energy, t !== null, dt, rig.mouthAmplitude);
         const q = (x: number) => Math.round(x * 100);

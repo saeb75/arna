@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -28,10 +28,12 @@ import { TranscriptSheet } from "./TranscriptSheet";
  * basılı mikrofon asla disabled, MCQ yalnız `exercise+choice`, "Dersi Bitir"
  * yalnız wrapup, ✕ = exit() (bitirme DEĞİL).
  *
- * Düzen (3 Kas 2026, kullanıcı kararı — sohbet duvarı emekli): anlatımda
- * GÖRÜNTÜLÜ GÖRÜŞME — büyük avatar + yalnız o anki söz (altyazı kartı);
- * alıştırmada avatar köşeye küçülür, GÖREV KARTI ortaya gelir. Geçmişin tamamı
- * Transkript sheet'inde. Mod seçimi yalnız sunumdur (beat tipi), akışa girmez.
+ * Düzen (5 Kas 2026, kullanıcı kararı): avatar solda küçük 2:3 kart, altında
+ * dersin TÜM konuşması kaydırılabilir akış — eski "yalnız o anki söz" düzeninde
+ * geçmişi görmek için Transkript sheet'ine dokunmak gerekiyordu. O anki görev
+ * kartı akışta kendi sorusunun yerinde durur (MCQ şıkları içinde). Yeni söz
+ * düşünce akış yalnız kullanıcı zaten en alttaysa kayar — geçmişi okurken
+ * aşağı çekilmez. Görev/anlatım ayrımı yalnız sunumdur, akışa girmez.
  */
 export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
   const insets = useSafeAreaInsets();
@@ -40,6 +42,8 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
     messages, promptMessageId, hint, notice, speaking, recording, busy, grace, resume,
   } = useLessonSessionStore();
   const scrollRef = useRef<ScrollView>(null);
+  // Kullanıcı en alttaysa yeni söz akışı kaydırır; yukarıda geçmişi okurken kaydırmaz
+  const atBottomRef = useRef(true);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
 
   useEffect(() => {
@@ -50,30 +54,17 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
   const beat = lesson?.lecture.beats[beatIndex];
   const task = phase === "lecture" && (beat?.kind === "exercise" || beat?.kind === "open_response");
 
-  // Ekrandaki pencere: görevde soru balonundan sonrası (cevaplar + geri bildirim),
-  // anlatımda son hoca sözü + varsa ondan sonraki öğrenci sözü.
-  const promptIndex = promptMessageId ? messages.findIndex((m) => m.id === promptMessageId) : -1;
-  const afterPrompt = task && promptIndex >= 0 ? messages.slice(promptIndex + 1) : [];
-  let lastTeacherIndex = -1;
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i]!.role === "teacher") {
-      lastTeacherIndex = i;
-      break;
-    }
-  }
-  const lastTeacher = lastTeacherIndex >= 0 ? messages[lastTeacherIndex]! : null;
-  const userAfter = messages.slice(lastTeacherIndex + 1).filter((m) => m.role === "user").at(-1) ?? null;
-  const userAfterId = userAfter?.id ?? null;
-
+  const lastId = messages.at(-1)?.id ?? null;
   useEffect(() => {
-    // Yeni söz düştüğünde: anlatımda kartın BAŞINA (maddeler yukarıdan okunur),
-    // öğrenci sözü ya da görev geri bildiriminde dibe
-    const t = setTimeout(() => {
-      if (!task && !userAfterId) scrollRef.current?.scrollTo({ y: 0, animated: true });
-      else scrollRef.current?.scrollToEnd({ animated: true });
-    }, 80);
+    if (!atBottomRef.current) return;
+    const t = setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
     return () => clearTimeout(t);
-  }, [task, lastTeacher?.id, userAfterId, afterPrompt.length, hint]);
+  }, [lastId, messages.length, hint, task]);
+
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+    atBottomRef.current = contentOffset.y + layoutMeasurement.height >= contentSize.height - 48;
+  };
 
   if (loadError) {
     return (
@@ -136,39 +127,43 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
       </View>
 
       <LessonStage
-        compact={task}
         speaking={speaking}
         avatarId={avatarId}
         activity={recording ? "listening" : busy && !speaking ? "thinking" : "idle"}
       />
 
-      <ScrollView ref={scrollRef} className="flex-1" contentContainerClassName="gap-3 px-4 pb-4" showsVerticalScrollIndicator={false}>
-        {task && beat && (beat.kind === "exercise" || beat.kind === "open_response") ? (
-          <>
-            <TaskCard
-              key={beat.id}
-              ordinal={ordinal}
-              total={taskBeats.length}
-              prompt={beat.runs}
-              options={choice}
-              // MCQ yalnız soru sorulduktan SONRA dokunulur (awaiting exercise) — eski kural
-              locked={inputLocked || awaiting !== "exercise"}
-              onSelect={(opt) => LessonSessionController.submitOption(opt)}
-            />
-            {afterPrompt.map((m) =>
-              m.role === "user" ? (
-                <MessageBubble key={m.id} role="user" text={m.text} runs={m.runs} />
-              ) : (
-                <CaptionCard key={m.id} message={m} />
-              ),
-            )}
-          </>
-        ) : (
-          <>
-            {lastTeacher ? <CaptionCard message={lastTeacher} /> : null}
-            {userAfter ? <MessageBubble role="user" text={userAfter.text} runs={userAfter.runs} /> : null}
-          </>
-        )}
+      <ScrollView
+        ref={scrollRef}
+        className="flex-1"
+        contentContainerClassName="gap-3 px-4 pb-4"
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={64}
+        // İçerik büyüdüğünde (yeni söz, uzun anlatım) en alttaysak altta kal
+        onContentSizeChange={() => {
+          if (atBottomRef.current) scrollRef.current?.scrollToEnd({ animated: true });
+        }}
+      >
+        {messages.map((m) => {
+          // O anki görevin sorusu: görev kartı (MCQ şıkları dahil) — geçmiş görevler düz söz
+          if (task && beat && (beat.kind === "exercise" || beat.kind === "open_response") && m.id === promptMessageId) {
+            return (
+              <TaskCard
+                key={m.id}
+                ordinal={ordinal}
+                total={taskBeats.length}
+                prompt={beat.runs}
+                options={choice}
+                // MCQ yalnız soru sorulduktan SONRA dokunulur (awaiting exercise) — eski kural
+                locked={inputLocked || awaiting !== "exercise"}
+                onSelect={(opt) => LessonSessionController.submitOption(opt)}
+              />
+            );
+          }
+          if (m.role === "user") return <MessageBubble key={m.id} role="user" text={m.text} runs={m.runs} />;
+          if (!m.text.trim() && !m.points?.length && !m.runs?.length) return null;
+          return <CaptionCard key={m.id} message={m} />;
+        })}
       </ScrollView>
 
       {hint && <HintCard hint={hint} label={lesson.ui.labels.hint} />}

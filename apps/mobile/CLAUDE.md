@@ -330,13 +330,15 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
   Görseller `scripts/unit-art/` hattıyla üretilir: `dump-units.mts` → `generate.py`
   (Gemini 3 Pro Image, A1-1 stil çapası, `GEMINI_API_KEY` `.env.local`'de) →
   `write-map.mjs`. Düzen kullanıcı açıkça istemeden değişmez.
-- **Ders ekranı düzeni (3 Kas 2026):** sohbet duvarı YOK. Anlatımda görüntülü
-  görüşme — büyük avatar + yalnız o anki söz (`CaptionCard`); alıştırma/açık uçlu
-  beat'te avatar AYNI WebView'la köşeye küçülür (`LessonStage`, yeniden yükleme
-  yok), `TaskCard` ortaya gelir (MCQ şıkları içinde, dokunmak ANINDA gönderir).
-  Geçmişin tamamı `TranscriptSheet`'te (RN Modal pageSheet). Rıhtım: ortada büyük
-  bas-konuş, solda klavye, sağda transkript. Mod seçimi yalnız sunumdur (beat tipi);
-  `promptMessageId` soru balonunu geri bildirimden ayırır, akış kararı DEĞİLDİR.
+- **Ders ekranı düzeni (5 Kas 2026, kullanıcı kararı):** avatar SOLDA küçük 2:3 kart
+  (120×180) + yanında ad/durum (`LessonStage`); altında dersin TÜM konuşması
+  kaydırılabilir akış (`CaptionCard` hoca, `MessageBubble` öğrenci). O anki görevin
+  sorusu akışta `TaskCard` olarak durur (MCQ şıkları içinde, dokunmak ANINDA gönderir);
+  geçmiş görevler düz söz. Yeni söz yalnız kullanıcı zaten en alttaysa akışı kaydırır.
+  Eski "anlatımda büyük görüntülü görüşme + yalnız o anki söz" düzeni emekli: geçmişi
+  görmek Transkript sheet'ine dokunmayı gerektiriyordu. Rıhtım aynı (ortada bas-konuş,
+  solda klavye, sağda transkript). `promptMessageId` görev kartının yerini belirler,
+  akış kararı DEĞİLDİR.
 - **Rol yapma:** her zaman İngilizce; bitiren YALNIZ "Bitir" (✕ denemeyi
   kaydetmeden çıkar); hedef tikleri sunucudan (`newHits`), istemci karar vermez.
 - **Dil bağımsızlığı:** hiçbir yerde dil adı sabitlenmez; `nativeLanguage`
@@ -395,21 +397,41 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
 - **Transkript sırası:** istemcinin çözdüğü söz + cevabı (`praise`, davet, veda)
   TEK `/sync` isteğinde gider (`logTurns`) — iki ayrı fire-and-forget isteği yarışıyor,
   "Tam isabet!" öğrencinin cevabından önce kaydediliyordu.
-- **Avatar WebView ile** (kök CLAUDE.md kararı; native Three.js ayrı faz —
+- **AKIŞLI SES (5 Kas 2026):** 3D avatar köprüsü yoksa (native 2.5D / avatarsız)
+  `VoiceService.speak` önce `POST /sessions/:id/tts/stream` ile bilet alır ve dönen adresi
+  expo-audio'ya verir — ses sunucu üretirken çalar (Gemini'de ilk ses ~0,5 sn). Bitiş:
+  `didJustFinish` ya da süre sonu ya da ses başladıktan sonra 1,5 sn tamponsuz duruş
+  (uzunluğu bilinmeyen akışta bazı oynatıcılar bitişi raporlamıyor) + metin uzunluğundan
+  watchdog. 409 → 5 dk akış denenmez; ses 6 sn'de başlamazsa tam klip yolu (`/tts`).
+  3D köprüsü base64 klip istediği için onda tam klip yolu sürer. `onEnd` TAM BİR KEZ
+  kuralı aynı `settle()`'dan geçer.
+- **2.5D avatar NATIVE, 3D avatar WebView** (5 Kas 2026). 2.5D (raven/kai/lena/theo)
+  `components/shared/SpriteAvatar` ile çizilir: portre → göz beyazı → kayan iris →
+  açıklığı oyulmuş göz çerçevesi → kapak gölgesi → ağız atlası yığını. Zamanlama,
+  ağız ve davranış web ile AYNI kod (`@glotmate/contracts/avatar`: stepMouth,
+  createLife, viseme). Ses expo-audio'dan çalar; avatar saati/enerjiyi/timeline'ı
+  `lib/speechClock`'tan okur (VoiceService her klipte `begin/end` der). Sebep: WKWebView'daki
+  Web Audio mikrofon sonrası ses oturumu değişiminde askıya düşüp sesi yutuyordu
+  (ağız oynuyor, ses yok). Görseller paketlenmiş (`assets/avatars/`, OTA ile gider);
+  göz çerçeveleri `scripts/sprite-avatars/build.py` ile web varlıklarından türetilir
+  (`src/domain/spriteAssets.ts` ÜRETİLMİŞ). Yüz ağı esnetmesi (kaş, boyun pivotlu
+  baş) WebGL/Skia ister — yeni native paket = OTA'sız build; portre bütün olarak ölçülü
+  salınır. Yeni 2.5D avatar: web'e varlık + contracts `rigs.ts`'e geometri, sonra betik.
+- **3D avatar WebView ile** (kök CLAUDE.md kararı; native Three.js ayrı faz —
   expo-gl'de draco/postprocessing/52-morph desteği güvenilmez). Kurulum:
   `EXPO_PUBLIC_AVATAR_URL` → apps/web `/embed/avatar`; boşsa avatar kapalı,
-  SpeakingIndicator'a dönülür. Ses, avatar aktifken WebView İÇİNDE çalar
-  (dudak senkronu ses+timeline'ın aynı JS bağlamında olmasını gerektirir).
+  SpeakingIndicator'a dönülür. Ses, 3D avatar aktifken WebView İÇİNDE çalar
+  (dudak senkronu ses+timeline'ın aynı JS bağlamında olmasını gerektirir) — düz
+  `<audio>`'dan; Web Audio YALNIZ enerji zarfı içindir (OfflineAudioContext), ses
+  çıkışı ona bağlanmaz (`apps/web/src/lib/clipPlayer.ts`).
   Köprünün sahibi `lib/avatarBridge.ts` + rota seçimi `lib/voice.ts`;
   protokol tipleri `@glotmate/contracts` `avatarProtocol.ts`. Ekranlar yalnız
-  `AvatarStage` render eder (köprünün fiziksel ucu — attach/onMessage).
+  `AvatarStage` render eder (2.5D'de native, 3D'de köprünün fiziksel ucu).
   settle/watchdog sahipliği VoiceService'ten ÇIKMAZ: WebView ölürse 4sn
   start-watchdog aynı klipleri expo-audio'yla çalar, ders asla kilitlenmez.
   JWT WebView'a ASLA girmez — TTS'i RN çeker, yalnız klip baytları köprüden geçer.
   Ekran `AvatarStage`e `activity` verir (`recording` → dinliyor, `busy && !speaking`
-  → düşünüyor); köprü yalnız değişimde `{type:"activity"}` yollar ve sayfa yeniden
-  yüklenince `ready`de tekrarlar. Avatar bunu yalnız JEST için kullanır (2.5D:
-  baş sallama, bakış) — akış kararı DEĞİLDİR.
+  → düşünüyor); avatar bunu yalnız JEST için kullanır — akış kararı DEĞİLDİR.
 - Sistem prompt'u, LLM anahtarı, akıl yürütme İSTEMCİDE YAŞAMAZ — mobil yalnız
   `/v1` uçlarını çağırır.
 

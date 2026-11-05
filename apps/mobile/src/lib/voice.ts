@@ -1,8 +1,9 @@
 import { AudioModule, createAudioPlayer, setAudioModeAsync, RecordingPresets, type AudioPlayer } from "expo-audio";
 import * as FileSystem from "expo-file-system/legacy";
-import { hasWordContent, type AvatarClip, type RichText } from "@glotmate/contracts";
+import { hasWordContent, ttsStreamTicketSchema, type AvatarClip, type RichText } from "@glotmate/contracts";
 import { api } from "../api";
 import { AvatarBridge } from "./avatarBridge";
+import { SpeechClock } from "./speechClock";
 
 /**
  * SES SERVİSİ — cihaz G/Ç katmanı. Ekranlar BUNA DOKUNAMAZ; yalnız controller
@@ -69,6 +70,115 @@ function clipMaxSeconds(clip: AvatarClip): number {
   return Math.max(fromBytes, fromAlignment);
 }
 
+type StreamTimer = ReturnType<typeof setTimeout> | ReturnType<typeof setInterval>;
+
+/** 409 (`stream_unsupported`) sonrası bu süre akış denenmez — her konuşmada boş istek atılmasın */
+const STREAM_OFF_MS = 5 * 60_000;
+let streamOffUntil = 0;
+/** Akış adresi bu sürede ses vermezse tam klip yoluna düşülür */
+const STREAM_START_MS = 6_000;
+
+/** Akış bileti: başarılıysa API köküne göreli yol, değilse null (çağıran tam klibe düşer) */
+async function requestStream(sessionId: string, runs: RichText): Promise<string | null> {
+  try {
+    const res = await api.post(`/v1/sessions/${sessionId}/tts/stream`, {
+      runs: runs.map((r) => ({ lang: r.lang, text: r.text })),
+    });
+    return ttsStreamTicketSchema.parse(res.data).path;
+  } catch (err) {
+    const status = (err as { response?: { status?: number } }).response?.status;
+    if (status === 409 || status === 404) streamOffUntil = Date.now() + STREAM_OFF_MS;
+    return null;
+  }
+}
+
+/**
+ * Akış adresini expo-audio'yla çal. Bitiş üç yoldan algılanır (hangisi önce): oynatıcının
+ * `didJustFinish`'i; süre biliniyorsa sona varmak; ses başladıktan sonra oynatma 1,5 sn
+ * boyunca durmuş ve tamponlamıyorsa (uzunluğu bilinmeyen akışta bazı oynatıcılar bitişi
+ * raporlamıyor). Nihai emniyet: metin uzunluğundan cömert watchdog. Ses 6 sn içinde
+ * başlamazsa oynatıcı bırakılır ve `fallback` (tam klip yolu) çalışır.
+ */
+function streamPlayback(
+  path: string,
+  runs: RichText,
+  gen: number,
+  settle: () => void,
+  fallback: () => Promise<void>,
+  setTimers: (timers: StreamTimer[]) => void,
+): void {
+  const player = createAudioPlayer({ uri: `${api.defaults.baseURL ?? ""}${path}` });
+  currentPlayer = player;
+  SpeechClock.begin(player, null); // zaman damgası yok — ağız ses enerjisiyle
+  let started = false;
+  let done = false;
+  let stalledSince = 0;
+  const release = () => {
+    SpeechClock.end(player);
+    try {
+      player.remove();
+    } catch {
+      /* zaten kaldırılmış (söz kesme) */
+    }
+    if (currentPlayer === player) currentPlayer = null;
+  };
+  const finish = () => {
+    if (done) return;
+    done = true;
+    stop();
+    release();
+    settle();
+  };
+  const chars = runs.reduce((n, r) => n + r.text.length, 0);
+  // ~11 karakter/sn konuşma (yavaş ucu) + bağlantı payı
+  const watchdog = setTimeout(finish, Math.max(15_000, chars * 90 + 10_000));
+  const startGuard = setTimeout(() => {
+    if (started || done || gen !== generation) return;
+    console.warn("[voice] akış 6 sn'de ses vermedi — tam klibe düşülüyor");
+    done = true;
+    stop();
+    release();
+    void fallback();
+  }, STREAM_START_MS);
+  const poll = setInterval(() => {
+    if (done) return;
+    if (gen !== generation) {
+      done = true;
+      stop();
+      release();
+      return; // stopPlayback zaten bu konuşmayı abandon etti (söz kesmede skipSpeaking settle eder)
+    }
+    let playing = false;
+    let buffering = false;
+    try {
+      playing = player.playing;
+      buffering = player.isBuffering;
+    } catch {
+      return;
+    }
+    if (playing) {
+      started = true;
+      stalledSince = 0;
+    } else if (started && !buffering) {
+      stalledSince ||= Date.now();
+      if (Date.now() - stalledSince > 1_500) finish();
+    }
+  }, 250);
+  const stop = () => {
+    clearTimeout(watchdog);
+    clearTimeout(startGuard);
+    clearInterval(poll);
+  };
+  setTimers([watchdog, startGuard, poll]);
+  player.addListener("playbackStatusUpdate", (status) => {
+    if (done || gen !== generation) return;
+    if (status.playing || status.currentTime > 0) started = true;
+    const nearEnd = status.duration > 0 && status.currentTime >= status.duration - 0.25 && !status.playing;
+    if (status.didJustFinish || (started && nearEnd)) finish();
+  });
+  player.play();
+}
+
 export const VoiceService = {
   async init(): Promise<void> {
     // allowsRecording BURADA AÇILMAZ: iOS kayıt modunu görünce ÇIKIŞI hoparlör
@@ -99,11 +209,14 @@ export const VoiceService = {
     let settled = false;
     let watchdog: ReturnType<typeof setTimeout> | null = null;
     let startWatchdog: ReturnType<typeof setTimeout> | null = null;
+    let streamTimers: StreamTimer[] = [];
     /** Bu konuşmayı kapat ve zamanlayıcılarını söndür — onEnd ÇAĞRILMAZ. */
     const abandon = () => {
       settled = true;
       if (watchdog) clearTimeout(watchdog);
       if (startWatchdog) clearTimeout(startWatchdog);
+      for (const t of streamTimers) clearTimeout(t as ReturnType<typeof setTimeout>);
+      streamTimers = [];
     };
     const settle = () => {
       if (settled) return;
@@ -113,129 +226,154 @@ export const VoiceService = {
     };
     current = { settle, abandon }; // söz kesilirse skipSpeaking bunu HEMEN çalıştırır
 
-    let clips: AvatarClip[] = [];
-    try {
-      const res = await api.post(`/v1/sessions/${sessionId}/tts`, {
-        runs: runs.map((r) => ({ lang: r.lang, text: r.text })),
-      });
-      clips = (res.data as { clips: AvatarClip[] }).clips ?? [];
-    } catch {
-      // TTS düştü — metin ekranda, akış İLERLEMELİ (ders kilidi kök hatası)
-      if (gen === generation) onFail?.();
-      settle();
-      return;
-    }
-    if (gen !== generation || clips.length === 0) {
-      settle();
-      return;
-    }
-
-    // Watchdog bütçesi klip SÜRESİNDEN: eskiden klip başına sabit 30sn + 5sn'di.
-    // Azure bir konuşmanın tüm dil parçalarını TEK klipte verdiği için anlatım
-    // maddeleri (600-930 karakter ≈ 40-65 sn) 35. saniyede "bitti" sayılıyor,
-    // akış sonraki balona geçip konuşmayı yarıda kesiyordu (canlı hata, 3 Kas).
-    // Pay: klip başına 5sn + avatar start-watchdog'u (4sn) ve fallback'in
-    // baştan çalması için 15sn. Takılan oynatıcı dersi yine asla kilitleyemez;
-    // bu dış watchdog HER İKİ rota için de nihai emniyettir (avatar dahil).
-    const budgetMs = clips.reduce((sum, c) => sum + clipMaxSeconds(c) * 1000 + 5_000, 15_000);
-    watchdog = setTimeout(settle, budgetMs);
-
-    const playClip = async (index: number): Promise<void> => {
-      const clip = clips[index];
-      if (!clip || gen !== generation) {
+    /** TAM KLİP YOLU: `/tts` → mp3 klipler (3D avatar köprüsü ya da expo-audio) */
+    const viaClips = async (): Promise<void> => {
+      let clips: AvatarClip[] = [];
+      try {
+        const res = await api.post(`/v1/sessions/${sessionId}/tts`, {
+          runs: runs.map((r) => ({ lang: r.lang, text: r.text })),
+        });
+        clips = (res.data as { clips: AvatarClip[] }).clips ?? [];
+      } catch {
+        // TTS düştü — metin ekranda, akış İLERLEMELİ (ders kilidi kök hatası)
+        if (gen === generation) onFail?.();
         settle();
         return;
       }
-      try {
-        const path = `${FileSystem.cacheDirectory}tts-${gen}-${index}.mp3`;
-        await FileSystem.writeAsStringAsync(path, clip.audioBase64, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-        // Nesil kontrolü AWAIT'TEN SONRA da şart: yazma 50-200ms sürüyor ve o
-        // aralıkta söz kesilirse kesilen cümle YEPYENİ bir oynatıcıyla çalmaya
-        // başlıyor — stopPlayback'in arkasından, susturulamaz hâlde.
-        if (gen !== generation) {
+      if (gen !== generation || clips.length === 0) {
+        settle();
+        return;
+      }
+
+      // Watchdog bütçesi klip SÜRESİNDEN: eskiden klip başına sabit 30sn + 5sn'di.
+      // Azure bir konuşmanın tüm dil parçalarını TEK klipte verdiği için anlatım
+      // maddeleri (600-930 karakter ≈ 40-65 sn) 35. saniyede "bitti" sayılıyor,
+      // akış sonraki balona geçip konuşmayı yarıda kesiyordu (canlı hata, 3 Kas).
+      // Pay: klip başına 5sn + avatar start-watchdog'u (4sn) ve fallback'in
+      // baştan çalması için 15sn. Takılan oynatıcı dersi yine asla kilitleyemez;
+      // bu dış watchdog HER İKİ rota için de nihai emniyettir (avatar dahil).
+      const budgetMs = clips.reduce((sum, c) => sum + clipMaxSeconds(c) * 1000 + 5_000, 15_000);
+      watchdog = setTimeout(settle, budgetMs);
+
+      const playClip = async (index: number): Promise<void> => {
+        const clip = clips[index];
+        if (!clip || gen !== generation) {
           settle();
           return;
         }
-        const player = createAudioPlayer({ uri: path });
-        currentPlayer = player;
-        let clipDone = false; // didJustFinish birden çok status'ta raporlanabilir
-        player.addListener("playbackStatusUpdate", (status) => {
+        try {
+          const path = `${FileSystem.cacheDirectory}tts-${gen}-${index}.mp3`;
+          await FileSystem.writeAsStringAsync(path, clip.audioBase64, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          // Nesil kontrolü AWAIT'TEN SONRA da şart: yazma 50-200ms sürüyor ve o
+          // aralıkta söz kesilirse kesilen cümle YEPYENİ bir oynatıcıyla çalmaya
+          // başlıyor — stopPlayback'in arkasından, susturulamaz hâlde.
           if (gen !== generation) {
-            try {
-              player.remove();
-            } catch {
-              /* stopPlayback zaten kaldırmış olabilir (söz kesme) */
-            }
             settle();
             return;
           }
-          if (status.didJustFinish && !clipDone) {
-            clipDone = true;
-            try {
-              player.remove();
-            } catch {
-              /* zaten kaldırılmış */
+          const player = createAudioPlayer({ uri: path });
+          currentPlayer = player;
+          SpeechClock.begin(player, clip.alignment); // native 2.5D avatar ağzı bu oynatıcıdan sürülür
+          let clipDone = false; // didJustFinish birden çok status'ta raporlanabilir
+          player.addListener("playbackStatusUpdate", (status) => {
+            if (gen !== generation) {
+              SpeechClock.end(player);
+              try {
+                player.remove();
+              } catch {
+                /* stopPlayback zaten kaldırmış olabilir (söz kesme) */
+              }
+              settle();
+              return;
             }
-            if (index + 1 < clips.length) void playClip(index + 1);
-            else settle();
-          }
-        });
-        player.play();
-      } catch {
-        settle(); // tek klip bile çalınamazsa akış ilerler
-      }
-    };
-
-    // ROTA SEÇİMİ (her speak anında): avatar köprüsü hazırsa ses WebView
-    // içinde çalar (dudak senkronu ses+timeline aynı bağlamda olmalı — mimari
-    // karar, bkz. contracts/avatarProtocol.ts). Köprü yoksa/ölürse expo-audio.
-    if (AvatarBridge.isReady()) {
-      // expo-audio'ya düşüş TEK SEFER: start-watchdog'daki recover() bekleyen
-      // konuşmanın onError'ını da tetikliyor — ikisi de playClip(0) deyince klip
-      // iki oynatıcıda üst üste çalıyordu ve ilki (currentPlayer ezildiği için)
-      // söz kesmeyle susturulamıyordu.
-      let fellBack = false;
-      const fallBack = () => {
-        if (fellBack) return;
-        fellBack = true;
-        void playClip(0);
-      };
-      // Start-watchdog: 4sn içinde `started` gelmezse sayfa takılmış demektir —
-      // toparla (reload) ve AYNI klipleri expo-audio'yla çal. Klipler zaten
-      // elimizde, fallback bedava; konuşma asla sessizce yutulmaz.
-      startWatchdog = setTimeout(() => {
-        // Bayat nesil: bu konuşma kesilmiş. recover() burada SONRAKİ konuşmanın
-        // köprüsünü sıfırlar ve cevabı baştan çaldırırdı (öğrenci cevabı iki kez duyar).
-        if (gen !== generation) {
-          settle();
-          return;
+            if (status.didJustFinish && !clipDone) {
+              clipDone = true;
+              SpeechClock.end(player);
+              try {
+                player.remove();
+              } catch {
+                /* zaten kaldırılmış */
+              }
+              if (index + 1 < clips.length) void playClip(index + 1);
+              else settle();
+            }
+          });
+          player.play();
+        } catch {
+          settle(); // tek klip bile çalınamazsa akış ilerler
         }
-        console.warn("[voice] avatar 4sn'de started vermedi — expo-audio'ya düşülüyor");
-        AvatarBridge.recover();
-        if (gen === generation) fallBack();
-        else settle();
-      }, 4_000);
-      AvatarBridge.speak(gen, clips, {
-        onStarted: () => clearTimeout(startWatchdog),
-        onEnded: () => {
-          clearTimeout(startWatchdog);
-          settle();
-        },
-        onError: (code) => {
-          clearTimeout(startWatchdog);
+      };
+
+      // ROTA SEÇİMİ (her speak anında): avatar köprüsü hazırsa ses WebView
+      // içinde çalar (dudak senkronu ses+timeline aynı bağlamda olmalı — mimari
+      // karar, bkz. contracts/avatarProtocol.ts). Köprü yoksa/ölürse expo-audio.
+      if (AvatarBridge.isReady()) {
+        // expo-audio'ya düşüş TEK SEFER: start-watchdog'daki recover() bekleyen
+        // konuşmanın onError'ını da tetikliyor — ikisi de playClip(0) deyince klip
+        // iki oynatıcıda üst üste çalıyordu ve ilki (currentPlayer ezildiği için)
+        // söz kesmeyle susturulamıyordu.
+        let fellBack = false;
+        const fallBack = () => {
+          if (fellBack) return;
+          fellBack = true;
+          void playClip(0);
+        };
+        // Start-watchdog: 4sn içinde `started` gelmezse sayfa takılmış demektir —
+        // toparla (reload) ve AYNI klipleri expo-audio'yla çal. Klipler zaten
+        // elimizde, fallback bedava; konuşma asla sessizce yutulmaz.
+        startWatchdog = setTimeout(() => {
+          // Bayat nesil: bu konuşma kesilmiş. recover() burada SONRAKİ konuşmanın
+          // köprüsünü sıfırlar ve cevabı baştan çaldırırdı (öğrenci cevabı iki kez duyar).
           if (gen !== generation) {
-            settle(); // bayat konuşma — expo-audio yolundaki gen davranışıyla aynı
+            settle();
             return;
           }
-          console.warn("[voice] avatar hatası:", code, "— expo-audio'ya düşülüyor");
-          fallBack();
-        },
-      });
-      return;
+          console.warn("[voice] avatar 4sn'de started vermedi — expo-audio'ya düşülüyor");
+          AvatarBridge.recover();
+          if (gen === generation) fallBack();
+          else settle();
+        }, 4_000);
+        AvatarBridge.speak(gen, clips, {
+          onStarted: () => clearTimeout(startWatchdog),
+          onEnded: () => {
+            clearTimeout(startWatchdog);
+            settle();
+          },
+          onError: (code) => {
+            clearTimeout(startWatchdog);
+            if (gen !== generation) {
+              settle(); // bayat konuşma — expo-audio yolundaki gen davranışıyla aynı
+              return;
+            }
+            console.warn("[voice] avatar hatası:", code, "— expo-audio'ya düşülüyor");
+            fallBack();
+          },
+        });
+        return;
+      }
+      void playClip(0);
+    };
+
+    // AKIŞ YOLU (5 Kas 2026): 3D avatar köprüsü yoksa (native 2.5D / avatarsız) ses,
+    // sunucu üretirken akıtılan adresten çalar — Gemini'de ilk ses ~0,5 sn (tam klip
+    // 2-4 sn). Bilet alınamazsa (409: sağlayıcı/panel akış kapalı, ağ hatası) ya da ses
+    // 6 sn içinde başlamazsa tam klip yolu — konuşma asla yutulmaz.
+    if (!AvatarBridge.isReady() && Date.now() >= streamOffUntil) {
+      const path = await requestStream(sessionId, runs);
+      if (gen !== generation || settled) {
+        settle();
+        return;
+      }
+      if (path) {
+        streamPlayback(path, runs, gen, settle, viaClips, (timers) => {
+          streamTimers = timers;
+        });
+        return;
+      }
     }
-    void playClip(0);
+    await viaClips();
   },
 
   stopPlayback(): void {
@@ -243,6 +381,7 @@ export const VoiceService = {
     const pending = current;
     current = null;
     pending?.abandon(); // onEnd ÇAĞRILMAZ: ekrandan çıkışta ders ilerlemesin
+    SpeechClock.end(); // avatar ağzı hemen kapansın
     try {
       currentPlayer?.pause(); // remove() tek başına hoparlörü anında susturmuyor
       currentPlayer?.remove();

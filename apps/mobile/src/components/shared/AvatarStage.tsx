@@ -2,11 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { Text, View } from "react-native";
 import Animated, { FadeOut } from "react-native-reanimated";
 import { WebView } from "react-native-webview";
-import type { AvatarActivity } from "@glotmate/contracts";
+import { AVATAR_SYSTEM_OF, avatarIdSchema, type AvatarActivity } from "@glotmate/contracts";
+import { SPRITE_RIG_GEOMETRY } from "@glotmate/contracts/avatar";
+import { SPRITE_ASSETS } from "../../domain/spriteAssets";
 import { tr } from "../../i18n/tr";
 import { AvatarBridge } from "../../lib/avatarBridge";
 import { Skeleton } from "../ui/Skeleton";
 import { SpeakingIndicator } from "./SpeakingIndicator";
+import { SpriteAvatar } from "./SpriteAvatar";
 
 /**
  * Avatar sahnesi — apps/web'in /embed/avatar sayfasını WebView'da yükler
@@ -15,6 +18,12 @@ import { SpeakingIndicator } from "./SpeakingIndicator";
  * attach/detach + onMessage → AvatarBridge. Karar vermez, store'a yazmaz.
  *
  * EXPO_PUBLIC_AVATAR_URL boşsa ya da sayfa yüklenemezse SpeakingIndicator.
+ *
+ * 2.5D avatarlar WebView'a HİÇ girmez (5 Kas 2026): native SpriteAvatar çizer,
+ * köprü bağlanmadığı için VoiceService sesi expo-audio'yla çalar ve avatar ağzını
+ * SpeechClock'tan sürer. Sebep: WKWebView'daki Web Audio mikrofon sonrası ses
+ * oturumu değişiminde askıya düşüp sesi yutuyordu (ağız oynuyor, ses yok). 3D
+ * (three.js) WebView'da kalır — expo-gl'de draco/52-morph güvenilmez.
  */
 export function AvatarStage({
   speaking,
@@ -32,7 +41,13 @@ export function AvatarStage({
    */
   fill?: boolean;
 }) {
-  const base = process.env.EXPO_PUBLIC_AVATAR_URL;
+  const parsedId = avatarIdSchema.safeParse(avatarId);
+  const spriteId = parsedId.success && AVATAR_SYSTEM_OF[parsedId.data] === "2.5d" ? parsedId.data : null;
+  const rig = spriteId ? SPRITE_RIG_GEOMETRY[spriteId] : undefined;
+  const spriteAssets = spriteId ? SPRITE_ASSETS[spriteId] : undefined;
+  const native = Boolean(rig && spriteAssets);
+  // Native 2.5D'de WebView adresi kurulmaz → köprü bağlanmaz → ses expo-audio yolunda
+  const base = native ? undefined : process.env.EXPO_PUBLIC_AVATAR_URL;
   // Aktif avatar YETKİLİ istemcide çözüldü (GET /v1/avatar) — embed sayfası auth'suz, kimlik URL'de
   const url = base ? `${base}${base.includes("?") ? "&" : "?"}avatar=${avatarId}` : undefined;
   const webviewRef = useRef<WebView>(null);
@@ -51,6 +66,16 @@ export function AvatarStage({
   useEffect(() => {
     AvatarBridge.setActivity(activity);
   }, [activity]);
+
+  if (rig && spriteAssets) {
+    return (
+      <View className={fill ? "flex-1" : "px-4 pb-2 pt-1"}>
+        <View className={fill ? "flex-1 overflow-hidden bg-card" : "aspect-[4/3] w-full overflow-hidden rounded-3xl border border-border bg-card"}>
+          <SpriteAvatar rig={rig} assets={spriteAssets} activity={activity} />
+        </View>
+      </View>
+    );
+  }
 
   if (!url || failed) {
     return fill ? (

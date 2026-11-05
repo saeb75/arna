@@ -123,13 +123,14 @@ export default function AvatarEmbed() {
   }, []);
 
   const getTime = () => playerRef.current?.getTime() ?? null;
-  // AudioContext askıda kalırsa analyser 0 döner — çene yine oynasın diye
-  // timeline "konuşuyor" dediği anlarda sabit sahte seviyeye düşülür
+  // Enerji zarfı henüz çözülmediyse (ilk ~100-300 ms) ya da çözülemediyse çene
+  // yine oynasın diye timeline "konuşuyor" dediği anlarda sabit sahte seviyeye
+  // düşülür. Ses çıkışı bundan bağımsızdır (clipPlayer başlığı).
   const getLevel = () => {
     const p = playerRef.current;
     if (!p) return null;
     const level = p.getLevel();
-    if (level !== null && !p.analyserSuspended()) return level;
+    if (level !== null) return level;
     const t = p.getTime();
     const tl = timelineRef.current;
     if (t !== null && tl && isSpeaking(tl.intervals, t)) return 0.08;
