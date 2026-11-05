@@ -17,6 +17,8 @@ const PROVIDER_DESCRIPTION: Record<TtsProvider, string> = {
   inworld: "Realtime TTS-2; 200+ languages. CHARACTER timestamps converted on the server; one clip per language switch.",
   azure:
     "Multilingual neural voice; the whole turn goes out as one SSML request (<lang> per segment). Word boundaries from the Speech SDK drive lip-sync. Markup is billable.",
+  gemini:
+    "Gemini TTS; the whole turn is one request with no language tags (the model switches languages itself). Streams audio (first sound ~0.5 s). No timestamps: the avatar mouth follows audio energy. Billed per audio token.",
 };
 
 /**

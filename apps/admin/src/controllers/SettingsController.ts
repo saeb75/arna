@@ -68,6 +68,13 @@ export class SettingsController {
     store.setDraft({ ...store.draft, [provider]: { ...store.draft[provider], ...patch } });
   }
 
+  /** Akıtmalı ses açık/kapalı — yalnız akış destekleyen sağlayıcıda etkili (sunucu 409 ile tam klibe düşürür) */
+  static setStreaming(streaming: boolean): void {
+    const store = useSettingsStore.getState();
+    if (!store.draft) return;
+    store.setDraft({ ...store.draft, streaming });
+  }
+
   static resetDraft(): void {
     const store = useSettingsStore.getState();
     if (store.data) store.setDraft(store.data.settings);

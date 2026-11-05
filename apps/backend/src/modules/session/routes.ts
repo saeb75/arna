@@ -12,8 +12,10 @@ import {
   syncSession,
   translate,
   tts,
+  ttsStreamTicket,
 } from "./service.js";
 import { assertQuota, QuotaError, quotaErrorBody } from "../billing/quota.js";
+import { getStreamTicket, pipeStreamTicket } from "../tts/index.js";
 
 const sessionParams = z.object({ sessionId: z.string().uuid() });
 const lessonParams = z.object({ catalogLessonId: catalogLessonIdSchema });
@@ -71,7 +73,7 @@ function sendError(reply: { code: (n: number) => { send: (b: unknown) => unknown
         ? 404
         : err.code === "session_ended"
           ? 409
-          : err.code === "lesson_not_ready"
+          : err.code === "lesson_not_ready" || err.code === "stream_unsupported"
             ? 409
             : 502;
     return reply.code(status).send({ error: err.code });
@@ -241,6 +243,40 @@ export default async function sessionRoutes(app: FastifyInstance) {
       } catch (err) {
         return sendError(reply, err);
       }
+    },
+  );
+
+  // AKIŞLI SES — bilet (auth'lu) + mp3 akışı (bilet kimliği yetkidir, JWT adrese girmez).
+  // Ders başına ~40-60 konuşma: saatlik tavan tam klip ucuyla aynı ölçekte.
+  app.post(
+    "/sessions/:sessionId/tts/stream",
+    {
+      preHandler: app.requireAuth,
+      config: { rateLimit: { max: 300, timeWindow: "1 hour", keyGenerator: byUser } },
+    },
+    async (request, reply) => {
+      const params = sessionParams.safeParse(request.params);
+      const body = ttsBody.safeParse(request.body);
+      if (!params.success || !body.success || !("runs" in body.data)) {
+        return reply.code(400).send({ error: "invalid_input" });
+      }
+      try {
+        return await ttsStreamTicket(request.userId, params.data.sessionId, body.data.runs);
+      } catch (err) {
+        return sendError(reply, err);
+      }
+    },
+  );
+
+  app.get(
+    "/tts/stream/:ticket",
+    { config: { rateLimit: { max: 600, timeWindow: "1 hour" } } },
+    async (request, reply) => {
+      const ticket = z.object({ ticket: z.string().regex(/^[A-Za-z0-9_-]{20,64}$/) }).safeParse(request.params);
+      const t = ticket.success ? getStreamTicket(ticket.data.ticket) : null;
+      if (!t) return reply.code(404).send({ error: "not_found" });
+      reply.hijack(); // ham akış: Fastify serileştirme/sıkıştırma araya girmesin
+      pipeStreamTicket(t, reply.raw);
     },
   );
 

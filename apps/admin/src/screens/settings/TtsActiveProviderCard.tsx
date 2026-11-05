@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Toggle } from "@/components/ui/toggle";
 import { SettingsController } from "@/controllers/SettingsController";
 import { formatDateTime, PROVIDER_LABEL } from "@/lib/labels";
 import { useSettingsStore } from "@/stores/useSettingsStore";
@@ -21,6 +22,7 @@ export function TtsActiveProviderCard({ dirty, onSave }: { dirty: boolean; onSav
   const saving = useSettingsStore((s) => s.saving);
   if (!data || !draft) return null;
 
+  const canStream = data.capabilities[draft.provider].streaming;
   const items = TTS_PROVIDERS.map((p) => ({
     value: p,
     label: data.configured[p] ? PROVIDER_LABEL[p] : `${PROVIDER_LABEL[p]} · no API key`,
@@ -55,6 +57,19 @@ export function TtsActiveProviderCard({ dirty, onSave }: { dirty: boolean; onSav
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="tts-streaming">Streaming audio</Label>
+          <Toggle
+            id="tts-streaming"
+            variant="outline"
+            pressed={canStream && draft.streaming}
+            disabled={!canStream}
+            onPressedChange={(v) => SettingsController.setStreaming(v)}
+          >
+            {!canStream ? "Not supported" : draft.streaming ? "On" : "Off"}
+          </Toggle>
         </div>
 
         <div className="ml-auto flex items-center gap-2">

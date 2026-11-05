@@ -4,6 +4,7 @@ import { db } from "../../db/client.js";
 import { appSettings } from "../../db/schema.js";
 import { AZURE_MODELS } from "./azure.js";
 import { ELEVENLABS_MODELS } from "./elevenlabs.js";
+import { GEMINI_MODELS } from "./gemini.js";
 import { INWORLD_MODELS } from "./inworld.js";
 
 /**
@@ -35,6 +36,8 @@ export function defaultTtsSettings(): TtsSettings {
     elevenlabs: { voiceId: null, modelId: ELEVENLABS_MODELS[0] },
     inworld: { voiceId: null, modelId: INWORLD_MODELS[0] },
     azure: { voiceId: null, modelId: AZURE_MODELS[0] },
+    gemini: { voiceId: null, modelId: GEMINI_MODELS[0] },
+    streaming: true,
   };
 }
 

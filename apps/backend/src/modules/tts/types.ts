@@ -72,6 +72,16 @@ export interface TtsProvider {
    * gateway hepsine izin verir. `languageCode` saf kalır; kapsam ağdan gelir.
    */
   coverage?(voiceId: string): Promise<ReadonlySet<string> | null>;
+  /** Hazır ses kataloğu (panel açılır listesi); yoksa ses kimliği serbest metin */
+  voices?: ReadonlyArray<{ id: string; hint: string }>;
+  /** Karakter zaman damgası veriyor mu; tanımsız = evet (ElevenLabs/Inworld/Azure) */
+  timestamps?: boolean;
+  /**
+   * AKIŞ: tam metin (parçalar `joinForSpeech`le birleşik) → mp3 parçaları, üretim
+   * sürdükçe. `signal` iptal eder (dinleyen kalmayınca üretim ücreti durur). Yoksa
+   * istemci tam klip yoluna (`/tts`) düşer.
+   */
+  stream?(req: SynthesizeRunsRequest, signal: AbortSignal): AsyncIterable<Buffer>;
 }
 
 export class TtsError extends Error {

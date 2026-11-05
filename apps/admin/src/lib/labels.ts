@@ -33,6 +33,7 @@ export const PROVIDER_LABEL: Record<TtsProvider, string> = {
   elevenlabs: "ElevenLabs",
   inworld: "Inworld AI",
   azure: "Azure Speech",
+  gemini: "Google Gemini",
 };
 
 export const TRACK_LABEL: Record<string, string> = {

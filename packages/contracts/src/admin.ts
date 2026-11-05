@@ -128,7 +128,7 @@ export const adminCoreBodySchema = z.object({ core: lessonCoreSchema });
  * panelden değişir; API ANAHTARLARI yalnız sunucu .env'inde kalır — bu şemada
  * anahtar alanı YOKTUR ve eklenmez (istemciye sızardı).
  */
-export const TTS_PROVIDERS = ["elevenlabs", "inworld", "azure"] as const;
+export const TTS_PROVIDERS = ["elevenlabs", "inworld", "azure", "gemini"] as const;
 export const ttsProviderSchema = z.enum(TTS_PROVIDERS);
 export type TtsProvider = z.infer<typeof ttsProviderSchema>;
 
@@ -150,16 +150,28 @@ export const ttsSettingsSchema = z.object({
   elevenlabs: ttsProviderConfigSchema,
   inworld: ttsProviderConfigSchema,
   azure: ttsProviderConfigSchema,
+  gemini: ttsProviderConfigSchema,
+  /**
+   * Akıtmalı ses (yalnız `capabilities.streaming` taşıyan sağlayıcıda): istemci sesi
+   * üretim sürerken çalmaya başlar. Kapalıysa ya da sağlayıcı desteklemiyorsa
+   * `POST /sessions/:id/tts/stream` 409 döner, istemci tam klip yoluna (`/tts`) düşer.
+   * Eski satırda alan yoktur → varsayılan açık.
+   */
+  streaming: z.boolean().default(true),
 });
 export type TtsSettings = z.infer<typeof ttsSettingsSchema>;
 
 /** Sağlayıcı → değer; `z.record` yerine açık nesne: her anahtarın gelmesi zorunlu. */
-const perProvider = <T extends z.ZodTypeAny>(v: T) => z.object({ elevenlabs: v, inworld: v, azure: v });
+const perProvider = <T extends z.ZodTypeAny>(v: T) => z.object({ elevenlabs: v, inworld: v, azure: v, gemini: v });
 
 /** Sağlayıcının yapabildikleri — panel rozet gösterir, gateway yolu seçer. */
 export const ttsCapabilitiesSchema = z.object({
   /** Bir speak çağrısının TÜM dil parçaları TEK klipte (Azure SSML `<lang>`); değilse dil başına klip */
   multiLanguageClip: z.boolean(),
+  /** Ses parça parça akıtılabiliyor (ilk ses ~0,5 sn) — `streaming` ayarı yalnız bunlarda işler */
+  streaming: z.boolean(),
+  /** Karakter zaman damgası veriyor mu (3D dudak senkronu); vermeyende ağız ses enerjisiyle oynar */
+  timestamps: z.boolean(),
 });
 export type TtsCapabilities = z.infer<typeof ttsCapabilitiesSchema>;
 
@@ -172,6 +184,11 @@ export const adminTtsSettingsResponseSchema = z.object({
   /** Panelde model select'i için izinli liste; TEK öğeyse panel alanı gizler (Azure'da model kavramı yok) */
   models: perProvider(z.array(z.string().min(1)).min(1)),
   capabilities: perProvider(ttsCapabilitiesSchema),
+  /**
+   * Hazır ses kataloğu (panel açılır liste gösterir); `null` = katalog yok, ses kimliği
+   * serbest metin (ElevenLabs/Inworld/Azure). `hint` operatöre tek kelimelik tını notu.
+   */
+  voices: perProvider(z.array(z.object({ id: z.string().min(1), hint: z.string() })).nullable()),
   /** Satır hiç yazılmamışsa null (env varsayılanı servis ediliyor) */
   updatedAt: z.string().nullable(),
 });

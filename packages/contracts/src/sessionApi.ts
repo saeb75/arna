@@ -45,3 +45,15 @@ export const endSessionResponseSchema = z.object({
   debrief: roleplayDebriefSchema.nullable().optional(),
 });
 export type EndSessionResponse = z.infer<typeof endSessionResponseSchema>;
+
+/**
+ * `POST /v1/sessions/:id/tts/stream` cevabı — akıtmalı ses bileti. `path` API kökünden
+ * göreli, TEK kullanımlık değil ama kısa ömürlü (~2 dk) ve tahmin edilemez: oynatıcı
+ * (expo-audio / AVPlayer) aynı adresi birden çok kez isteyebilir, JWT adrese GİRMEZ.
+ * Sunucu üretimi bilet kesilirken başlatır; adres mp3'ü üretim sürdükçe akıtır.
+ * 409 `stream_unsupported` → istemci tam klip yoluna (`/tts`) düşer.
+ */
+export const ttsStreamTicketSchema = z.object({
+  path: z.string().min(1),
+});
+export type TtsStreamTicket = z.infer<typeof ttsStreamTicketSchema>;

@@ -39,7 +39,7 @@ import {
 } from "../../db/schema.js";
 import { getChrome } from "../../i18n/index.js";
 import { completeJson, completeText } from "../llm/index.js";
-import { resolveActiveTts, resolveLanguage, synthesizeRunsToClips, TtsError, type CharAlignment, type TtsRun } from "../tts/index.js";
+import { getTtsSettings, openStream, resolveActiveTts, resolveLanguage, synthesizeRunsToClips, TtsError, type CharAlignment, type TtsRun } from "../tts/index.js";
 import { refineRunsForInlineEnglish } from "../tts/inlineEnglish.js";
 import { ANSWER_REVIEW_VERSION, buildAnswerReviewPrompt } from "../llm/prompts/answer-review.v1.js";
 import { openaiClient } from "../llm/openai.js";
@@ -61,6 +61,7 @@ export class SessionError extends Error {
       | "lesson_not_ready"
       | "session_ended"
       | "tts_unavailable"
+      | "stream_unsupported"
       | "stt_failed",
     message: string,
   ) {
@@ -900,6 +901,46 @@ export interface TtsClip {
  *
  * Eski `{text}` gövdesi tek İngilizce parça olarak kabul edilir (geçiş uyumu).
  */
+/**
+ * Konuşma parçalarını aktif sağlayıcının dil kodlarına çevirir — tam klip (`tts`) ve
+ * akış (`ttsStreamTicket`) AYNI yolu kullanır, iki yol ayrışmasın.
+ */
+async function codeRunsForTts(
+  userId: string,
+  owned: NonNullable<Awaited<ReturnType<typeof getOwnedSession>>>,
+  active: Awaited<ReturnType<typeof resolveActiveTts>>,
+  runs: Array<{ lang: "en" | "l1"; text: string }>,
+): Promise<TtsRun[]> {
+  const [profile] = await db
+    .select()
+    .from(userProfiles)
+    .where(eq(userProfiles.userId, userId))
+    .limit(1);
+  const native = nativeLanguageOf(profile);
+  const enCode = await resolveLanguage(active, "en");
+  const l1Code = await resolveLanguage(active, native);
+  if (l1Code === null && runs.some((r) => r.lang === "l1")) {
+    // TTS kapsamı dışı ana dil: metin ekranda kalır, ses atlanır
+    console.warn(`[tts] "${native}" ${active.provider.name} kapsamı dışı — L1 parçaları sessiz bırakıldı`);
+  }
+
+  // Dili PARÇA ETİKETİNDEN okuyan tek-klip sağlayıcıda (Azure SSML) L1 düzyazının
+  // içindeki İngilizce anmalar ("am, is veya are'ı") çekirdek sözlüğüyle kendi `en`
+  // parçasına ayrılır → SSML'de doğru dil. Tam cümle okuyan sağlayıcıda (ElevenLabs,
+  // Gemini) gereksiz — dili bağlamdan kendisi çıkarır; dil-başına-klip yolunda da YAPILMAZ.
+  const source =
+    active.provider.synthesizeRuns && active.provider.languageTags
+      ? refineRunsForInlineEnglish(runs, owned.core, getChrome(native))
+      : runs;
+
+  const coded: TtsRun[] = [];
+  for (const run of source) {
+    const code = run.lang === "en" ? enCode : l1Code;
+    if (code) coded.push({ languageCode: code, text: run.text });
+  }
+  return coded;
+}
+
 export async function tts(
   userId: string,
   sessionId: string,
@@ -910,38 +951,38 @@ export async function tts(
 
   try {
     const active = await resolveActiveTts();
-
-    const [profile] = await db
-      .select()
-      .from(userProfiles)
-      .where(eq(userProfiles.userId, userId))
-      .limit(1);
-    const native = nativeLanguageOf(profile);
-    const enCode = await resolveLanguage(active, "en");
-    const l1Code = await resolveLanguage(active, native);
-    if (l1Code === null && runs.some((r) => r.lang === "l1")) {
-      // TTS kapsamı dışı ana dil: metin ekranda kalır, ses atlanır
-      console.warn(`[tts] "${native}" ${active.provider.name} kapsamı dışı — L1 parçaları sessiz bırakıldı`);
-    }
-
-    // Dili PARÇA ETİKETİNDEN okuyan tek-klip sağlayıcıda (Azure SSML) L1 düzyazının
-    // içindeki İngilizce anmalar ("am, is veya are'ı") çekirdek sözlüğüyle kendi `en`
-    // parçasına ayrılır → SSML'de doğru dil. Tam cümle okuyan sağlayıcıda (ElevenLabs)
-    // gereksiz — dili bağlamdan kendisi çıkarır; dil-başına-klip yolunda da YAPILMAZ.
-    const source =
-      active.provider.synthesizeRuns && active.provider.languageTags
-        ? refineRunsForInlineEnglish(runs, owned.core, getChrome(native))
-        : runs;
-
-    const coded: TtsRun[] = [];
-    for (const run of source) {
-      const code = run.lang === "en" ? enCode : l1Code;
-      if (code) coded.push({ languageCode: code, text: run.text });
-    }
-
+    const coded = await codeRunsForTts(userId, owned, active, runs);
     return { clips: await synthesizeRunsToClips(active, coded) };
   } catch (err) {
     // Gateway hatası → oturum hata sözlüğü (route 502'ye çevirir); diğerleri olduğu gibi
+    if (err instanceof TtsError) throw new SessionError("tts_unavailable", err.message);
+    throw err;
+  }
+}
+
+/**
+ * AKIŞLI SES bileti: üretim HEMEN başlar, istemci dönen adresi oynatıcıya verir ve ses
+ * üretim sürerken çalar (Gemini'de ilk ses ~0,5 sn). Sağlayıcı akış desteklemiyorsa ya da
+ * panelde akış kapalıysa `stream_unsupported` (409) — istemci tam klip yoluna (`/tts`) düşer.
+ */
+export async function ttsStreamTicket(
+  userId: string,
+  sessionId: string,
+  runs: Array<{ lang: "en" | "l1"; text: string }>,
+): Promise<{ path: string }> {
+  const owned = await getOwnedSession(userId, sessionId);
+  if (!owned) throw new SessionError("not_found", "Oturum bulunamadı");
+
+  try {
+    const { settings } = await getTtsSettings();
+    const active = await resolveActiveTts();
+    if (!settings.streaming || !active.provider.stream) {
+      throw new SessionError("stream_unsupported", `${active.provider.name} için akış kapalı`);
+    }
+    const coded = await codeRunsForTts(userId, owned, active, runs);
+    if (coded.length === 0) throw new SessionError("stream_unsupported", "Seslendirilecek parça yok");
+    return { path: `/v1/tts/stream/${openStream(active, coded)}` };
+  } catch (err) {
     if (err instanceof TtsError) throw new SessionError("tts_unavailable", err.message);
     throw err;
   }

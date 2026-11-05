@@ -1,7 +1,7 @@
 "use client";
 
 import type { TtsProvider } from "@glotmate/contracts";
-import { ChevronRight, KeyRound, Layers } from "lucide-react";
+import { ChevronRight, KeyRound, Layers, Radio } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { PROVIDER_LABEL } from "@/lib/labels";
@@ -37,6 +37,12 @@ export function TtsProviderListItem({ provider }: { provider: TtsProvider }) {
               <Badge variant="outline">
                 <KeyRound data-icon="inline-start" />
                 No API key
+              </Badge>
+            )}
+            {data.capabilities[provider].streaming && (
+              <Badge variant="secondary">
+                <Radio data-icon="inline-start" />
+                Streaming
               </Badge>
             )}
             {data.capabilities[provider].multiLanguageClip && (

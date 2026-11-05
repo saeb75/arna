@@ -9,6 +9,7 @@ import type {
 import { normalizeNativeLanguage } from "../../lib/language.js";
 import { azureProvider } from "./azure.js";
 import { elevenlabsProvider } from "./elevenlabs.js";
+import { geminiProvider } from "./gemini.js";
 import { inworldProvider } from "./inworld.js";
 import { getTtsSettings, invalidateTtsSettingsCache, saveTtsSettings } from "./settings.js";
 import { speakableText } from "./speakable.js";
@@ -17,6 +18,7 @@ import { TtsError, type SynthesizeResult, type TtsProvider, type TtsRun } from "
 export { TtsError } from "./types.js";
 export type { CharAlignment, SynthesizeResult, TtsProvider, TtsRun } from "./types.js";
 export { getTtsSettings } from "./settings.js";
+export { getStreamTicket, openStream, pipeStreamTicket } from "./stream.js";
 
 /**
  * TTS GATEWAY — `modules/llm/index.ts` ile aynı rol: sağlayıcı seçimi tek
@@ -35,6 +37,7 @@ export const PROVIDERS: Record<TtsProviderName, TtsProvider> = {
   elevenlabs: elevenlabsProvider,
   inworld: inworldProvider,
   azure: azureProvider,
+  gemini: geminiProvider,
 };
 const PROVIDER_NAMES = Object.keys(PROVIDERS) as TtsProviderName[];
 
@@ -45,7 +48,11 @@ export interface ActiveTts {
 }
 
 export function capabilitiesOf(provider: TtsProvider): TtsCapabilities {
-  return { multiLanguageClip: typeof provider.synthesizeRuns === "function" };
+  return {
+    multiLanguageClip: typeof provider.synthesizeRuns === "function",
+    streaming: typeof provider.stream === "function",
+    timestamps: provider.timestamps !== false,
+  };
 }
 
 /** Ayarlardan aktif sağlayıcı + çözümlenmiş ses/model; eksikse `tts_unavailable`. */
@@ -176,6 +183,7 @@ export async function buildTtsSettingsResponse(): Promise<AdminTtsSettingsRespon
     defaultVoiceId: perProvider((p) => p.defaultVoiceId()),
     models: perProvider((p) => [...p.models]),
     capabilities: perProvider(capabilitiesOf),
+    voices: perProvider((p) => (p.voices ? p.voices.map((v) => ({ ...v })) : null)),
     updatedAt,
   };
 }

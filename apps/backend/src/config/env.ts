@@ -35,6 +35,10 @@ const envSchema = z.object({
   AZURE_SPEECH_VOICE: z.string().optional(),
   /** Konuşma hızı (SSML prosody rate: "-10%", "0.9"); boşsa biraz yavaş varsayılan, "0" = doğal hız (etiket yok) */
   AZURE_SPEECH_RATE: z.string().optional(),
+  /** Google Gemini API anahtarı (TTS: gemini-*-tts modelleri) — yoksa sağlayıcı kapalı */
+  GEMINI_API_KEY: z.string().optional(),
+  /** Gemini hazır ses adı ("Kore", "Puck" …); boşsa "Kore" — panel boş bırakırsa bu */
+  GEMINI_TTS_VOICE: z.string().optional(),
 
   // Abonelik (RevenueCat). Anahtar yoksa mağaza doğrulaması KAPALI: Pro yalnız
   // admin tanımasından ya da webhook'tan gelir, kota yine zorlanır.
