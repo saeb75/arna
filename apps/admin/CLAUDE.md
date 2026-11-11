@@ -71,6 +71,7 @@ src/
 │       ├── roleplays/page.tsx · roleplays/new/page.tsx · roleplays/[id]/page.tsx
 │       ├── users/page.tsx · users/[id]/page.tsx     # auth.users + profil + sayaçlar; tek yazma: Pro tanıma
 │       ├── sessions/page.tsx · sessions/[id]/page.tsx # bug avı: transkript + imleç + LLM çağrıları
+│       ├── tutors/page.tsx      # öğretmenler (ad + 2.5D rig + ses); oluştur/düzenle diyalogda, silme yok (gizlenir)
 │       └── settings/            # /settings → /settings/voice; avatar/ ve voice/ AYRI sayfalar,
 │                                #   voice/[provider] sağlayıcı detayı (ses/model/önizleme)
 ├── api/index.ts            # TEK axios instance + JWT interceptor + errorCode() + errorData() (422/400 gövdesi)
@@ -78,7 +79,7 @@ src/
 ├── controllers/            # AuthController, LessonsController…
 ├── stores/                 # useAuthStore, useLessonsStore…
 ├── screens/<ekran>/        # overview/, lessons/, lesson-detail/, roleplays/, roleplay-detail/, roleplay-new/,
-│                           #   users/, user-detail/, sessions/, session-detail/, settings/ (avatar+voice), tts-provider/, login/, forbidden/
+│                           #   users/, user-detail/, sessions/, session-detail/, tutors/, settings/ (avatar+voice), tts-provider/, login/, forbidden/
 ├── components/ui/          # shadcn (dokunulmaz, CLI ile güncellenir)
 ├── components/shared/      # 2+ ekranda kullanılan: PanelShell, Sidebar, ErrorState, StatusPill, ConfirmAction…
 │   └── roleplay/           # roleplay editörü + önizleme — detay VE /roleplays/new aynı grubu kullanır
@@ -139,6 +140,16 @@ akmaz. Animasyon geçişi yumuşatır, dikkat çekmez; `layoutId` yalnız tek ak
   İLK aktif komplikasyon.
 - Kullanıcılarda tek yazma: ücretsiz Pro tanıma/geri alma (`POST /users/:id/pro`);
   mağaza (RevenueCat) aboneliğine dokunmaz, detay döner, liste tazelenir.
+
+### Öğretmenler
+
+- Öğretmen = ad + koddaki bir 2.5D rig + KENDİ sesi (sağlayıcı/ses/model). Mutasyon uçları
+  listenin tamamını döner (varsayılan bayrağı satırlar arasında taşınır) → `TutorsController`
+  store'u bütün olarak yazar. Ses seçenekleri ve önizleme TTS ayar uçlarından.
+- Form `useTutorsStore.editor`da; doğrulama saf `lib/tutorDraft.ts` (`scripts/test-tutor-draft.ts`):
+  contracts şemaları + sunucunun kuralları (varsayılan gizlenemez, varsayılanın bayrağı doğrudan
+  kalkmaz, ilk öğretmen varsayılan) alan altında İNGİLİZCE. "Play sample" cümleyi sunucudan alır
+  (`/tutors/sample-line`) ve `components/shared/ClipPlayer` ile çalar.
 
 ## Liste ekranı sözleşmesi
 

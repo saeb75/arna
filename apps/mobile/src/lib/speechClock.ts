@@ -38,6 +38,16 @@ const STALL_MS = 400;
 const LEVEL_FRESH_MS = 250;
 /** Timeline değişim sayacı — avatar ağız aralıklarını yalnız değişince yeniden kurar */
 let version = 0;
+/**
+ * Sunucunun akış için hesapladığı AĞIZ İZİ (ham PCM → kare RMS). Oynatıcı uzak adresten
+ * çalarken ses örneği vermiyor (ölçüldü: akış 0 örnek, cihazdaki dosya ~12/sn) — Gemini
+ * akışında açıklık bundan, oynatıcının saatine göre okunur.
+ */
+let track: { fps: number; levels: number[]; done: boolean } | null = null;
+/** İz okuma: ağız sesten bu kadar kare önde (50 fps → 40 ms) */
+const TRACK_LEAD_FRAMES = 2;
+/** İz okuma: ±3 kare ortalama (~140 ms pencere) */
+const TRACK_HALF_WINDOW = 3;
 
 function rmsOf(frames: number[]): number {
   if (!frames.length) return 0;
@@ -59,6 +69,7 @@ export const SpeechClock = {
     lastTime = -1;
     lastAdvanceAt = Date.now();
     estimated = null;
+    track = null;
     if (alignment) timeline = buildTimeline([alignmentToLine(alignment)], null);
     else if (text?.trim()) {
       const line = estimateLine(text);
@@ -92,6 +103,7 @@ export const SpeechClock = {
     player = null;
     level = null;
     estimated = null;
+    track = null;
     if (timeline) {
       timeline = null;
       version++;
@@ -126,10 +138,56 @@ export const SpeechClock = {
     }
   },
 
+  /**
+   * Akışın ağız izine yeni kareler ekle (`owner` hâlâ çalan oynatıcı değilse yok sayılır).
+   * İz bitince toplam süre bellidir → metinden tahmin edilen şekil zamanlaması ona gerilir
+   * (akışta oynatıcı süreyi hiç bildirmiyor; eskiden tahmin sesten kayıp gidiyordu).
+   */
+  appendTrack(owner: AudioPlayer, fps: number, levels: number[], done: boolean): void {
+    if (owner !== player) return;
+    if (!track || track.fps !== fps) track = { fps, levels: [], done: false };
+    for (const v of levels) track.levels.push(v);
+    track.done = done;
+    if (done && estimated && !estimated.scaled && track.levels.length) {
+      estimated.scaled = true;
+      // sondaki sessizlik konuşma değil: son sesli kareye kadar ger
+      let last = track.levels.length - 1;
+      while (last > 0 && track.levels[last]! < 0.004) last--;
+      const d = (last + 1) / fps;
+      const est = estimated.line.timestamp[1];
+      if (d > 0.3 && Math.abs(d - est) / est > 0.04) {
+        timeline = buildTimeline([scaleLine(estimated.line, d)], null);
+        version++;
+      }
+    }
+  },
+
+  /** Ağız şekli metin tahmininden mi (zaman damgası yok) — avatar geçişleri yumuşatır */
+  isEstimated(): boolean {
+    return estimated !== null;
+  },
+
   /** Anlık RMS; ses akmıyorsa ya da taze örnek yoksa null */
   getLevel(): number | null {
-    if (this.getTime() === null || level === null) return null;
-    return Date.now() - levelAt > LEVEL_FRESH_MS ? null : level;
+    const t = this.getTime();
+    if (t === null) return null;
+    if (level !== null && Date.now() - levelAt <= LEVEL_FRESH_MS) return level;
+    if (track) {
+      // İz sesin ÖNÜNDE geldiği için geleceği biliyoruz: anın etrafındaki ~100 ms'nin
+      // ortalaması (gecikmesiz yumuşatma — 50 kare/sn ham iz ağzı titretiyordu) ve ağız
+      // sesten ~40 ms ÖNCE davranır (gerçek konuşmada dudak sesi önden karşılar).
+      const c = Math.floor(t * track.fps) + TRACK_LEAD_FRAMES;
+      if (c < 0 || c - TRACK_HALF_WINDOW >= track.levels.length) return null;
+      let sum = 0;
+      let n = 0;
+      for (let i = c - TRACK_HALF_WINDOW; i <= c + TRACK_HALF_WINDOW; i++) {
+        if (i < 0 || i >= track.levels.length) continue;
+        sum += track.levels[i]!;
+        n++;
+      }
+      return n ? sum / n : null;
+    }
+    return null;
   },
 
   getTimeline(): Timeline | null {

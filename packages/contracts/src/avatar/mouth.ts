@@ -159,15 +159,35 @@ export function stepMouth(
   dt: number,
   /** rig'in en büyük açıklığı (Praktika tarzı ölçülü konuşma: tam açık yalnız çok yüksek seste) */
   amplitude = 0.7,
+  /**
+   * Şekil zaman damgasından değil METİN TAHMİNİNDEN (Gemini: sağlayıcı zaman vermiyor).
+   * Tahmin sesin önünde/gerisinde olabilir: tam ağırlıklı ani O/E/M geçişi yanlış anda
+   * "resim değişti" gibi görünüyordu (5 Kas 2026 geri bildirimi). Bu kipte açıklığı YALNIZ
+   * ses sürer (tahmini M sesi kesmez — gerçek kapanış zaten enerji düşüşünde görünür),
+   * aile ağırlıkları kısık ve geçişleri yavaştır: şekiller sertçe değişmez, karışır.
+   */
+  estimated = false,
 ): MouthParams {
   const e = energy ?? (speaking && family !== "REST" && family !== "M" ? 0.6 : 0);
   let open = speaking ? Math.min(1, Math.max(0, (e - 0.15) / 0.7)) : 0;
-  if (family === "M") open = 0;
+  if (estimated && energy !== null) {
+    // açıklık tamamen sesten; REST/M tahmini yalnız sesin kendisi düşükse kapatır
+  } else if (family === "M") open = 0;
   else if (family === "REST") open *= 0.5; // timeline sessiz ama ses var: hafif aralık
   open *= amplitude;
   // hız taraması (Inworld klibi): 60/30 → enerjiyle uyum 0.67 (en iyi 0.72, 17 ms geride),
   // sessizlikte açık %9; yumuşatmasız uyum 0.73 ama ağız titriyor
-  m.open = approach(m.open, open, 60, family === "M" ? 60 : 30, dt);
+  // tahmini kipte açılış biraz daha yumuşak: ağız izi yoğun (50 kare/sn) — tam hız titretiyordu
+  m.open = estimated ? approach(m.open, open, 26, 18, dt) : approach(m.open, open, 60, family === "M" ? 60 : 30, dt);
+  if (estimated) {
+    const w = 0.6;
+    m.round = approach(m.round, family === "O" ? w : 0, 9, 7, dt);
+    m.spread = approach(m.spread, family === "E" || family === "smile" ? w : 0, 9, 7, dt);
+    // dudak bastırma yalnız ses zaten kısıkken (yüksek seste bastırılmış dudak çift ağız gösterir)
+    m.press = approach(m.press, family === "M" && e < 0.25 ? 0.8 : 0, 20, 12, dt);
+    m.fv = approach(m.fv, family === "F" ? 0.5 : 0, 12, 9, dt);
+    return m;
+  }
   // şekil ailesi değişimi hızlı (~50 ms): iki ağzın karışık göründüğü an 1-2 kareyle sınırlı
   m.round = approach(m.round, family === "O" ? 1 : 0, 22, 18, dt);
   m.spread = approach(m.spread, family === "E" || family === "smile" ? 1 : 0, 22, 18, dt);

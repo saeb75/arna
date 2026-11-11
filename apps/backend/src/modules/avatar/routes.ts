@@ -1,15 +1,16 @@
 import type { FastifyInstance } from "fastify";
-import { getAvatarSettings } from "./settings.js";
+import { resolveTutorForUser } from "../tutor/registry.js";
 
 /**
- * Aktif avatar — YETKİLİ istemciler okur (web ders/roleplay sayfaları doğrudan;
- * mobil, WebView URL'ine `?avatar=<id>` eklemek için). Bilinçli karar: public
- * uç AÇILMADI — backend'de auth'suz tek veri ucu yok ve öyle kalıyor; embed
- * sayfası kimliği URL parametresinden alır (sır değil).
+ * Kullanıcının avatarı — YETKİLİ istemciler okur (web ders/roleplay sayfaları doğrudan;
+ * mobil sahneyi kurmak için). Avatar artık kullanıcının ÖĞRETMENİNDEN gelir
+ * (tutor/registry.ts); öğretmen kaydı hiç yoksa global `app_settings.avatar`
+ * (eski davranış). Bilinçli karar: public uç AÇILMADI — backend'de auth'suz tek veri
+ * ucu yok ve öyle kalıyor; embed sayfası kimliği URL parametresinden alır (sır değil).
  */
 export default async function avatarRoutes(app: FastifyInstance) {
-  app.get("/avatar", { preHandler: app.requireAuth }, async () => {
-    const { settings } = await getAvatarSettings();
-    return { activeId: settings.activeId };
+  app.get("/avatar", { preHandler: app.requireAuth }, async (request) => {
+    const tutor = await resolveTutorForUser(request.userId);
+    return { activeId: tutor.avatarId, tutorName: tutor.name };
   });
 }

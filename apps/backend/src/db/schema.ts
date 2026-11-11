@@ -31,9 +31,43 @@ export const userProfiles = pgTable("user_profiles", {
   interests: jsonb("interests").notNull().default([]),
   /** IANA saat dilimi — günlük ücretsiz kota ve seri bu güne göre sayılır */
   timezone: text("timezone").notNull().default("UTC"),
+  /**
+   * Seçilen öğretmen (`tutors.id`); null = seçmedi → varsayılan öğretmen. Öğretmen
+   * gizlenirse kolon DOKUNULMADAN kalır, çözümleme varsayılana düşer — yeniden
+   * açılınca kullanıcı kendi öğretmenine döner.
+   */
+  tutorId: text("tutor_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * ÖĞRETMENLER — kullanıcının seçtiği hoca (yüz + ses + ad). Admin panel yönetir.
+ * `avatar_id` KODDAKİ bir 2.5D rig'e bağlanır (görseller OTA ile gelir); ses
+ * öğretmenin kimliğidir: sağlayıcı + ses + model burada, global TTS ayarı yalnız
+ * hiç öğretmen yokken kullanılır. Silinmez — gizlenir (`status = hidden`).
+ * Tam olarak bir varsayılan: kısmi benzersiz index.
+ */
+export const tutors = pgTable(
+  "tutors",
+  {
+    id: text("id").primaryKey(), // kalıcı slug ("lena")
+    name: text("name").notNull(),
+    avatarId: text("avatar_id").notNull(),
+    gender: text("gender").notNull(), // female | male
+    voiceProvider: text("voice_provider").notNull(),
+    voiceId: text("voice_id").notNull(),
+    voiceModel: text("voice_model").notNull(),
+    status: text("status").notNull().default("active"), // active | hidden
+    sortOrder: integer("sort_order").notNull().default(0),
+    isDefault: boolean("is_default").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    /** Son yazan admin (auth.users.id) */
+    updatedBy: uuid("updated_by"),
+  },
+  (t) => [uniqueIndex("tutors_default_idx").on(t.isDefault).where(sql`${t.isDefault}`)],
+);
 
 /**
  * ABONELİK GÖRÜNÜMÜ — RevenueCat'in ÖNBELLEĞİ, doğruluk kaynağı DEĞİL.
@@ -53,6 +87,25 @@ export const userEntitlements = pgTable("user_entitlements", {
   checkedAt: timestamp("checked_at", { withTimezone: true }),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * ÇEVİRİ ÖNBELLEĞİ — dokun-çevir (oyun bloğu + sohbet balonu). Her (metin, hedef
+ * dil, sağlayıcı) BİR KEZ çevrilir: hem ucuz/hızlı hem de her öğrenci aynı
+ * çeviriyi görür. Metin İngilizce kaynak; `source_hash` = sha256(kaynak metin).
+ */
+export const textTranslations = pgTable(
+  "text_translations",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    sourceHash: text("source_hash").notNull(),
+    sourceText: text("source_text").notNull(),
+    targetLang: text("target_lang").notNull(),
+    provider: text("provider").notNull(), // google | llm
+    text: text("text").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("text_translations_key_idx").on(t.sourceHash, t.targetLang, t.provider)],
+);
 
 export const programs = pgTable(
   "programs",

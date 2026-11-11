@@ -29,6 +29,7 @@ import { z } from "zod";
 import { db } from "../../db/client.js";
 import { languageName, nativeLanguageOf } from "../../lib/language.js";
 import {
+  catalogLessons,
   lessonCores,
   lessonProgress,
   lessonSceneSets,
@@ -39,7 +40,9 @@ import {
 } from "../../db/schema.js";
 import { getChrome } from "../../i18n/index.js";
 import { completeJson, completeText } from "../llm/index.js";
-import { getTtsSettings, openStream, resolveActiveTts, resolveLanguage, synthesizeRunsToClips, TtsError, type CharAlignment, type TtsRun } from "../tts/index.js";
+import { getTtsSettings, openStream, resolveActiveTts, resolveLanguage, resolveTutorTts, synthesizeRunsToClips, TtsError, type CharAlignment, type TtsRun } from "../tts/index.js";
+import { castLessonContent, castNameFor, castPersona } from "../tutor/cast.js";
+import { FALLBACK_TUTOR_NAME, pinOf, resolvePinnedTutor, resolveTutorById, resolveTutorForUser, type PinnedTutor } from "../tutor/registry.js";
 import { refineRunsForInlineEnglish } from "../tts/inlineEnglish.js";
 import { ANSWER_REVIEW_VERSION, buildAnswerReviewPrompt } from "../llm/prompts/answer-review.v1.js";
 import { openaiClient } from "../llm/openai.js";
@@ -47,6 +50,7 @@ import { resolveLesson, LayerError } from "../lesson/layers.js";
 import { extractSessionMemory } from "../memory/extract.js";
 import { buildMemoryBlock, MEMORY_RECALL_ENABLED } from "../memory/retrieve.js";
 import { renderSessionScript } from "./script.js";
+import { translateCached } from "../translate/index.js";
 import { isPromptEcho } from "./sttEcho.js";
 import { appendToBeatLog, historyFor, runLectureTurn, type BeatLog, type Learner, type TurnLlm } from "./turn/index.js";
 import { runConversationTurn } from "./turn/conversation.js";
@@ -81,11 +85,14 @@ async function getOwnedSession(userId: string, sessionId: string) {
       coreRow: lessonCores,
       sceneRow: lessonSceneSets,
       roleplayRevRow: roleplayRevisions,
+      lessonLevel: catalogLessons.level,
     })
     .from(sessions)
     .leftJoin(lessonCores, eq(sessions.coreId, lessonCores.id))
     .leftJoin(lessonSceneSets, eq(sessions.sceneSetId, lessonSceneSets.id))
     .leftJoin(roleplayRevisions, eq(sessions.roleplayRevisionId, roleplayRevisions.id))
+    // Dersin seviyesi (katalog) — rol yapmanın dil düzeyi derse bağlı, profile değil
+    .leftJoin(catalogLessons, eq(sessions.catalogLessonId, catalogLessons.id))
     .where(and(eq(sessions.id, sessionId), eq(sessions.userId, userId)))
     .limit(1);
   if (!row) return null;
@@ -93,18 +100,21 @@ async function getOwnedSession(userId: string, sessionId: string) {
   const state = (row.session.state as SessionState | null) ?? null;
   const core = (row.coreRow?.core as LessonCore | undefined) ?? null;
   const scenes = row.sceneRow?.scenes as Record<string, SceneVariant> | undefined;
-  const scene = scenes?.[state?.track ?? "everyday"] ?? null;
+  // Rol yapma karakterini öğretmen KENDİ adıyla oynar (tutor/cast.ts) — pin yoksa persona korunur
+  const castAs = castNameFor(state?.tutor);
+  const rawScene = scenes?.[state?.track ?? "everyday"] ?? null;
+  const scene = rawScene ? castPersona(rawScene, castAs) : null;
 
   // Roleplay oturumu KESİN revizyona pinli — spec oradan okunur. Şemadan
   // geçmeyen saklı spec servis edilmez (queries.ts'teki son savunmanın aynısı).
   let roleplaySpec: RoleplaySpec | null = null;
   if (row.session.sessionKind === "roleplay" && row.roleplayRevRow) {
     const parsed = roleplaySpecSchema.safeParse(row.roleplayRevRow.spec);
-    if (parsed.success) roleplaySpec = parsed.data;
+    if (parsed.success) roleplaySpec = castPersona(parsed.data, castAs);
     else console.error(`[roleplay] ${sessionId}: pinli revizyonun spec'i şemadan geçmiyor`);
   }
 
-  return { session: row.session, core, scene, state, roleplaySpec };
+  return { session: row.session, core, scene, state, roleplaySpec, lessonLevel: row.lessonLevel ?? null };
 }
 
 // ---------------------------------------------------------------------------
@@ -166,8 +176,6 @@ export async function openSession(userId: string, catalogLessonId: string) {
       },
     });
 
-  const content = resolved.content;
-
   const [profile] = await db
     .select()
     .from(userProfiles)
@@ -175,6 +183,10 @@ export async function openSession(userId: string, catalogLessonId: string) {
     .limit(1);
   const displayName = profile?.displayName ?? "there";
   const tutorLanguage = (profile?.tutorLanguage ?? "native") as "native" | "english";
+  // Öğretmen oturuma pinlenir; karakteri o oynar (içerik paylaşımlı, ad servis anında değişir)
+  const tutor = await resolveTutorById(profile?.tutorId ?? null);
+  const pin = pinOf(tutor);
+  const content = castLessonContent(resolved.content, castNameFor(pin));
 
   // Hocanın bu öğrenciye söyleyeceği cümleler burada üretilir: içerik kullanıcıdan
   // bağımsızdır, kişiselleştirme (ad + hafıza + geçen ders) bu adımda girer.
@@ -198,6 +210,7 @@ export async function openSession(userId: string, catalogLessonId: string) {
     displayName,
     cefrLevel: profile?.cefrLevel ?? "A2",
     memoryBlock,
+    tutorName: tutor.name,
     userId,
     sessionId,
     // Ders adı İNGİLİZCE (katalog başlığı) — kullanıcı kararı 4 Kas 2026
@@ -207,7 +220,7 @@ export async function openSession(userId: string, catalogLessonId: string) {
   await db
     .update(sessions)
     .set({
-      state: { memoryBlock, script, track: resolved.track, tutorLanguage } satisfies SessionState,
+      state: { memoryBlock, script, track: resolved.track, tutorLanguage, tutor: pin } satisfies SessionState,
     })
     .where(eq(sessions.id, sessionId));
 
@@ -225,6 +238,11 @@ export interface ResumePayload {
   script: SessionScript;
   lesson: LessonContentV7;
   transcript: TranscriptTurn[];
+  /**
+   * Oturuma PİNLİ öğretmenin yüzü + adı — ders ortasında öğretmen değiştiyse istemci devamda
+   * `/avatar`'ın (yeni öğretmen) yerine bunu çizer; ses ve konuşmadaki ad da pinden gelir.
+   */
+  tutor: { avatarId: string; name: string };
 }
 
 /**
@@ -273,6 +291,7 @@ export async function resumeLesson(
     .from(transcriptTurns)
     .where(eq(transcriptTurns.sessionId, open.id))
     .orderBy(asc(transcriptTurns.id));
+  const pinned = await resolvePinnedTutor(userId, state.tutor);
 
   return {
     resume: {
@@ -280,14 +299,15 @@ export async function resumeLesson(
       startedAt: open.startedAt.toISOString(),
       position: pos.data,
       script: state.script,
-      lesson: resolved.content,
+      lesson: castLessonContent(resolved.content, castNameFor(state.tutor)),
+      tutor: { avatarId: pinned.avatarId, name: pinned.name },
       transcript: rows.map((r) => ({
         id: r.id,
         role: r.role as "user" | "assistant",
         text: r.text,
         runs: (r.runs as RichText | null) ?? null,
         phase: r.phase,
-        source: r.source === "script" || r.source === "failed" ? r.source : "chat",
+        source: r.source === "script" || r.source === "failed" || r.source === "drill" ? r.source : "chat",
       })),
     },
   };
@@ -318,7 +338,7 @@ export async function syncSession(
         text: t.text,
         runs: t.runs ?? null,
         phase: t.phase,
-        source: "script",
+        source: t.source ?? "script",
       })),
     );
   }
@@ -352,6 +372,12 @@ interface SessionState {
   practice?: { hitTurns?: number[] };
   /** O anki lecture adımının diyaloğu — konuşma motoru modele bunu gösterir */
   beatLog?: BeatLog;
+  /**
+   * Oturuma PİNLENEN öğretmen: ad + cinsiyet ders boyunca sabit (kullanıcı ayarlardan
+   * öğretmen değiştirse bile açık dersin hocası değişmez); ses kimlikten okunur.
+   * Yoksa (eski oturum) kullanıcının şimdiki öğretmeni, persona adı korunur.
+   */
+  tutor?: PinnedTutor;
 }
 
 /** RichText → düz metin (transkript ve prompt bağlamı için). */
@@ -706,6 +732,8 @@ async function chatTurnInner(userId: string, sessionId: string, text: string, op
     nativeLanguage,
     l1Name: languageName(nativeLanguage),
     tutorLanguage,
+    tutorName: state?.tutor?.name ?? FALLBACK_TUTOR_NAME,
+    tutorGender: state?.tutor?.gender ?? "female",
   };
 
   // ARAYA GİRME — öğrenci hoca cevap beklemeyen bir şey söylerken söz aldı. Hangi
@@ -830,12 +858,13 @@ async function chatTurnInner(userId: string, sessionId: string, text: string, op
             turnCap,
             closesNow: segmentDone,
             goalMet,
+            lessonLevel: owned.lessonLevel ?? undefined,
           },
           llm,
         )
       : // Bayat/bilinmeyen adım kimliği ya da çekirdeksiz eski oturum — kısa güvenli cevap
         await llm({
-          system: `You are Emma, a warm English teacher in the middle of a lesson. Reply to the student in 1-2 short sentences and keep them on the lesson. Never greet again. Reply as STRICT JSON {"reply":[{"lang":"en","text":"..."}]}.`,
+          system: `You are ${learner.tutorName}, a warm English teacher in the middle of a lesson. Reply to the student in 1-2 short sentences and keep them on the lesson. Never greet again. Reply as STRICT JSON {"reply":[{"lang":"en","text":"..."}]}.`,
           user: `STUDENT: ${text}`,
           schema: chatVerdictSchema,
           promptVersion: "fallback-chat.v1",
@@ -950,7 +979,7 @@ export async function tts(
   if (!owned) throw new SessionError("not_found", "Oturum bulunamadı");
 
   try {
-    const active = await resolveActiveTts();
+    const active = await resolveTutorTts((await resolvePinnedTutor(userId, owned.state?.tutor)).voice);
     const coded = await codeRunsForTts(userId, owned, active, runs);
     return { clips: await synthesizeRunsToClips(active, coded) };
   } catch (err) {
@@ -975,11 +1004,50 @@ export async function ttsStreamTicket(
 
   try {
     const { settings } = await getTtsSettings();
-    const active = await resolveActiveTts();
+    const active = await resolveTutorTts((await resolvePinnedTutor(userId, owned.state?.tutor)).voice);
     if (!settings.streaming || !active.provider.stream) {
       throw new SessionError("stream_unsupported", `${active.provider.name} için akış kapalı`);
     }
     const coded = await codeRunsForTts(userId, owned, active, runs);
+    if (coded.length === 0) throw new SessionError("stream_unsupported", "Seslendirilecek parça yok");
+    return { path: `/v1/tts/stream/${openStream(active, coded)}` };
+  } catch (err) {
+    if (err instanceof TtsError) throw new SessionError("tts_unavailable", err.message);
+    throw err;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// OTURUMSUZ İNGİLİZCE SES — ünite testindeki dinleme maddeleri (10 Kas 2026)
+//
+// Test bir ders oturumu açmaz; dinleme maddesinin cümlesi yine de Emma'nın sesiyle
+// çalınmalı. Yalnız İngilizce (ana dil parçası kabul edilmez → oturuma/profile
+// gerek yok), kimlik doğrulamalı ve saatlik tavanlı. Metin kısa: tek alıştırma cümlesi.
+// ---------------------------------------------------------------------------
+
+async function englishRuns(active: Awaited<ReturnType<typeof resolveActiveTts>>, text: string): Promise<TtsRun[]> {
+  const en = await resolveLanguage(active, "en");
+  return en ? [{ languageCode: en, text }] : [];
+}
+
+export async function ttsEnglish(userId: string, text: string): Promise<{ clips: TtsClip[] }> {
+  try {
+    const active = await resolveTutorTts((await resolveTutorForUser(userId)).voice);
+    return { clips: await synthesizeRunsToClips(active, await englishRuns(active, text)) };
+  } catch (err) {
+    if (err instanceof TtsError) throw new SessionError("tts_unavailable", err.message);
+    throw err;
+  }
+}
+
+export async function ttsEnglishStreamTicket(userId: string, text: string): Promise<{ path: string }> {
+  try {
+    const { settings } = await getTtsSettings();
+    const active = await resolveTutorTts((await resolveTutorForUser(userId)).voice);
+    if (!settings.streaming || !active.provider.stream) {
+      throw new SessionError("stream_unsupported", `${active.provider.name} için akış kapalı`);
+    }
+    const coded = await englishRuns(active, text);
     if (coded.length === 0) throw new SessionError("stream_unsupported", "Seslendirilecek parça yok");
     return { path: `/v1/tts/stream/${openStream(active, coded)}` };
   } catch (err) {
@@ -1082,20 +1150,25 @@ export async function translate(
     .from(userProfiles)
     .where(eq(userProfiles.userId, userId))
     .limit(1);
-  const target = languageName(nativeLanguageOf(profile));
+  const nativeLanguage = nativeLanguageOf(profile);
+  const target = languageName(nativeLanguage);
 
-  const translated = await completeText({
-    purpose: "chat",
-    system: `Translate the user's English text into natural, everyday ${target}. Output ONLY the translation — no quotes, no explanation, no English.`,
-    messages: [{ role: "user", content: text }],
-    promptVersion: "translate.v1",
-    userId,
-    sessionId,
-    maxTokens: 300,
-    temperature: 0.2,
-  });
+  // Google anahtarı varsa Google, yoksa LLM — iki yol da kalıcı önbellekten geçer
+  // (oyun bloğundaki paylaşımlı cümleler her öğrencide yeniden çevrilmesin).
+  const out = await translateCached(text, nativeLanguage, () =>
+    completeText({
+      purpose: "chat",
+      system: `Translate the user's English text into natural, everyday ${target}. Output ONLY the translation — no quotes, no explanation, no English.`,
+      messages: [{ role: "user", content: text }],
+      promptVersion: "translate.v1",
+      userId,
+      sessionId,
+      maxTokens: 300,
+      temperature: 0.2,
+    }),
+  );
 
-  return { text: translated.trim() };
+  return { text: out.text };
 }
 
 // ---------------------------------------------------------------------------
@@ -1233,7 +1306,7 @@ export async function endSession(
   // koçluk tek LLM çağrısı ve düşerse özet yine döner — "Bitir" asla bloke olmaz.
   // Ders oturumunda alan hiç yok; ders istemcisi değişmeden çalışır.
   if (owned.session.sessionKind === "roleplay" && owned.roleplaySpec) {
-    const debrief = await roleplayDebrief(userId, sessionId, owned.roleplaySpec);
+    const debrief = await roleplayDebrief(userId, sessionId, owned.roleplaySpec, owned.state?.tutor?.name);
     return { ok: true, turns: turns.length, debrief };
   }
 

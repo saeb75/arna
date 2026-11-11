@@ -11,6 +11,7 @@ import { ScreenGlow } from "../../components/ui/ScreenGlow";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { RoleplayController } from "../../controllers/RoleplayController";
 import { categoryLook, categoryOrder } from "../../domain/roleplayCategories";
+import { useTutorName } from "../../hooks/useTutorName";
 import { tr } from "../../i18n/tr";
 import { useMeStore } from "../../stores/useMeStore";
 import { useRoleplayStore } from "../../stores/useRoleplayStore";
@@ -29,6 +30,7 @@ export function RoleplayScreen() {
   const bottom = useTabBarSpace();
   const { list, error } = useRoleplayStore();
   const level = useMeStore((s) => s.me?.profile?.cefrLevel ?? "A1") as CefrLevel;
+  const tutorName = useTutorName();
   const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(
@@ -76,7 +78,7 @@ export function RoleplayScreen() {
           <Text accessibilityRole="header" className="text-3xl font-extrabold tracking-tight text-foreground">
             {tr.roleplay.title}
           </Text>
-          <Text className="text-base text-muted-foreground">{tr.roleplay.subtitle}</Text>
+          <Text className="text-base text-muted-foreground">{tr.roleplay.subtitle(tutorName)}</Text>
         </Animated.View>
 
         {error && !list ? (

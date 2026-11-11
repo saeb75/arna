@@ -1,5 +1,6 @@
 import { checkpointSchema } from "@glotmate/contracts";
 import { api, errorCode } from "../api";
+import { VoiceService } from "../lib/voice";
 import { useCheckpointStore } from "../stores/useCheckpointStore";
 
 /**
@@ -22,6 +23,23 @@ export class CheckpointController {
     } finally {
       store.setLoading(false);
     }
+  }
+
+  /**
+   * Dinleme maddesinin cümlesini öğretmenin sesiyle çal. Test bir ders oturumu açmaz →
+   * oturumsuz, yalnız İngilizce okuyan uç (`/v1/tts`). Ses düşerse madde yine
+   * oynanabilir (seçenekler ekranda) — akış beklemez.
+   */
+  static play(text: string): void {
+    const store = useCheckpointStore.getState();
+    store.setSpeaking(true);
+    void VoiceService.speak(null, [{ lang: "en", text }], () => useCheckpointStore.getState().setSpeaking(false));
+  }
+
+  /** Madde değişti ya da ekrandan çıkıldı — sesi sustur */
+  static stopAudio(): void {
+    VoiceService.stopPlayback();
+    useCheckpointStore.getState().setSpeaking(false);
   }
 
   /**

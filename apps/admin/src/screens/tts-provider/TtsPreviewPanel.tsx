@@ -2,7 +2,8 @@
 
 import type { TtsProvider } from "@glotmate/contracts";
 import { Play } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { ClipPlayer } from "@/components/shared/ClipPlayer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,8 +17,8 @@ const DEFAULT_PREVIEW_L1_LANGUAGE = "tr";
 /**
  * Önizleme: taslaktaki ses/modelle, kaydetmeden. Ders akışını taklit eder: ana
  * dilde giriş (opsiyonel) + İngilizce hedef cümle → tek-klip yeteneği görülür.
- * Metinler YEREL state (sunum); klipler store'dan SIRAYLA çalınır — ders
- * istemcisiyle aynı zincir. Ekranın tek DOM yan etkisi budur.
+ * Metinler YEREL state (sunum); klipler store'dan `ClipPlayer` ile SIRAYLA çalınır —
+ * ders istemcisiyle aynı zincir.
  */
 export function TtsPreviewPanel({ provider }: { provider: TtsProvider }) {
   const data = useSettingsStore((s) => s.data);
@@ -27,24 +28,6 @@ export function TtsPreviewPanel({ provider }: { provider: TtsProvider }) {
   const [text, setText] = useState(DEFAULT_PREVIEW_TEXT);
   const [l1Text, setL1Text] = useState("");
   const [l1Language, setL1Language] = useState(DEFAULT_PREVIEW_L1_LANGUAGE);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  useEffect(() => {
-    if (!preview || preview.provider !== provider) return;
-    audioRef.current?.pause();
-    let index = 0;
-    const playNext = () => {
-      const clip = preview.clips[index++];
-      if (!clip) return;
-      const audio = new Audio(`data:audio/mpeg;base64,${clip.audioBase64}`);
-      audioRef.current = audio;
-      audio.onended = playNext;
-      audio.onerror = playNext;
-      void audio.play().catch(() => undefined); // otomatik çalma engeli: toast zaten sonucu söyledi
-    };
-    playNext();
-    return () => audioRef.current?.pause();
-  }, [preview, provider]);
 
   if (!data || !draft) return null;
   const configured = data.configured[provider];
@@ -97,6 +80,7 @@ export function TtsPreviewPanel({ provider }: { provider: TtsProvider }) {
 
       {!configured && <p className="mt-3 text-xs text-muted-foreground">No API key in .env — preview is unavailable for this provider.</p>}
       {!hasVoice && configured && <p className="mt-3 text-xs text-muted-foreground">Enter a voice first.</p>}
+      {last && <ClipPlayer clips={last.clips} playKey={last.at} />}
       {last && (
         <p className="mt-3 text-xs text-muted-foreground">
           Last preview: {last.clips.length} clip{last.clips.length === 1 ? "" : "s"} · {formatMs(last.latencyMs)}

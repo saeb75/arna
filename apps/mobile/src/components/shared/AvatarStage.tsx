@@ -28,11 +28,14 @@ import { SpriteAvatar } from "./SpriteAvatar";
 export function AvatarStage({
   speaking,
   avatarId,
+  tutorName,
   activity = "idle",
   fill = false,
 }: {
   speaking: boolean;
   avatarId: string;
+  /** Öğretmenin adı — avatarsız göstergede ve yükleme yazısında */
+  tutorName: string;
   /** öğrenci konuşuyor → dinler, yanıt bekleniyor → düşünür (avatar jestleri) */
   activity?: AvatarActivity;
   /**
@@ -80,10 +83,10 @@ export function AvatarStage({
   if (!url || failed) {
     return fill ? (
       <View className="flex-1 items-center justify-center bg-card">
-        <SpeakingIndicator speaking={speaking} />
+        <SpeakingIndicator speaking={speaking} name={tutorName} />
       </View>
     ) : (
-      <SpeakingIndicator speaking={speaking} />
+      <SpeakingIndicator speaking={speaking} name={tutorName} />
     );
   }
 
@@ -124,7 +127,7 @@ export function AvatarStage({
         {!sceneReady && (
           <Animated.View exiting={FadeOut.duration(300)} className="absolute inset-0 items-center justify-center gap-3 bg-card">
             <Skeleton className="size-24 rounded-full" />
-            <Text className="text-xs font-semibold text-muted-foreground">{tr.lesson.avatarLoading}</Text>
+            <Text className="text-xs font-semibold text-muted-foreground">{tr.lesson.avatarLoading(tutorName)}</Text>
           </Animated.View>
         )}
       </View>

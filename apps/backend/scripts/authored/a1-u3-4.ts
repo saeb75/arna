@@ -1,5 +1,5 @@
 /** A1 · Ünite 3-4 — Things and Places · Everyday Life (16 ders, elle yazıldı). */
-import { fill, mcq, qfill, qmcq, say, sc, type Authored } from "./dsl.js";
+import { arr, chat, err, fc, la, lc, pairs, qfill, qmcq, sc, sit, spk, type Authored } from "./dsl.js";
 
 export const A1_U3_4: Authored[] = [
   // --- Ünite 3 · Things and Places -------------------------------------------
@@ -11,7 +11,7 @@ export const A1_U3_4: Authored[] = [
     target: "a / an before a single thing",
     correction: "Say the phrase with the right article and let the learner repeat it.",
     summary: "You learned when to use a and when to use an before a single thing.",
-    minutes: 5,
+    minutes: 6,
     points: [
       {
         form: "a / an",
@@ -31,17 +31,27 @@ export const A1_U3_4: Authored[] = [
         ex: ["What's this? It's a key.", "It's an old phone."],
       },
     ],
-    ex: [
-      fill("Look, it's ___ orange.", ["an"]),
-      mcq("Which sentence is correct?", ["It's an umbrella.", "It's a umbrella.", "It's umbrella."], 0),
-      say("it / be / a / new / bag", ["It's a new bag.", "It is a new bag."]),
+    ex: [],
+    drills: [
+      // p1 — a / an
+      fc("p1", "I have ___ umbrella.", ["an", "a", "two"]),
+      fc("p1", "She has ___ new car.", ["a", "an", "two"]),
+      lc("p1", "It's an egg.", ["It's a leg.", "It's an ear."]),
+      sit("p1", "You see one orange. What do you say?", ["It's an orange.", "It's a orange.", "It's an oranges."]),
+      la("p1", "It's an email from my teacher.", ["a"]),
+      spk("p1", "It's an apple."),
+      // p2 — It's a...
+      chat("p2", ["What's this?", null], ["It's a key.", "It's key.", "It a key."]),
+      arr("p2", "It's an old phone.", ["a"]),
+      sit("p2", "Someone asks 'What's this?' about an email on your screen. What do you say?", [
+        "It's an email.",
+        "It's a email.",
+        "It's email.",
+      ]),
+      // karışık
+      chat("mix", ["What's this?", null], ["It's an umbrella.", "It's a umbrella.", "It umbrella."]),
+      lc("mix", "It's an old car.", ["It's a old car.", "It's an old cat."]),
     ],
-    open: {
-      q: "Look around you. Name three things you can see, using a or an.",
-      must: ["it's a", "it's an"],
-      criteria: "The answer names single things with the correct article.",
-      example: "It's a table, it's a lamp and it's an old clock.",
-    },
     success: "The learner names things with a and an correctly at least twice.",
     quiz: [
       qmcq("Which one is correct?", ["a hospital", "an hospital", "hospital a"], 0),
@@ -52,23 +62,23 @@ export const A1_U3_4: Authored[] = [
       sc("Ella", "a friend helping you unpack", "to find out what is in all the boxes",
         "A friend is helping you unpack boxes in your new flat.",
         "Name the things you take out of the boxes.",
-        "There are so many boxes! What have you got in this one?", "curious"),
+        "Choose one thing in your box. What is it?", "curious"),
       sc("Ryan", "a colleague showing you the supply room", "to explain what is in the office supply room",
         "Your colleague opens the office supply room and asks what you need.",
         "Name the things you can see and say what you need.",
-        "Here we keep everything. What can you see that you need?", "helpful"),
+        "Choose one thing on your desk. What is it?", "helpful"),
       sc("Nora", "a security officer at the airport", "to check what is in your bag",
         "At the airport a security officer looks in your bag.",
         "Name the things in your bag one by one.",
-        "Could you tell me what you have in this bag?", "polite"),
+        "Choose one thing in your bag. What is it?", "polite"),
       sc("Mr. Duval", "your teacher", "to practise naming classroom objects",
         "Your teacher points at things in the classroom.",
         "Name each thing with a or an.",
-        "Let's practise. What can you see on my desk?", "warm"),
+        "Think of one thing on your desk. What is it?", "warm"),
       sc("Ms. Iles", "the examiner", "to check that you can name simple objects",
         "The examiner shows you a picture of a room.",
         "Name the things in the picture with a or an.",
-        "Look at this picture. What can you see in the room?", "neutral"),
+        "Think of one thing you carry every day. What is it?", "neutral"),
     ],
   },
 
@@ -80,7 +90,7 @@ export const A1_U3_4: Authored[] = [
     target: "regular and irregular plurals",
     correction: "Say the correct plural in a short sentence and let the learner repeat it.",
     summary: "You learned how to make plurals with -s and -es, and the common irregular ones.",
-    minutes: 6,
+    minutes: 8,
     points: [
       {
         form: "-s and -es",
@@ -96,21 +106,42 @@ export const A1_U3_4: Authored[] = [
         claims: [
           "Some words change completely: man becomes men, woman becomes women, child becomes children.",
           "A few words do not change at all: one fish, two fish.",
+          "One person, two people. 'Some people' means a few people.",
         ],
-        ex: ["Three children are waiting outside.", "Two men and one woman came in."],
+        ex: ["Three children are waiting outside.", "Two men and one woman came in.", "There are some people outside."],
       },
     ],
-    ex: [
-      fill("One box, two ___.", ["boxes"]),
-      mcq("What is the plural of 'child'?", ["children", "childs", "childes"], 0),
-      say("there / be / two / women / here", ["There are two women here."]),
+    ex: [],
+    drills: [
+      // p1 — -s / -es / -ies
+      fc("p1", "I have two ___.", ["sisters", "sister", "sisteres"]),
+      fc("p1", "There are three ___ on the table.", ["boxes", "boxs", "box"]),
+      pairs("p1", [
+        ["book", "books"],
+        ["box", "boxes"],
+        ["city", "cities"],
+        ["bus", "buses"],
+      ]),
+      err("p1", "I have two boxs in my room.", "boxs", "boxes"),
+      lc("p1", "I need three boxes.", ["I need three box.", "I need two boxes."]),
+      spk("p1", "I have two brothers."),
+      // p2 — düzensiz çoğullar
+      fc("p2", "One man, two ___.", ["men", "mans", "mens"]),
+      sit("p2", "Your friend has one son and two daughters. What do you say?", [
+        "She has three children.",
+        "She has three childs.",
+        "She has three childrens.",
+      ]),
+      la("p2", "Two women and three men are here.", ["mans"]),
+      chat("p2", ["How many people are in your family?", null], ["Five people.", "Five peoples.", "Five person."]),
+      // karışık
+      sit("mix", "You have two sons and four boxes. What do you say?", [
+        "I have two children and four boxes.",
+        "I have two childs and four boxes.",
+        "I have two children and four boxs.",
+      ]),
+      spk("mix", "I have two children and three books."),
     ],
-    open: {
-      q: "Describe what you can see in a busy street. Use at least two plural words.",
-      must: ["there are", "two"],
-      criteria: "The answer uses plural forms correctly.",
-      example: "There are a lot of cars and three buses in the street.",
-    },
     success: "The learner uses plural forms correctly when counting things.",
     quiz: [
       qmcq("What is the plural of 'watch'?", ["watches", "watchs", "watch"], 0),
@@ -125,23 +156,23 @@ export const A1_U3_4: Authored[] = [
       sc("Paula", "a friend at the market", "to count what you are buying together",
         "You and a friend are shopping at a busy market.",
         "Count and name the things you are buying.",
-        "Right, we need a few things. What is on your list?", "cheerful"),
+        "We need some things. How many apples do we need?", "cheerful"),
       sc("Ian", "a colleague doing a stock check", "to count what is left in the office",
         "You are helping a colleague count office supplies.",
         "Count the things and say the numbers out loud.",
-        "I have to count everything today. Can you tell me what is on that shelf?", "busy"),
+        "Imagine your office. How many boxes have you got?", "busy"),
       sc("Rita", "a tour guide with a group", "to check that everyone in the group is present",
         "The guide is counting people and bags before the bus leaves.",
         "Help her count the people and things.",
-        "Before we go, can you help me count everyone?", "cheerful"),
+        "Before we go, how many people are in your group?", "cheerful"),
       sc("Mr. Weber", "your teacher", "to practise plurals with real objects",
         "Your teacher puts several objects on the table.",
         "Say how many of each thing there are.",
-        "Look at my table. How many of each thing can you see?", "warm"),
+        "How many brothers and sisters have you got?", "warm"),
       sc("Ms. Ford", "the examiner", "to check that you can use plurals",
         "The examiner shows you a picture of a park.",
         "Describe what you see using plural words.",
-        "What can you see in this picture of a park?", "neutral"),
+        "Tell me about your family. How many children are there?", "neutral"),
     ],
   },
 
@@ -153,14 +184,15 @@ export const A1_U3_4: Authored[] = [
     target: "this / that / these / those",
     correction: "Model the right word for near or far and let the learner say the sentence again.",
     summary: "You learned to use this and these for things near you, and that and those for things far away.",
-    minutes: 5,
+    minutes: 8,
     points: [
       {
         form: "this / these",
         claims: [
           "Use 'this' for one thing near you and 'these' for more than one near you.",
+          "'Mine' means 'my one' or 'my things': these are mine.",
         ],
-        ex: ["This is my seat.", "These are my keys."],
+        ex: ["This is my seat.", "These are my keys.", "These bags are mine."],
       },
       {
         form: "that / those",
@@ -177,21 +209,42 @@ export const A1_U3_4: Authored[] = [
         ex: ["I like that one.", "I'll take this one, please."],
       },
     ],
-    ex: [
-      fill("Look at ___ mountains over there. They are beautiful.", ["those"]),
-      mcq("You are holding a book in your hand. What do you say?", [
-        "This is a good book.",
-        "That is a good book.",
-        "Those is a good book.",
-      ], 0),
-      say("these / be / mine", ["These are mine."]),
+    ex: [],
+    drills: [
+      // p1 — this / these
+      fc("p1", "___ is my seat, here next to me.", ["This", "These", "Those"]),
+      fc("p1", "___ are my keys, here in my hand.", ["These", "This", "That"]),
+      arr("p1", "These are my glasses.", ["This"]),
+      spk("p1", "This is my phone."),
+      // p2 — that / those
+      sit("p2", "You point at a house far away. What do you say?", [
+        "That is my house.",
+        "This is my house.",
+        "Those is my house.",
+      ]),
+      fc("p2", "Look at ___ mountains over there!", ["those", "these", "that"]),
+      lc("p2", "Those are my friends.", ["These are my friends.", "Those are my friend."]),
+      // p3 — this one / that one
+      chat("p3", ["Which bag do you want, this one or that one?", null], [
+        "That one, please.",
+        "That ones, please.",
+        "Those one, please.",
+      ]),
+      la("p3", "I like that one.", ["those"]),
+      spk("p3", "I'll take that one, please."),
+      // karışık
+      pairs("mix", [
+        ["one thing, near", "this"],
+        ["many things, near", "these"],
+        ["one thing, far", "that"],
+        ["many things, far", "those"],
+      ]),
+      chat("mix", ["Are these your keys?", null], [
+        "No, those are my keys, over there.",
+        "No, that are my keys, over there.",
+        "No, these is my keys, over there.",
+      ]),
     ],
-    open: {
-      q: "You are choosing between two jackets in a shop. Say which one you want and why.",
-      must: ["this one", "that one"],
-      criteria: "The answer chooses between things with this or that and gives a reason.",
-      example: "I like this one, but that one is cheaper. I'll take this one.",
-    },
     success: "The learner uses this, that, these or those correctly when choosing.",
     quiz: [
       qmcq("Which sentence is correct for shoes on your feet?", [
@@ -210,23 +263,23 @@ export const A1_U3_4: Authored[] = [
       sc("Sam", "a seller at a market stall", "to sell you something from the stall",
         "You are at a market stall with many similar things.",
         "Choose between the things and say which one you want.",
-        "Everything here is handmade. Which ones would you like to see?", "cheerful"),
+        "Imagine two bags: one here, one far away. Which one do you want?", "cheerful"),
       sc("Diana", "a colleague choosing office furniture", "to agree on furniture for the office",
         "You and a colleague are choosing furniture from a catalogue.",
         "Say which items you prefer and why.",
-        "We have to pick two chairs today. Any preferences?", "practical"),
+        "Imagine two chairs: one next to you, one far away. Which one do you want?", "practical"),
       sc("Omar", "a shop assistant in a souvenir shop", "to help you choose a souvenir",
         "You are choosing a souvenir in a small shop.",
         "Compare the things and choose one.",
-        "We have a lot to choose from. Are you looking for something special?", "friendly"),
+        "Imagine your bags are next to you. Are these yours?", "friendly"),
       sc("Mrs. Aydin", "your teacher", "to practise pointing and choosing",
         "The teacher has put objects near you and far from you.",
         "Say which things are near and which are far.",
-        "Some things are on your desk and some are on mine. What can you see?", "warm"),
+        "Imagine some books next to you. Are these yours?", "warm"),
       sc("Mr. Cole", "the examiner", "to check that you can compare two options",
         "The examiner puts two pictures in front of you.",
         "Choose between them and explain your choice.",
-        "Here are two options. Which would you choose?", "neutral"),
+        "Imagine two pens: one here, one over there. Which one do you want?", "neutral"),
     ],
   },
 
@@ -238,7 +291,7 @@ export const A1_U3_4: Authored[] = [
     target: "what is this / it's my phone / I need my keys",
     correction: "Give the object word in a full short sentence and let the learner repeat it.",
     summary: "You learned the names of everyday objects and how to ask what something is.",
-    minutes: 5,
+    minutes: 7,
     points: [
       {
         form: "What is this?",
@@ -260,25 +313,41 @@ export const A1_U3_4: Authored[] = [
         form: "I need my keys",
         claims: [
           "Use 'I need' plus the thing when you want to say something is necessary.",
+          "Use 'them' for more than one thing so you do not repeat the word: these are my keys, I need them.",
         ],
-        ex: ["I need my keys.", "I need a charger for my phone."],
+        ex: ["I need my keys.", "I need a charger for my phone.", "These are my glasses. I need them."],
       },
     ],
-    ex: [
-      fill("___ this? It's a charger.", ["What's", "What is"]),
-      mcq("You are pointing at two things next to you. What do you ask?", [
-        "What are these?",
-        "What is these?",
-        "What are this?",
-      ], 0),
-      say("I / need / my / keys", ["I need my keys."]),
+    ex: [],
+    drills: [
+      // p1 — What is this? / What are these?
+      arr("p1", "What are these?", ["is"]),
+      chat("p1", ["Look at this!", null, "It's my new watch."], ["What's this?", "What are this?", "What's these?"]),
+      lc("p1", "What are these?", ["What's this?", "Where are these?"]),
+      // p2 — It's my phone
+      fc("p2", "Is this your phone? Yes, it's ___ phone.", ["my", "me", "I"]),
+      pairs("p2", [
+        ["What's this?", "It's my wallet."],
+        ["What are these?", "They're my keys."],
+        ["Is this your umbrella?", "Yes, it is."],
+      ]),
+      spk("p2", "It's my phone."),
+      // p3 — I need my keys
+      sit("p3", "It is raining and you want to go out. What do you say?", [
+        "I need my umbrella.",
+        "I need me umbrella.",
+        "I needs my umbrella.",
+      ]),
+      la("p3", "I need a charger for my phone.", ["needs"]),
+      fc("p3", "My phone is dead. I need ___ charger.", ["a", "an", "these"]),
+      // karışık
+      chat("mix", ["What are these?", null], [
+        "They're my keys. I need them!",
+        "It's my keys. I need them!",
+        "They're my key. I need them!",
+      ]),
+      lc("mix", "These are my glasses. I need them.", ["These are my classes. I need them.", "This is my glass. I need it."]),
     ],
-    open: {
-      q: "Tell me three things you always carry with you and why you need them.",
-      must: ["it's my", "I need"],
-      criteria: "The answer names objects and says why they are needed.",
-      example: "It's my wallet, my phone and my keys. I need my keys for the office door.",
-    },
     success: "The learner names everyday objects and asks about unknown ones.",
     quiz: [
       qmcq("Which question asks about one thing near you?", [
@@ -297,23 +366,23 @@ export const A1_U3_4: Authored[] = [
       sc("Bea", "a friend who found a lost bag", "to find out whose bag it is",
         "Your friend has found a bag and you look inside it together.",
         "Name the things you find and say what is yours.",
-        "Someone left this bag here. Shall we see what's inside?", "curious"),
+        "Hi! Is this your bag? What's in it?", "curious"),
       sc("Leo", "a colleague at the lost property desk", "to help a colleague find lost items",
         "You have lost something at the office and go to lost property.",
         "Describe the objects you are looking for.",
-        "A few things came in this week. What are you missing?", "helpful"),
+        "Hi! I found a phone on your desk. Is it your phone?", "helpful"),
       sc("Ana", "a security officer at the airport", "to check the contents of your bag",
         "A security officer asks you to empty your bag.",
         "Name each object as you take it out.",
-        "Could you take everything out of your bag, please?", "polite"),
+        "Choose one thing in your bag. What is it?", "polite"),
       sc("Mr. Baker", "your teacher", "to teach the names of classroom objects",
         "Your teacher holds up objects you may not know the names of.",
         "Ask what things are and name the ones you know.",
-        "I have some things here. Do you know all their names?", "warm"),
+        "What do you need for class today?", "warm"),
       sc("Ms. Quinn", "the examiner", "to check that you can name everyday objects",
         "The examiner asks about the things you carry.",
         "Name your things and say what you need them for.",
-        "What do you usually carry with you every day?", "neutral"),
+        "What do you carry every day?", "neutral"),
     ],
   },
 
@@ -325,7 +394,7 @@ export const A1_U3_4: Authored[] = [
     target: "there is a / there are two / there isn't any",
     correction: "Model the sentence with there is or there are and let the learner say it again.",
     summary: "You learned to say what there is in a place, and what there is not.",
-    minutes: 6,
+    minutes: 8,
     points: [
       {
         form: "there is / there are",
@@ -340,28 +409,48 @@ export const A1_U3_4: Authored[] = [
         claims: [
           "For negatives, say 'there isn't' or 'there aren't'.",
           "Use 'any' after a negative with plural words: there aren't any shops.",
+          "Use 'there isn't any' with things you cannot count: there isn't any milk.",
         ],
-        ex: ["There isn't a supermarket here.", "There aren't any restaurants nearby."],
+        ex: ["There isn't a supermarket here.", "There aren't any restaurants nearby.", "There isn't any milk."],
       },
     ],
-    ex: [
-      fill("___ a good bakery on my street.", ["There's", "There is"]),
-      mcq("Which sentence is correct?", [
-        "There are three hotels in the town.",
-        "There is three hotels in the town.",
-        "There are a three hotels in the town.",
-      ], 0),
-      say("there / not be / any / shops / near here", [
-        "There aren't any shops near here.",
-        "There are not any shops near here.",
+    ex: [],
+    drills: [
+      // p1 — there is / there are
+      fc("p1", "___ a cafe near my house.", ["There's", "There are", "It"]),
+      fc("p1", "There ___ two banks in this street.", ["are", "is", "am"]),
+      arr("p1", "There is a park near my house.", ["are"]),
+      lc("p1", "There are three shops here.", ["There are two shops here.", "There's a shop here."]),
+      sit("p1", "Your street has one bakery and two cafes. What do you say?", [
+        "There's a bakery and there are two cafes.",
+        "There are a bakery and there is two cafes.",
+        "It's a bakery and there are two cafes.",
+      ]),
+      spk("p1", "There's a cafe near my house."),
+      // p2 — there isn't / there aren't any
+      fc("p2", "There ___ any shops in my street.", ["aren't", "isn't", "not"]),
+      chat("p2", ["What's near your house?", null], [
+        "There isn't a supermarket, but there's a park.",
+        "There aren't a supermarket, but there's a park.",
+        "There not a supermarket, but there's a park.",
+      ]),
+      la("p2", "There aren't any restaurants here.", ["isn't"]),
+      sit("p2", "Your village has no bank. What do you say?", [
+        "There isn't a bank.",
+        "There aren't a bank.",
+        "There not a bank.",
+      ]),
+      // karışık
+      lc("mix", "There's a park, but there isn't a pool.", [
+        "There's a park, but there's a pool.",
+        "There's a pool, but there isn't a park.",
+      ]),
+      chat("mix", ["Is your street nice?", null], [
+        "Yes! There are two cafes, but there isn't a shop.",
+        "Yes! There is two cafes, but there isn't a shop.",
+        "Yes! There are two cafes, but there aren't a shop.",
       ]),
     ],
-    open: {
-      q: "Describe your street. Say two things that are there and one thing that is not.",
-      must: ["there is a", "there isn't any"],
-      criteria: "The answer uses there is and there are correctly, including one negative.",
-      example: "There's a small park and there are two cafes, but there isn't any supermarket.",
-    },
     success: "The learner describes a place with there is and there are, including a negative.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -380,23 +469,23 @@ export const A1_U3_4: Authored[] = [
       sc("Tessa", "a friend who may move to your area", "to find out what the area is like",
         "A friend is thinking about moving to your part of town.",
         "Describe what there is and is not in your area.",
-        "I'm thinking about moving near you. What's the area like?", "curious"),
+        "Hi! What is there near your house?", "curious"),
       sc("Hugo", "a new colleague in the building", "to learn what is around the office",
         "A new colleague wants to know what is near the office.",
         "Describe the shops and places around the office.",
-        "I'm new here. Is there anywhere good to go at lunchtime?", "friendly"),
+        "I'm new here. Is there a cafe near the office?", "friendly"),
       sc("Marie", "a hotel receptionist", "to help a guest find things nearby",
         "You ask the receptionist about the area around the hotel.",
         "Ask about places nearby and describe what you need.",
-        "Welcome! Would you like to know what's around the hotel?", "helpful"),
+        "Hello! Tell me about your town. What is there?", "helpful"),
       sc("Mr. Ferris", "your teacher", "to practise describing places",
         "In class you are describing your home town.",
         "Say what there is and is not in your town.",
-        "Tell us about your town. What is there?", "warm"),
+        "What is there in your street?", "warm"),
       sc("Ms. Doyle", "the examiner", "to check that you can describe a place",
         "The examiner shows you a picture of a small town.",
         "Describe what there is in the picture.",
-        "Look at this town. What can you see?", "neutral"),
+        "Tell me about your street. What is there?", "neutral"),
     ],
   },
 
@@ -408,7 +497,7 @@ export const A1_U3_4: Authored[] = [
     target: "is there a / are there any / yes there is",
     correction: "Model the question with the verb first and let the learner ask it again.",
     summary: "You learned how to ask what there is in a place and how to answer.",
-    minutes: 5,
+    minutes: 8,
     points: [
       {
         form: "Is there...? / Are there...?",
@@ -423,28 +512,46 @@ export const A1_U3_4: Authored[] = [
         claims: [
           "Answer short: Yes, there is. No, there isn't. Yes, there are. No, there aren't.",
           "You can add one detail after the short answer to be helpful.",
+          "To ask about the distance, say 'How far is it?'",
         ],
-        ex: ["Yes, there is. It's next to the post office.", "No, there aren't, sorry."],
+        ex: ["Yes, there is. It's next to the post office.", "No, there aren't, sorry.", "How far is it?"],
       },
     ],
-    ex: [
-      fill("___ there a pharmacy on this street?", ["Is", "is"]),
-      mcq("Which question is correct?", [
-        "Are there any restaurants near here?",
-        "Is there any restaurants near here?",
-        "Are there a restaurants near here?",
-      ], 0),
-      say("yes / there / be / one / near the station", [
-        "Yes, there is one near the station.",
-        "Yes, there's one near the station.",
+    ex: [],
+    drills: [
+      // p1 — Is there...? / Are there any...?
+      arr("p1", "Is there a bank near here?", ["Are"]),
+      fc("p1", "___ there a pharmacy near here?", ["Is", "Are", "Do"]),
+      sit("p1", "You need money from a machine. What do you ask?", [
+        "Is there a cash machine near here?",
+        "Are there a cash machine near here?",
+        "Is a cash machine near here?",
       ]),
+      lc("p1", "Are there any cafes here?", ["Are there any cars here?", "There are some cafes here."]),
+      fc("p1", "Are there ___ good restaurants in this street?", ["any", "a", "an"]),
+      spk("p1", "Is there a bank near here?"),
+      // p2 — kısa cevap + how far
+      chat("p2", ["Is there a park near your house?", null], [
+        "Yes, there is. It's very big.",
+        "Yes, there's. It's very big.",
+        "Yes, there are. It's very big.",
+      ]),
+      fc("p2", "Are there any taxis? No, there ___.", ["aren't", "isn't", "not"]),
+      la("p2", "Yes, there is, next to the post office.", ["are"]),
+      sit("p2", "Someone asks: 'Are there any buses at night?' There are no buses at night. What do you say?", [
+        "No, there aren't.",
+        "No, there isn't.",
+        "No, they aren't.",
+      ]),
+      // karışık
+      chat("mix", ["Excuse me, is there a bank near here?", null], [
+        "Yes, there is. It's next to the station.",
+        "Yes, there are. It's next to the station.",
+        "Yes, it is. It's next to the station.",
+      ]),
+      lc("mix", "Is there a pool? No, there isn't.", ["Is there a pool? Yes, there is.", "Is there a school? No, there isn't."]),
+      chat("mix", ["Yes, there's a bank on Main Street.", null], ["Great! How far is it?", "Great! How far it is?", "Great! How far are it?"]),
     ],
-    open: {
-      q: "You have just arrived in a new city. Ask three questions about what there is nearby.",
-      must: ["is there a", "are there any"],
-      criteria: "The questions use is there or are there with the correct word order.",
-      example: "Is there a supermarket near here? Are there any good cafes? Is there a bus stop nearby?",
-    },
     success: "The learner asks questions with is there and are there and answers them.",
     quiz: [
       qmcq("Which question is correct?", [
@@ -463,23 +570,23 @@ export const A1_U3_4: Authored[] = [
       sc("Greta", "a neighbour who knows the area well", "to help the new person settle in",
         "You have just moved in and meet a neighbour who knows the area.",
         "Ask questions about what there is nearby.",
-        "Welcome to the street! Is there anything you'd like to know about the area?", "friendly"),
+        "Hi! I live here. Do you have any questions about the street?", "friendly"),
       sc("Felix", "a colleague showing you the building", "to help you find your way in the building",
         "It is your first week and you do not know the building.",
         "Ask what there is on each floor.",
-        "Let me show you around. What do you need to find first?", "helpful"),
+        "Welcome to the office! What do you want to find?", "helpful"),
       sc("Salma", "a hotel receptionist", "to answer a guest's questions about the area",
         "You have arrived at a hotel in a city you do not know.",
         "Ask about places near the hotel.",
-        "Here is your key. Do you have any questions about the area?", "polite"),
+        "Here is your key. Any questions about the area?", "polite"),
       sc("Mr. Ross", "the school office assistant", "to explain what the school has",
         "You are visiting a school for the first time.",
         "Ask what there is in the school building.",
-        "Feel free to ask me anything about the school. What would you like to know?", "warm"),
+        "Welcome to the school! Do you have any questions?", "warm"),
       sc("Ms. Lane", "the examiner", "to check that you can ask about a place",
         "In the exam you role play arriving in a new town.",
         "Ask three questions about what there is.",
-        "Imagine you have just arrived in my town. What would you ask me?", "neutral"),
+        "You need a bank in my town. What do you want to ask me?", "neutral"),
     ],
   },
 
@@ -491,7 +598,7 @@ export const A1_U3_4: Authored[] = [
     target: "on the table / in my bag / next to the door",
     correction: "Model the place phrase and let the learner say the whole sentence again.",
     summary: "You learned the words for saying where things are: on, in, under, next to and behind.",
-    minutes: 5,
+    minutes: 8,
     points: [
       {
         form: "on / in / under",
@@ -510,21 +617,36 @@ export const A1_U3_4: Authored[] = [
         ex: ["The chair is next to the door.", "The car is behind the house."],
       },
     ],
-    ex: [
-      fill("Your phone is ___ the kitchen table.", ["on"]),
-      mcq("The keys are inside your bag. What do you say?", [
-        "They're in my bag.",
-        "They're on my bag.",
-        "They're under my bag.",
-      ], 0),
-      say("the chair / be / next to / the door", ["The chair is next to the door."]),
+    ex: [],
+    drills: [
+      // p1 — on / in / under
+      sit("p1", "The phone is inside your bag. Where is it?", ["It's in my bag.", "It's on my bag.", "It's under my bag."]),
+      pairs("p1", [
+        ["inside", "in"],
+        ["on top of", "on"],
+        ["below", "under"],
+      ]),
+      sit("p1", "The book is on top of the desk. Where is it?", ["It's on the desk.", "It's in the desk.", "It's under the desk."]),
+      arr("p1", "The box is under the bed.", ["of"]),
+      lc("p1", "It's in my bag.", ["It's on my bag.", "It's in my bed."]),
+      spk("p1", "My keys are on the table."),
+      // p2 — next to / behind / in front of
+      sit("p2", "The chair is at the side of the door. Where is it?", [
+        "It's next to the door.",
+        "It's behind the door.",
+        "It's in front of the door.",
+      ]),
+      fc("p2", "The car is at the back of the house. It's ___ the house.", ["behind", "next", "in"]),
+      la("p2", "The bank is next to the station.", ["of"]),
+      chat("p2", ["Where is the bus stop?", null], ["It's in front of the bank.", "It's in front the bank.", "It's front of the bank."]),
+      // karışık
+      chat("mix", ["Where are my glasses?", null], [
+        "They're on the table, next to your phone.",
+        "They're on the table, next your phone.",
+        "They're in the table, next to your phone.",
+      ]),
+      spk("mix", "The cat is under the table, next to the door."),
     ],
-    open: {
-      q: "Someone cannot find their glasses in your home. Tell them where to look.",
-      must: ["on the table", "in my bag"],
-      criteria: "The answer says where things are with place words.",
-      example: "They're on the table in the kitchen, next to your book.",
-    },
     success: "The learner says where things are using place words correctly.",
     quiz: [
       qmcq("Where is the milk, if it is inside the fridge?", [
@@ -543,23 +665,23 @@ export const A1_U3_4: Authored[] = [
       sc("Alice", "a flatmate who has lost her phone", "to find her phone before she leaves",
         "Your flatmate has lost her phone somewhere in the flat.",
         "Tell her where to look, using place words.",
-        "I can't find my phone anywhere! Have you seen it?", "worried"),
+        "I can't find my phone! Where is it?", "worried"),
       sc("Tom", "a colleague looking for a file", "to find a document he needs for a meeting",
         "A colleague cannot find a folder in the office.",
         "Explain where things are in the office.",
-        "I need that blue folder for the meeting. Any idea where it is?", "busy"),
+        "Where is the blue folder?", "busy"),
       sc("Lucia", "a hotel cleaner", "to return something a guest left behind",
         "You left something in your hotel room and describe where it was.",
         "Say exactly where you left the item.",
-        "You called about something left in the room. Where exactly was it?", "polite"),
+        "Hello! Where is your bag now?", "polite"),
       sc("Mrs. Yilmaz", "your teacher", "to practise describing a room",
         "In class you describe where the things in the classroom are.",
         "Say where several objects are.",
-        "Let's describe this room. Where is everything?", "warm"),
+        "Look around your room. Where is your phone?", "warm"),
       sc("Mr. Novak", "the examiner", "to check that you can describe positions",
         "The examiner shows you a picture of a living room.",
         "Say where the things in the picture are.",
-        "Look at this room. Where are the things you can see?", "neutral"),
+        "Look around you. Where is your bag?", "neutral"),
     ],
   },
 
@@ -585,30 +707,38 @@ export const A1_U3_4: Authored[] = [
       {
         form: "just around the corner",
         claims: [
-          "'Just around the corner' means very close, only a few steps away.",
+          "'Just around the corner' means very close, often just past the next corner.",
           "'Five minutes on foot' is another natural way to say something is close.",
         ],
         ex: ["The bakery is just around the corner.", "It's five minutes on foot."],
       },
     ],
-    ex: [
-      fill("The pharmacy is just around the ___.", ["corner"]),
-      mcq("Something is two minutes away. What do you say?", [
-        "It's very near.",
-        "It's very far.",
-        "It's not here.",
-      ], 0),
-      say("there / be / a park / near my house", [
-        "There's a park near my house.",
-        "There is a park near my house.",
+    ex: [],
+    drills: [
+      // p1 — it's near / it's far
+      fc("p1", "The station is ten minutes away. It isn't ___ from here.", ["far", "near", "next"]),
+      sit("p1", "The airport is two hours from your town. What do you say?", [
+        "It's quite far.",
+        "It's just around the corner.",
+        "It's near.",
       ]),
+      spk("p1", "It's not far from here."),
+      // p2 — just around the corner
+      sit("p2", "The bakery is a one-minute walk away, just past the corner. What do you say?", [
+        "It's just around the corner.",
+        "It's quite far.",
+        "It's around corner.",
+      ]),
+      lc("p2", "It's five minutes on foot.", ["It's five minutes by car.", "It's fifty minutes on foot."]),
+      arr("p2", "The cafe is just around the corner.", ["near"]),
+      // karışık
+      chat("mix", ["Is there a supermarket near you?", null], [
+        "Yes, it's just around the corner.",
+        "Yes, it's just around corner.",
+        "Yes, it's near around the corner.",
+      ]),
+      la("mix", "The bakery is just around the corner, near the station.", ["far"]),
     ],
-    open: {
-      q: "A visitor asks about your area. Describe two places and say how near they are.",
-      must: ["there's a", "it's near"],
-      criteria: "The answer names places and describes how near or far they are.",
-      example: "There's a nice market near my house. It's just around the corner, five minutes on foot.",
-    },
     success: "The learner describes places nearby and says how near they are at least twice.",
     quiz: [
       qmcq("Which phrase means 'very close'?", [
@@ -627,23 +757,23 @@ export const A1_U3_4: Authored[] = [
       sc("Chloe", "a friend visiting for the weekend", "to plan what to see near your home",
         "A friend is staying with you for the weekend.",
         "Describe what is near your home and how near it is.",
-        "I've never been to your area before. What's worth seeing?", "excited"),
+        "I don't know your area. What is there near your house?", "excited"),
       sc("Bruno", "a colleague relocating to your city", "to choose an area to live in",
         "A colleague is moving to your city and asks about your area.",
         "Describe your neighbourhood and the distances.",
-        "I might move to your part of town. Would you recommend it?", "curious"),
+        "I want to move to your area. Is there a supermarket near you?", "curious"),
       sc("Amara", "a guest at your home exchange", "to find her way around a new neighbourhood",
         "Someone is staying in your flat while you are away.",
         "Explain what is nearby and how to get there.",
-        "Thanks for the keys! What should I know about the area?", "friendly"),
+        "Thanks for the keys! Is there a cafe near here?", "friendly"),
       sc("Mr. Sen", "your teacher", "to hear students describe where they live",
         "In class everyone describes their neighbourhood.",
         "Describe your area with details and distances.",
-        "Tell the class about the place where you live. What is it like?", "warm"),
+        "Tell us about your street. What is there?", "warm"),
       sc("Ms. Cruz", "the examiner", "to hear you speak for a longer stretch",
         "The examiner asks you to describe your neighbourhood for a minute.",
         "Describe several places and how near they are.",
-        "Could you describe the area where you live?", "neutral"),
+        "Tell me about the area where you live. What is near your home?", "neutral"),
     ],
   },
 
@@ -656,7 +786,7 @@ export const A1_U3_4: Authored[] = [
     target: "present simple with I, you, we and they",
     correction: "Say the sentence with the correct verb and let the learner repeat it.",
     summary: "You learned to talk about your daily routine with I, you, we and they.",
-    minutes: 6,
+    minutes: 8,
     points: [
       {
         form: "I wake up / we start",
@@ -676,21 +806,32 @@ export const A1_U3_4: Authored[] = [
         ex: ["I go to the gym every morning.", "We have a meeting on Mondays."],
       },
     ],
-    ex: [
-      fill("I ___ up at half past six every day.", ["wake"]),
-      mcq("Which sentence is correct?", [
-        "We start at nine.",
-        "We starts at nine.",
-        "We is start at nine.",
-      ], 0),
-      say("they / finish / late / on Fridays", ["They finish late on Fridays."]),
+    ex: [],
+    drills: [
+      // p1 — plain verb + at + time
+      fc("p1", "I ___ up at seven every day.", ["wake", "wakes", "waking"]),
+      fc("p1", "We start work ___ nine o'clock.", ["at", "on", "in"]),
+      arr("p1", "They finish work at six.", ["finishes"]),
+      lc("p1", "We start at eight.", ["We start at eighteen.", "We stop at eight."]),
+      sit("p1", "You and your sister have breakfast at seven every day. What do you say?", [
+        "We have breakfast at seven.",
+        "We has breakfast at seven.",
+        "We having breakfast at seven.",
+      ]),
+      spk("p1", "I wake up at seven."),
+      // p2 — every day / on Mondays
+      arr("p2", "I go to the gym every morning.", ["goes"]),
+      fc("p2", "We have a meeting ___ Mondays.", ["on", "at", "in"]),
+      la("p2", "They play football every Sunday.", ["on"]),
+      chat("p2", ["When do you see your parents?", null], ["I see them on Sundays.", "I see them at Sundays.", "I see them in Sundays."]),
+      // karışık
+      chat("mix", ["What time do you start work?", null], [
+        "I start at nine every day.",
+        "I starts at nine every day.",
+        "I start on nine every day.",
+      ]),
+      spk("mix", "We finish late on Fridays."),
     ],
-    open: {
-      q: "Describe three things you do every morning, with the times.",
-      must: ["I wake up", "we start at"],
-      criteria: "The answer describes routine actions with the plain verb form and times.",
-      example: "I wake up at six, I have breakfast at half past six and I leave at seven.",
-    },
     success: "The learner describes daily routines with the correct verb form at least twice.",
     quiz: [
       qmcq("Which sentence is correct?", ["I work in a bank.", "I works in a bank.", "I am work in a bank."], 0),
@@ -705,23 +846,23 @@ export const A1_U3_4: Authored[] = [
       sc("Nina", "a friend comparing routines", "to compare her day with yours",
         "You and a friend are comparing your daily routines.",
         "Describe your day and ask about hers.",
-        "My mornings are so chaotic. What time does your day start?", "chatty"),
+        "Hi! What time do you wake up?", "chatty"),
       sc("Kemal", "a colleague on a different shift", "to understand when you are available",
         "A colleague works different hours and wants to plan meetings.",
         "Explain when you start, work and finish.",
-        "Our hours are different, aren't they? When do you usually work?", "practical"),
+        "What time do you start work?", "practical"),
       sc("Ivy", "a host family member", "to fit the guest into the family routine",
         "You are staying with a family and they explain their routine.",
         "Describe your usual day and ask about theirs.",
-        "We should talk about the daily routine here. Shall we start with yours?", "warm"),
+        "Welcome! What time do you get up?", "warm"),
       sc("Mr. Adams", "your teacher", "to hear about students' daily routines",
         "The class is talking about daily routines.",
         "Describe your normal weekday.",
-        "Let's talk about a normal day. What happens in yours?", "warm"),
+        "Tell us about your day. What time do you start?", "warm"),
       sc("Ms. Bright", "the examiner", "to check that you can describe a routine",
         "The examiner asks about your typical day.",
         "Describe your daily routine with times.",
-        "Could you describe a normal day for you?", "neutral"),
+        "Let's talk about your day. What time do you wake up?", "neutral"),
     ],
   },
 
@@ -733,7 +874,7 @@ export const A1_U3_4: Authored[] = [
     target: "present simple third person -s",
     correction: "Say the verb with -s in a full sentence and let the learner repeat it.",
     summary: "You learned to add -s to the verb when you talk about he, she or it.",
-    minutes: 6,
+    minutes: 8,
     points: [
       {
         form: "he works / she lives",
@@ -752,21 +893,40 @@ export const A1_U3_4: Authored[] = [
         ex: ["He watches films every evening.", "She has two children."],
       },
     ],
-    ex: [
-      fill("My sister ___ in a hospital.", ["works"]),
-      mcq("Which sentence is correct?", [
-        "He goes to work by bus.",
-        "He go to work by bus.",
-        "He gos to work by bus.",
-      ], 0),
-      say("she / have / two children", ["She has two children."]),
+    ex: [],
+    drills: [
+      // p1 — he works / she lives
+      fc("p1", "My brother ___ in a bank.", ["works", "work", "working"]),
+      fc("p1", "The class ___ at nine.", ["starts", "start", "starting"]),
+      sit("p1", "Your friend Ana lives near the park. What do you say?", [
+        "She lives near the park.",
+        "She live near the park.",
+        "She living near the park.",
+      ]),
+      lc("p1", "He works at night.", ["He walks at night.", "We work at night."]),
+      arr("p1", "She lives in a small flat.", ["live"]),
+      spk("p1", "She works at night."),
+      // p2 — -es ve has
+      pairs("p2", [
+        ["watch", "she watches"],
+        ["go", "she goes"],
+        ["do", "she does"],
+        ["have", "she has"],
+      ]),
+      fc("p2", "He ___ to school by bus.", ["goes", "gos", "go"]),
+      chat("p2", ["Tell me about your sister.", null], ["She has two children.", "She haves two children.", "She have two children."]),
+      la("p2", "He watches films every evening.", ["watch"]),
+      // karışık
+      chat("mix", ["What does your father do?", null], [
+        "He works in a shop and he has a car.",
+        "He work in a shop and he has a car.",
+        "He works in a shop and he have a car.",
+      ]),
+      lc("mix", "She goes to work and he stays at home.", [
+        "She goes to work and he stays at school.",
+        "She goes to work and we stay at home.",
+      ]),
     ],
-    open: {
-      q: "Describe what someone in your family does every day. Use he or she.",
-      must: ["she works", "he lives"],
-      criteria: "The answer uses -s on the verb after he or she.",
-      example: "My sister works in a restaurant. She works at night and finishes very late.",
-    },
     success: "The learner uses the -s form correctly after he, she or it at least twice.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -785,23 +945,23 @@ export const A1_U3_4: Authored[] = [
       sc("Beatriz", "a neighbour asking about your family", "to learn what your family members do",
         "A neighbour is curious about the people in your household.",
         "Say what the people in your family do.",
-        "Your family always seems busy! What does everyone do?", "curious"),
+        "Tell me about your mother. What does she do?", "curious"),
       sc("Jonas", "a colleague from another department", "to understand who does what in your team",
         "A colleague wants to know what your team members do.",
         "Explain what each person does.",
-        "I never know who to ask in your team. Who does what?", "practical"),
+        "Tell me about your manager. Where does he work?", "practical"),
       sc("Selma", "a guide talking about local life", "to explain how local people live and work",
         "A guide is telling you about daily life in the region.",
         "Ask about local routines and describe your own country.",
-        "Life here follows the seasons. What is it like where you come from?", "warm"),
+        "Tell me about your best friend. Where does she live?", "warm"),
       sc("Mr. Price", "your teacher", "to practise talking about other people",
         "The class is describing the jobs of people they know.",
         "Describe what two people you know do.",
-        "Tell us about someone you know. What do they do?", "warm"),
+        "Tell us about someone in your family. What does he or she do?", "warm"),
       sc("Ms. Ito", "the examiner", "to check that you can describe other people",
         "The examiner asks about a person in your life.",
         "Describe what that person does, using -s correctly.",
-        "Could you tell me what someone in your family does?", "neutral"),
+        "Tell me about your brother or sister. What does he or she do?", "neutral"),
     ],
   },
 
@@ -813,7 +973,7 @@ export const A1_U3_4: Authored[] = [
     target: "I don't / she doesn't",
     correction: "Model the negative with the plain verb and let the learner say it again.",
     summary: "You learned to say what you do not do with don't and doesn't.",
-    minutes: 6,
+    minutes: 8,
     points: [
       {
         form: "I don't / we don't",
@@ -832,24 +992,36 @@ export const A1_U3_4: Authored[] = [
         ex: ["She doesn't eat meat.", "He doesn't live here any more."],
       },
     ],
-    ex: [
-      fill("Thanks, but I ___ drink coffee.", ["don't", "do not"]),
-      mcq("Which sentence is correct?", [
-        "She doesn't eat meat.",
-        "She doesn't eats meat.",
-        "She don't eats meat.",
-      ], 0),
-      say("we / not / work / at weekends", [
-        "We don't work at weekends.",
-        "We do not work at weekends.",
+    ex: [],
+    drills: [
+      // p1 — don't
+      fc("p1", "I ___ drink coffee.", ["don't", "doesn't", "not"]),
+      arr("p1", "We don't work at weekends.", ["doesn't"]),
+      sit("p1", "Your friend offers you tea, but you never drink tea. What do you say?", [
+        "No, thanks. I don't drink tea.",
+        "No, thanks. I not drink tea.",
+        "No, thanks. I doesn't drink tea.",
       ]),
+      lc("p1", "I don't like it.", ["I like it.", "I don't lock it."]),
+      spk("p1", "We don't work on Sundays."),
+      // p2 — doesn't
+      fc("p2", "She ___ eat meat.", ["doesn't", "don't", "isn't"]),
+      fc("p2", "He doesn't ___ here any more.", ["live", "lives", "living"]),
+      err("p2", "She doesn't works here.", "works", "work"),
+      la("p2", "My brother doesn't like football.", ["don't"]),
+      chat("p2", ["Tell me about your sister.", null], [
+        "She doesn't drink coffee. She drinks tea.",
+        "She don't drink coffee. She drinks tea.",
+        "She doesn't drinks coffee. She drinks tea.",
+      ]),
+      // karışık
+      sit("mix", "You and your brother don't eat fish. Your mother doesn't eat meat. What do you say?", [
+        "We don't eat fish, and she doesn't eat meat.",
+        "We doesn't eat fish, and she don't eat meat.",
+        "We don't eat fish, and she doesn't eats meat.",
+      ]),
+      spk("mix", "I don't drink coffee and she doesn't drink tea."),
     ],
-    open: {
-      q: "Someone offers you food and drink you do not want. Say no politely and explain.",
-      must: ["I don't"],
-      criteria: "The answer refuses politely with a negative present simple sentence.",
-      example: "Thank you, but I don't drink coffee. I don't eat sugar either.",
-    },
     success: "The learner explains habits with don't and doesn't correctly.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -868,23 +1040,23 @@ export const A1_U3_4: Authored[] = [
       sc("Hana", "a host offering food and drinks", "to make her guest comfortable",
         "You are a guest at someone's home and they offer you food and drink.",
         "Say politely what you do not eat or drink.",
-        "Please make yourself at home. What can I get you?", "warm"),
+        "Welcome! Is there anything you don't eat or drink?", "warm"),
       sc("Erik", "a colleague organising a team lunch", "to book a place that suits everyone",
         "A colleague is choosing a restaurant for the team.",
         "Explain what you do not eat and suggest an alternative.",
-        "I'm booking lunch for the team. Any preferences I should know about?", "practical"),
+        "I'm booking lunch for the team. Is there anything you don't eat?", "practical"),
       sc("Pilar", "a waiter at a small restaurant", "to take an order that suits the guest",
         "You are ordering in a restaurant with a limited menu.",
         "Explain what you do not eat and ask about options.",
-        "Good evening. Have you had a chance to look at the menu?", "polite"),
+        "Good evening! Is there anything you don't eat?", "polite"),
       sc("Mrs. Ali", "your teacher", "to practise talking about habits",
         "The class is talking about habits people do not have.",
         "Say three things you do not do.",
-        "Let's talk about the things we don't do. Would you like to start?", "warm"),
+        "Let's talk about things we don't do. What don't you like?", "warm"),
       sc("Mr. Bloom", "the examiner", "to check that you can use negatives",
         "The examiner asks about things you avoid.",
         "Say what you do not do, using don't and doesn't.",
-        "Is there anything you never do in your free time?", "neutral"),
+        "What don't you do at weekends?", "neutral"),
     ],
   },
 
@@ -896,7 +1068,7 @@ export const A1_U3_4: Authored[] = [
     target: "do you / does she / yes I do",
     correction: "Model the question with do or does and let the learner ask it again.",
     summary: "You learned how to ask questions about daily life and how to answer them short.",
-    minutes: 6,
+    minutes: 8,
     points: [
       {
         form: "Do you...? / Does he...?",
@@ -915,21 +1087,36 @@ export const A1_U3_4: Authored[] = [
         ex: ["Yes, I do.", "No, he doesn't.", "Yes, I do. I live in the next street."],
       },
     ],
-    ex: [
-      fill("___ you live near the station?", ["Do", "do"]),
-      mcq("Which question is correct?", [
-        "Does she work here?",
-        "Does she works here?",
-        "Do she work here?",
-      ], 0),
-      say("do / you / work / on Saturdays", ["Do you work on Saturdays?"]),
+    ex: [],
+    drills: [
+      // p1 — Do you...? / Does he...?
+      arr("p1", "Do you live near here?", ["Are"]),
+      fc("p1", "___ she work at the school?", ["Does", "Do", "Is"]),
+      err("p1", "Does she works here?", "works", "work"),
+      sit("p1", "You want to know if your new friend likes music. What do you ask?", [
+        "Do you like music?",
+        "Are you like music?",
+        "You like music do?",
+      ]),
+      lc("p1", "Does he work here?", ["Does he walk here?", "Do you work here?"]),
+      spk("p1", "Do you live near here?"),
+      // p2 — Yes, I do. / No, I don't.
+      chat("p2", ["Do you speak Spanish?", null], ["No, I don't.", "No, I doesn't.", "No, I not."]),
+      fc("p2", "Does your brother drive? Yes, he ___.", ["does", "do", "is"]),
+      pairs("p2", [
+        ["Do you work here?", "Yes, I do."],
+        ["Does she live here?", "No, she doesn't."],
+        ["Do they have a car?", "Yes, they do."],
+      ]),
+      la("p2", "No, he doesn't live here.", ["don't"]),
+      // karışık
+      chat("mix", ["Do you and your sister live together?", null], [
+        "No, we don't. She lives in Rome.",
+        "No, we doesn't. She lives in Rome.",
+        "No, we don't. She live in Rome.",
+      ]),
+      spk("mix", "No, I don't, but I work here."),
     ],
-    open: {
-      q: "You have met a new neighbour. Ask three questions about their everyday life.",
-      must: ["do you", "does she"],
-      criteria: "The questions use do or does with the plain verb.",
-      example: "Do you live in this building? Do you work nearby? Does your family live here too?",
-    },
     success: "The learner asks questions with do and does and answers with short answers.",
     quiz: [
       qmcq("Which question is correct?", [
@@ -948,23 +1135,23 @@ export const A1_U3_4: Authored[] = [
       sc("Ruth", "a new neighbour", "to get to know the people in the building",
         "You meet a new neighbour in the entrance of your building.",
         "Ask her questions about her everyday life.",
-        "Hello! I moved in last week. Anything you want to know about me?", "friendly"),
+        "Hi! I'm Ruth, your new neighbour. Do you live here?", "friendly"),
       sc("Pavel", "a colleague you rarely see", "to find out how your colleague works",
         "You are working with a colleague from another office for the first time.",
         "Ask about his working habits.",
-        "We'll be working together this month. Ask me anything about how I work?", "practical"),
+        "Hi! Do you work on this floor?", "practical"),
       sc("Naomi", "a host at a homestay", "to make sure her guest is comfortable",
         "You are staying with a host family and want to know about their habits.",
         "Ask questions about the household routine.",
-        "Please ask me anything about how things work in our home?", "warm"),
+        "Welcome! Do you like coffee?", "warm"),
       sc("Mr. Ozan", "your teacher", "to practise question forms",
         "The teacher asks you to interview a classmate.",
         "Ask questions with do and does.",
-        "Let's practise questions. What would you like to ask me?", "warm"),
+        "Hello! Do you have any questions for me?", "warm"),
       sc("Ms. Reyes", "the examiner", "to check that you can ask about routines",
         "In the exam you interview the examiner.",
         "Ask three questions with do or does.",
-        "Now it is your turn to ask me about my day. Ready?", "neutral"),
+        "You want to know about my day. What do you want to ask me?", "neutral"),
     ],
   },
 
@@ -976,15 +1163,16 @@ export const A1_U3_4: Authored[] = [
     target: "what time is it / it's half past / at six o'clock",
     correction: "Say the time correctly and ask the learner to repeat the whole phrase.",
     summary: "You learned how to tell the time and when to use at, on and in.",
-    minutes: 6,
+    minutes: 7,
     points: [
       {
         form: "It's half past six",
         claims: [
+          "Ask 'What time is it?' to find out the time.",
           "Say 'o'clock' only for a full hour: it's six o'clock.",
           "Use 'half past', 'quarter past' and 'quarter to' for the parts of the hour.",
         ],
-        ex: ["It's half past six.", "It's a quarter to nine."],
+        ex: ["What time is it?", "It's half past six.", "It's a quarter to nine."],
       },
       {
         form: "at / on / in",
@@ -996,23 +1184,32 @@ export const A1_U3_4: Authored[] = [
         ex: ["The shop opens at nine.", "We meet on Tuesday.", "It's very quiet in the morning."],
       },
     ],
-    ex: [
-      fill("The film starts ___ eight o'clock.", ["at"]),
-      mcq("It is 7:30. What do you say?", [
-        "It's half past seven.",
-        "It's half to seven.",
-        "It's seven and half.",
-      ], 0),
-      say("what / time / be / it", ["What time is it?"]),
+    ex: [],
+    drills: [
+      // p1 — saat söyleme
+      sit("p1", "The clock says 6:30. What time is it?", ["It's half past six.", "It's half past seven.", "It's six half past."]),
+      pairs("p1", [
+        ["7:00", "seven o'clock"],
+        ["7:30", "half past seven"],
+        ["7:15", "a quarter past seven"],
+        ["6:45", "a quarter to seven"],
+      ]),
+      lc("p1", "It's half past eight.", ["It's half past nine.", "It's a quarter past eight."]),
+      arr("p1", "What time is it?", ["are"]),
+      spk("p1", "It's a quarter to nine."),
+      // p2 — at / on / in
+      fc("p2", "The shop opens ___ nine o'clock.", ["at", "on", "in"]),
+      fc("p2", "My birthday is ___ July.", ["in", "on", "at"]),
+      chat("p2", ["When is the meeting?", null], ["It's on Tuesday at ten.", "It's in Tuesday at ten.", "It's on Tuesday in ten."]),
+      la("p2", "It's very quiet in the morning.", ["on"]),
+      // karışık
+      chat("mix", ["When does your class start?", null], ["At half past six on Monday.", "At half past six in Monday.", "On half past six at Monday."]),
+      sit("mix", "Your class is every Monday at 7:30. What do you say?", [
+        "My class is on Monday at half past seven.",
+        "My class is in Monday at half past seven.",
+        "My class is on Monday at seven half.",
+      ]),
     ],
-    open: {
-      q: "Tell me what time you start and finish work or school, and when you have lunch.",
-      // Kalıp istenir, belirli saat değil: "at six o'clock" öğrenciye altıda
-      // başlamayı dayatıyordu ve örnek cevap doğal olarak tutmuyordu.
-      must: ["o'clock", "half past"],
-      criteria: "The answer gives times with the correct time words.",
-      example: "I start at eight o'clock, I have lunch at half past twelve and I finish at five.",
-    },
     success: "The learner tells the time and uses at, on and in correctly.",
     quiz: [
       qmcq("Which is correct for 9:15?", [
@@ -1031,23 +1228,23 @@ export const A1_U3_4: Authored[] = [
       sc("Freya", "a friend planning a cinema trip", "to agree on a time to meet",
         "You and a friend are choosing a film and a time.",
         "Talk about times and agree when to meet.",
-        "There are three showings tonight. When suits you?", "cheerful"),
+        "Let's see a film tonight! What time is good for you?", "cheerful"),
       sc("Dieter", "a colleague booking a meeting", "to find a time everyone can attend",
         "A colleague is trying to book a meeting in a busy week.",
         "Say when you are free and agree on a time.",
-        "I need to find a slot this week. When are you free?", "busy"),
+        "Let's have a meeting this week. What time is good for you?", "busy"),
       sc("Rosa", "a receptionist at the museum", "to explain opening and closing times",
         "You are asking about opening hours and tour times.",
         "Ask about the times and repeat them back.",
-        "Welcome! Would you like to know our times for today?", "helpful"),
+        "Hello! What time is it, please?", "helpful"),
       sc("Mr. Lund", "your teacher", "to practise telling the time",
         "The teacher shows different clocks in class.",
         "Say the times and when you do things.",
-        "Look at this clock. What time does it show?", "warm"),
+        "Look at your watch. What time is it?", "warm"),
       sc("Ms. Nakamura", "the examiner", "to check that you can talk about times",
         "The examiner asks about your daily timetable.",
         "Give the times of your day clearly.",
-        "What time do you usually start your day?", "neutral"),
+        "What time do you start your day?", "neutral"),
     ],
   },
 
@@ -1059,7 +1256,7 @@ export const A1_U3_4: Authored[] = [
     target: "I always / she never / we sometimes go",
     correction: "Repeat the sentence with the frequency word in the right place.",
     summary: "You learned the words always, usually, sometimes and never, and where to put them.",
-    minutes: 6,
+    minutes: 8,
     points: [
       {
         form: "always, usually, sometimes, never",
@@ -1073,27 +1270,43 @@ export const A1_U3_4: Authored[] = [
       {
         form: "once a week / twice a month",
         claims: [
-          "Use 'once', 'twice' or a number plus 'a week' to say how many times.",
+          "Say 'once a week', 'twice a week', or a number plus 'times a week' to say how many times.",
+          "Ask 'How often...?' to find out how many times: How often do you go to the gym?",
           "These phrases go at the end of the sentence.",
         ],
-        ex: ["I go to the gym twice a week.", "We meet once a month."],
+        ex: ["I go to the gym twice a week.", "We meet once a month.", "How often do you swim?"],
       },
     ],
-    ex: [
-      fill("I ___ walk to work, every single day.", ["always"]),
-      mcq("Which sentence is correct?", [
-        "She never eats breakfast.",
-        "She doesn't never eat breakfast.",
-        "She eats never breakfast.",
-      ], 0),
-      say("we / sometimes / go / to the cinema", ["We sometimes go to the cinema."]),
+    ex: [],
+    drills: [
+      // p1 — sıklık zarfları
+      arr("p1", "I always walk to work.", ["am"]),
+      fc("p1", "She does not drink tea at all. She ___ drinks tea.", ["never", "always", "sometimes"]),
+      sit("p1", "You don't eat meat. Not even one time. What do you say?", [
+        "I never eat meat.",
+        "I don't never eat meat.",
+        "I never don't eat meat.",
+      ]),
+      chat("p1", ["Is your brother on time?", null], ["No, he is always late.", "No, he are always late.", "No, he always late."]),
+      lc("p1", "We sometimes go to the park.", ["We sometimes go to the bank.", "We never go to the park."]),
+      spk("p1", "I usually walk to work."),
+      // p2 — once a week / twice a month
+      sit("p2", "You go to the cinema one time every month. What do you say?", [
+        "I go to the cinema once a month.",
+        "I go to the cinema one a month.",
+        "I go to the cinema once the month.",
+      ]),
+      arr("p2", "We meet twice a week.", ["two"]),
+      la("p2", "She calls her mother three times a week.", ["time"]),
+      chat("p2", ["How often do you go to the gym?", null], ["Twice a week.", "Two a week.", "Twice in week."]),
+      // karışık
+      chat("mix", ["Do you eat out?", null], [
+        "Sometimes, about once a month.",
+        "Sometimes, about once in month.",
+        "Sometime, about once a month.",
+      ]),
+      spk("mix", "I never drive, but I take the bus twice a week."),
     ],
-    open: {
-      q: "Say how often you do three different things in your free time.",
-      must: ["I always", "we sometimes go"],
-      criteria: "The answer uses frequency words in the correct position.",
-      example: "I always read before bed, I sometimes go swimming and I never watch TV in the morning.",
-    },
     success: "The learner uses frequency words correctly at least twice.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -1112,23 +1325,23 @@ export const A1_U3_4: Authored[] = [
       sc("Milo", "a friend planning to get fit with you", "to find an activity you both do often",
         "A friend wants to start a regular activity with you.",
         "Say how often you do things and agree on a plan.",
-        "I need to get more active. How often do you do sport?", "energetic"),
+        "How often do you do sport?", "energetic"),
       sc("Sandra", "a colleague comparing work habits", "to learn how you organise your work",
         "A colleague is asking how often you do certain work tasks.",
         "Say how often you do each task.",
-        "I'm trying to organise my week better. How often do you check emails?", "practical"),
+        "How often do you check your emails?", "practical"),
       sc("Theo", "a fellow guest at the hostel", "to swap travel habits",
         "You are chatting with a traveller about travel habits.",
         "Say how often you travel and what you always do.",
-        "Some people travel every month. How often do you get away?", "relaxed"),
+        "How often do you travel?", "relaxed"),
       sc("Mrs. Costa", "your teacher", "to practise frequency words",
         "The class is talking about habits and how often people do things.",
         "Say how often you do several things.",
-        "Let's talk about habits. What do you always do in the morning?", "warm"),
+        "What do you always do in the morning?", "warm"),
       sc("Mr. Lewis", "the examiner", "to check that you can say how often",
         "The examiner asks about your habits.",
         "Answer with frequency words in the right place.",
-        "How often do you use English outside this room?", "neutral"),
+        "How often do you speak English?", "neutral"),
     ],
   },
 
@@ -1140,7 +1353,7 @@ export const A1_U3_4: Authored[] = [
     target: "what are you doing / I'm working / right now",
     correction: "Model the be plus -ing form and let the learner say the sentence again.",
     summary: "You learned to talk about actions happening at this moment with am, is or are plus -ing.",
-    minutes: 6,
+    minutes: 8,
     points: [
       {
         form: "am / is / are + verb-ing",
@@ -1168,21 +1381,37 @@ export const A1_U3_4: Authored[] = [
         ex: ["I usually walk, but today I'm taking the bus.", "He is not answering because he's driving."],
       },
     ],
-    ex: [
-      fill("Sorry, I can't talk. I ___ driving right now.", ["am", "'m"]),
-      mcq("Your friend calls you while you are cooking. What do you say?", [
-        "I'm cooking dinner right now.",
-        "I cook dinner right now.",
-        "I am cook dinner right now.",
-      ], 0),
-      say("what / you / do / right now", ["What are you doing right now?"]),
+    ex: [],
+    drills: [
+      // p1 — am / is / are + -ing
+      fc("p1", "I ___ working right now.", ["am", "is", "are"]),
+      fc("p1", "She is ___ dinner.", ["cooking", "cook", "cooks"]),
+      arr("p1", "They are waiting outside.", ["waits"]),
+      lc("p1", "He's making coffee.", ["He's taking coffee.", "He makes coffee."]),
+      // p2 — What are you doing?
+      chat("p2", ["Hi! It's me.", null, "I'm cooking. And you?"], [
+        "Hi! What are you doing?",
+        "Hi! What do you doing?",
+        "Hi! What you are doing?",
+      ]),
+      fc("p2", "What ___ he doing at the moment?", ["is", "are", "does"]),
+      spk("p2", "What are you doing right now?"),
+      // p3 — şimdi mi, her gün mü
+      fc("p3", "Look! I ___ on the bus right now.", ["am sitting", "sit", "sits"]),
+      sit("p3", "Your friend calls you. You are driving the car now. What do you say?", [
+        "I'm driving right now.",
+        "I drive right now.",
+        "I driving right now.",
+      ]),
+      la("p3", "I usually walk, but today I'm taking the bus.", ["takes"]),
+      // karışık
+      chat("mix", ["What are you doing?", null], [
+        "I'm reading. I usually read at night.",
+        "I read. I usually reading at night.",
+        "I'm read. I usually read at night.",
+      ]),
+      spk("mix", "I usually work at home, but I'm working at the office today."),
     ],
-    open: {
-      q: "A friend calls you. Say what you are doing right now and ask what they are doing.",
-      must: ["I'm working", "what are you doing"],
-      criteria: "The answer uses be plus -ing for a present action and asks the question back.",
-      example: "I'm working at home right now. What are you doing?",
-    },
     success: "The learner describes actions happening now with be plus -ing at least twice.",
     quiz: [
       qmcq("Which sentence is about this moment?", [
@@ -1201,23 +1430,23 @@ export const A1_U3_4: Authored[] = [
       sc("Zoe", "a friend calling you", "to find out if you are free to talk",
         "A friend calls you in the middle of your day.",
         "Say what you are doing and ask what she is doing.",
-        "Hi! Is this a bad moment to call?", "cheerful"),
+        "Hi! It's Zoe. What are you doing right now?", "cheerful"),
       sc("Robert", "a colleague looking for people", "to find out where everyone is",
         "A colleague calls to ask where the team is and what they are doing.",
         "Say what people are doing right now.",
-        "The meeting room is empty. What is everyone doing?", "busy"),
+        "Hi! What are you doing at the moment?", "busy"),
       sc("Sun", "a friend waiting for you at a cafe", "to find out how long she has to wait",
         "You are late and your friend calls to ask where you are.",
         "Explain what you are doing right now.",
-        "I'm already at the cafe. Where are you?", "patient"),
+        "I'm at the cafe. What are you doing?", "patient"),
       sc("Mr. Farah", "your teacher on a video call", "to check that students are working",
         "Your teacher calls during a group task.",
         "Say what you and your group are doing right now.",
-        "Hello everyone. How is the task going?", "warm"),
+        "Hello! What are you doing now?", "warm"),
       sc("Ms. Poole", "the examiner", "to check that you can describe a picture",
         "The examiner shows a picture of a busy street.",
         "Say what the people in the picture are doing.",
-        "Look at this picture. What are the people doing?", "neutral"),
+        "Let's start. What are you doing today?", "neutral"),
     ],
   },
 
@@ -1236,7 +1465,7 @@ export const A1_U3_4: Authored[] = [
         form: "first, then, after that",
         claims: [
           "Use 'first', 'then' and 'after that' to put your actions in order.",
-          "These words go at the start of the sentence, before the person.",
+          "In this lesson, put these words at the start of the sentence: Then I make coffee.",
         ],
         ex: ["First I have a shower.", "Then I make coffee.", "After that I leave the house."],
       },
@@ -1248,21 +1477,28 @@ export const A1_U3_4: Authored[] = [
         ex: ["I check my messages before work.", "We have a short break after lunch."],
       },
     ],
-    ex: [
-      fill("I have breakfast, and ___ that I take the bus.", ["after"]),
-      mcq("Which sentence puts the actions in a clear order?", [
-        "First I get up, then I have breakfast.",
-        "First I have breakfast, first I get up.",
-        "Then I get up, after that first I sleep.",
-      ], 0),
-      say("I / usually / start / work / at nine", ["I usually start work at nine."]),
+    ex: [],
+    drills: [
+      // p1 — first, then, after that
+      arr("p1", "After that I leave the house.", ["leaves"]),
+      sit("p1", "You want to say the first thing you do in the morning. What do you say?", [
+        "First I have a shower.",
+        "After that I have a shower.",
+        "Then first I have a shower.",
+      ]),
+      lc("p1", "Then I make coffee.", ["Then I make toast.", "First I make coffee."]),
+      // p2 — before work / after lunch
+      fc("p2", "I eat lunch at one. At two, ___ lunch, I go for a walk.", ["after", "before", "in"]),
+      chat("p2", ["When do you check your messages?", null], ["Before work, at eight.", "Before of work, at eight.", "In before work, at eight."]),
+      spk("p2", "I check my messages before work."),
+      // karışık
+      la("mix", "First I have breakfast before work.", ["after"]),
+      chat("mix", ["What do you do before work?", null], [
+        "First I have a shower. After that I make coffee.",
+        "First I have a shower. After I make coffee.",
+        "First I have a shower. After that I making coffee.",
+      ]),
     ],
-    open: {
-      q: "Describe your morning from waking up to arriving at work or school.",
-      must: ["I usually", "after that"],
-      criteria: "The answer describes several actions in a clear order with linking words.",
-      example: "I usually wake up at six. First I have a shower, then I make coffee, and after that I leave.",
-    },
     success: "The learner describes a morning routine in order with linking words at least twice.",
     quiz: [
       qmcq("Which word shows the next step?", ["after that", "because", "but"], 0),
@@ -1277,23 +1513,23 @@ export const A1_U3_4: Authored[] = [
       sc("Kate", "a friend who wants to change her routine", "to get ideas for a better morning",
         "A friend says her mornings are stressful and asks about yours.",
         "Describe your morning step by step.",
-        "My mornings are a disaster. How does yours go?", "curious"),
+        "Hi! What do you usually do in the morning?", "curious"),
       sc("Ahmed", "a colleague starting a new schedule", "to plan his new working day",
         "A colleague is changing his hours and asks how you organise your morning.",
         "Describe your morning in order.",
-        "I'm starting earlier from next week. How do you organise your mornings?", "practical"),
+        "What do you do before work?", "practical"),
       sc("Bea", "a host family member", "to plan the household morning",
         "Your host family wants to know your morning habits.",
         "Describe your morning routine step by step.",
-        "Mornings here can be busy. What does your morning look like?", "warm"),
+        "What do you do in the morning?", "warm"),
       sc("Mrs. Iqbal", "your teacher", "to hear a longer connected answer",
         "In class you describe your daily routine in detail.",
         "Describe your morning with linking words.",
-        "Take your time and tell us about your morning. Where do you start?", "warm"),
+        "Tell us about your morning. What do you do first?", "warm"),
       sc("Mr. Solis", "the examiner", "to hear you speak for about a minute",
         "The examiner asks you to describe a typical morning.",
         "Describe your morning in order, with times.",
-        "Could you describe a typical morning for you?", "neutral"),
+        "Tell me about your morning. What do you usually do?", "neutral"),
     ],
   },
 ];

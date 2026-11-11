@@ -1,7 +1,8 @@
 /** Transkript işaretleri (faz ayırıcı + isabet) — LLM'siz, DB'siz.  npx tsx scripts/test-transcript.ts */
 import assert from "node:assert/strict";
 import type { AdminTranscriptTurn } from "@glotmate/contracts";
-import { annotateTranscript } from "../src/lib/transcript";
+import { formatDrillTurn, parseDrillTurn } from "@glotmate/contracts";
+import { annotateTranscript, drillSummary } from "../src/lib/transcript";
 
 let id = 0;
 const T = (role: "user" | "assistant", phase: string | null): AdminTranscriptTurn =>
@@ -28,4 +29,16 @@ const b = annotateTranscript(rp, [], {
 });
 assert.deepEqual(b.map((x) => x.hit), [null, "objective: Ask for a table", null, null, "objective: Order a drink · ghost"], "etiketi olmayan hedef kimliğiyle görünür");
 assert.equal(annotateTranscript([], [], null).length, 0);
+
+// Oyun bloğu satırları: biçim ↔ çözümleme gidiş-dönüş, eski biçim, özet
+const wrong = formatDrillTurn({ ok: false, type: "fill_choice", prompt: "I ___ a student.", answer: "is", expected: "I am a student." });
+assert.deepEqual(parseDrillTurn(wrong), { ok: false, type: "fill_choice", prompt: "I ___ a student.", answer: "is", expected: "I am a student." });
+const right = formatDrillTurn({ ok: true, type: "match", prompt: "I · she", answer: "0 mistake(s)", expected: "ignored" });
+assert.deepEqual(parseDrillTurn(right), { ok: true, type: "match", prompt: "I · she", answer: "0 mistake(s)", expected: null }, "doğruda beklenen yazılmaz");
+assert.deepEqual(parseDrillTurn("✗ [speak] she my sister"), { ok: false, type: "speak", prompt: null, answer: "she my sister", expected: null }, "eski tek satırlık biçim");
+assert.equal(parseDrillTurn("✓ [nonsense] x"), null, "bilinmeyen tür");
+assert.equal(parseDrillTurn("Hello"), null);
+const D = (text: string): AdminTranscriptTurn => ({ ...T("user", "lecture"), text, source: "drill" });
+assert.deepEqual(drillSummary([D(wrong), D(right), D(right), T("user", "lecture")]), { answers: 3, correct: 2 });
+assert.equal(drillSummary([T("user", "lecture")]), null);
 console.log("✅ transcript: tüm vakalar geçti");

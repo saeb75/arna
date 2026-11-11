@@ -49,6 +49,8 @@ function whereWeAre(core: LessonCore, beat: CoreBeat | undefined, name: string):
       const pos = taskPosition(core, beat.id);
       return `${name} had just finished task ${pos.index} of ${pos.total} (it is done — their answer was already handled) and you were reacting to it before moving on.`;
     }
+    case "drills":
+      return `${name} was in the middle of a short practice game on the screen.`;
   }
 }
 
@@ -60,6 +62,7 @@ function whatComesNext(core: LessonCore, beatId: string): string {
   const next = beats[i + 1];
   if (!next) return `a short role play`;
   if (next.kind === "exercise" || next.kind === "open_response") return `the next practice question`;
+  if (next.kind === "drills") return `a short practice game on the screen`;
   if (next.kind === "ask") return `a moment for their questions`;
   return `the next part of the lesson`;
 }
@@ -93,7 +96,7 @@ export async function runInterjectionTurn(input: InterjectionInput, llm: TurnLlm
 
   const lines = [`RECENT DIALOGUE (oldest first):`];
   for (const t of input.recent.slice(-8)) {
-    lines.push(`  ${t.role === "tutor" ? "Emma" : learner.name}: ${JSON.stringify(t.text.slice(0, 400))}`);
+    lines.push(`  ${t.role === "tutor" ? learner.tutorName : learner.name}: ${JSON.stringify(t.text.slice(0, 400))}`);
   }
   lines.push(`  ${learner.name} (LATEST MESSAGE — cut in while you were speaking): ${JSON.stringify(input.studentText)}`);
 

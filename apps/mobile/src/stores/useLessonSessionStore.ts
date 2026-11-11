@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type {
+  DrillState,
   LessonContentV7,
   LessonPhase,
   RichText,
@@ -8,6 +9,7 @@ import type {
   TranscriptTurn,
 } from "@glotmate/contracts";
 import { DEFAULT_AVATAR_ID } from "@glotmate/contracts";
+import { FALLBACK_TUTOR_NAME } from "../domain/tutors";
 
 /**
  * Ders oturumu durumu — web sayfasındaki useState+useRef yığınının store karşılığı.
@@ -16,7 +18,14 @@ import { DEFAULT_AVATAR_ID } from "@glotmate/contracts";
  * Web'de ref olan sayaçlar burada düz alan: tepkisel olmaları zararsız, ve
  * "aktarım hatası hak yemez" kuralı için geri alınabilir olmaları yeterli.
  */
-export type Awaiting = "ask" | "exercise" | "open_response" | "practice" | "wrapup" | null;
+export type Awaiting = "ask" | "exercise" | "open_response" | "drills" | "practice" | "wrapup" | null;
+
+/** Oyun bloğunda kontrol edilmiş maddenin sonucu — geri bildirim paneli bunu okur */
+export interface DrillVerdict {
+  /** Hangi maddenin sonucu — madde değişince panel kendiliğinden düşer */
+  itemKey: string;
+  ok: boolean;
+}
 
 export interface LessonMessage {
   id: string;
@@ -37,6 +46,8 @@ export interface LessonResume {
   script: SessionScript;
   lesson: LessonContentV7;
   transcript: TranscriptTurn[];
+  /** Oturuma pinli öğretmen (eski sunucuda yok) — devamda yüz + ad bundan, ses de sunucuda bu öğretmende */
+  tutor?: { avatarId: string; name: string };
 }
 
 interface LessonSessionState {
@@ -48,8 +59,10 @@ interface LessonSessionState {
   loadError: string | null;
   /** Açık oturum varsa devam paketi — kart "Devam et / Baştan başla" gösterir */
   resume: LessonResume | null;
-  /** Admin'in seçtiği aktif avatar — AvatarStage WebView URL'ine ?avatar= ekler */
+  /** Öğrencinin öğretmeninin yüzü (GET /v1/avatar `activeId`) — AvatarStage çizer */
   avatarId: string;
+  /** Öğretmenin adı (aynı cevabın `tutorName`'i) — sahne, durum ve yer tutucu metinleri */
+  tutorName: string;
 
   started: boolean;
   phase: SessionPhase;
@@ -95,6 +108,27 @@ interface LessonSessionState {
    */
   stopped: boolean;
 
+  /**
+   * OYUN BLOĞU (drills) — blok içindeyken dolu, dışında null. Kuyruk/puan kararı
+   * contracts `drillGrade`'de; burada yalnız durum. Pozisyona aynen yazılır (devam).
+   */
+  drill: DrillState | null;
+  /** Kontrol edilmiş maddenin sonucu (Kontrol et → panel → Devam) */
+  drillVerdict: DrillVerdict | null;
+  /** Konuşma kartında o maddedeki deneme sayısı + son duyulan söz */
+  drillSpeakAttempts: number;
+  drillHeard: string | null;
+  /** Blok bitti: özet kartı (rol yapmaya geçiş butonu) */
+  drillSummary: { ok: number; total: number } | null;
+  /** Dokun-çevir: hangi metnin çevirisi gösteriliyor */
+  drillTranslation: { source: string; text: string | null } | null;
+
+  /**
+   * Rol yapmada ekrandaki hedef çiplerinin tiki: `practice.mustUse` içinden öğrencinin
+   * BİREBİR söyledikleri (contracts `usedTargetPhrases`). Yalnız gösterim — ölçüm sunucuda.
+   */
+  practiceUsed: string[];
+
   // sayaçlar — web'deki ref'lerin karşılığı
   beatExchanges: number;
   invites: number;
@@ -117,6 +151,7 @@ const initial = {
   loadError: null,
   resume: null as LessonResume | null,
   avatarId: DEFAULT_AVATAR_ID,
+  tutorName: FALLBACK_TUTOR_NAME,
   started: false,
   phase: "lecture" as SessionPhase,
   beatIndex: 0,
@@ -132,6 +167,13 @@ const initial = {
   pendingInput: null as string | null,
   grace: false,
   stopped: false,
+  drill: null as DrillState | null,
+  drillVerdict: null as DrillVerdict | null,
+  drillSpeakAttempts: 0,
+  drillHeard: null as string | null,
+  drillSummary: null as { ok: number; total: number } | null,
+  drillTranslation: null as { source: string; text: string | null } | null,
+  practiceUsed: [] as string[],
   beatExchanges: 0,
   invites: 0,
   farewells: 0,

@@ -1,4 +1,4 @@
-import type { AdminSessionRoleplay, AdminTranscriptTurn } from "@glotmate/contracts";
+import { parseDrillTurn, type AdminSessionRoleplay, type AdminTranscriptTurn } from "@glotmate/contracts";
 
 /**
  * Transkript işaretleri — saf, React'sız; `scripts/test-transcript.ts`.
@@ -44,4 +44,18 @@ export function annotateTranscript(
     }
     return { t, phaseChanged, hit };
   });
+}
+
+/** Oyun bloğu özeti: cevap sayısı + doğru sayısı (tekrar turundaki cevaplar da sayılır). Blok yoksa null. */
+export function drillSummary(turns: AdminTranscriptTurn[]): { answers: number; correct: number } | null {
+  let answers = 0;
+  let correct = 0;
+  for (const t of turns) {
+    if (t.source !== "drill") continue;
+    const d = parseDrillTurn(t.text);
+    if (!d) continue;
+    answers++;
+    if (d.ok) correct++;
+  }
+  return answers ? { answers, correct } : null;
 }

@@ -20,6 +20,8 @@ import { LessonTopBar } from "./LessonTopBar";
 import { lessonProgress } from "./lessonProgress";
 import { TaskCard } from "./TaskCard";
 import { TranscriptSheet } from "./TranscriptSheet";
+import { PracticeTargets } from "./PracticeTargets";
+import { DrillStage } from "./drills/DrillStage";
 
 /**
  * DERS EKRANI — yalnız store'dan okur, yalnız controller çağırır (CLAUDE.md).
@@ -38,8 +40,8 @@ import { TranscriptSheet } from "./TranscriptSheet";
 export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
   const insets = useSafeAreaInsets();
   const {
-    lesson, loadError, started, phase, beatIndex, awaiting, practiceTurn, avatarId,
-    messages, promptMessageId, hint, notice, speaking, recording, busy, grace, resume,
+    lesson, loadError, started, phase, beatIndex, awaiting, practiceTurn, avatarId, tutorName,
+    messages, promptMessageId, hint, notice, speaking, recording, busy, grace, resume, drill, practiceUsed,
   } = useLessonSessionStore();
   const scrollRef = useRef<ScrollView>(null);
   // Kullanıcı en alttaysa yeni söz akışı kaydırır; yukarıda geçmişi okurken kaydırmaz
@@ -53,6 +55,11 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
 
   const beat = lesson?.lecture.beats[beatIndex];
   const task = phase === "lecture" && (beat?.kind === "exercise" || beat?.kind === "open_response");
+  /**
+   * OYUN BLOĞU: sohbet akışı ve rıhtım yerini alıştırma sahnesine bırakır; avatar
+   * küçülür. Blok bitip rol yapma başlayınca (afterDrills → awaiting null) akış geri gelir.
+   */
+  const drills = phase === "lecture" && beat?.kind === "drills" && awaiting === "drills" ? beat.items : null;
 
   const lastId = messages.at(-1)?.id ?? null;
   useEffect(() => {
@@ -96,6 +103,7 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
         // Ders adı İngilizce (katalog başlığı) — ders yolundaki adla aynı (4 Kas 2026 kararı)
         title={lesson.titleEn}
         theme={lesson.theme}
+        tutorName={tutorName}
         hasResume={!!resume}
         busy={busy}
         onStart={() => void LessonSessionController.start()}
@@ -120,7 +128,7 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
       {/* Üst güvenli alan ÇALIŞMA ZAMANI değeri — gerekçeli inline stil */}
       <View style={{ paddingTop: insets.top }}>
         <LessonTopBar
-          progress={lessonProgress(lesson, phase, beatIndex, practiceTurn)}
+          progress={lessonProgress(lesson, phase, beatIndex, practiceTurn, drill)}
           onClose={() => LessonSessionController.confirmExit()}
           onHint={() => LessonSessionController.showHint()}
         />
@@ -129,61 +137,77 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
       <LessonStage
         speaking={speaking}
         avatarId={avatarId}
+        tutorName={tutorName}
         activity={recording ? "listening" : busy && !speaking ? "thinking" : "idle"}
+        compact={!!drills}
       />
 
-      <ScrollView
-        ref={scrollRef}
-        className="flex-1"
-        contentContainerClassName="gap-3 px-4 pb-4"
-        showsVerticalScrollIndicator={false}
-        onScroll={onScroll}
-        scrollEventThrottle={64}
-        // İçerik büyüdüğünde (yeni söz, uzun anlatım) en alttaysak altta kal
-        onContentSizeChange={() => {
-          if (atBottomRef.current) scrollRef.current?.scrollToEnd({ animated: true });
-        }}
-      >
-        {messages.map((m) => {
-          // O anki görevin sorusu: görev kartı (MCQ şıkları dahil) — geçmiş görevler düz söz
-          if (task && beat && (beat.kind === "exercise" || beat.kind === "open_response") && m.id === promptMessageId) {
-            return (
-              <TaskCard
-                key={m.id}
-                ordinal={ordinal}
-                total={taskBeats.length}
-                prompt={beat.runs}
-                options={choice}
-                // MCQ yalnız soru sorulduktan SONRA dokunulur (awaiting exercise) — eski kural
-                locked={inputLocked || awaiting !== "exercise"}
-                onSelect={(opt) => LessonSessionController.submitOption(opt)}
-              />
-            );
-          }
-          if (m.role === "user") return <MessageBubble key={m.id} role="user" text={m.text} runs={m.runs} />;
-          if (!m.text.trim() && !m.points?.length && !m.runs?.length) return null;
-          // Akan yazı yalnız EN YENİ sözde (geçmiş anında görünür; animate bağlanışta okunur)
-          return <CaptionCard key={m.id} message={m} animate={m.id === lastId} />;
-        })}
-      </ScrollView>
+      {phase === "practice" && <PracticeTargets phrases={lesson.practice.mustUse} used={practiceUsed} />}
 
-      {hint && <HintCard hint={hint} label={lesson.ui.labels.hint} />}
-      {notice && <NoticeBar text={notice} />}
-      {phase === "wrapup" && (
-        <Animated.View entering={FadeInDown.duration(320)} className="px-4 pb-1 pt-2">
-          <CtaButton label={tr.lesson.finish} onPress={() => void LessonSessionController.finish()} />
+      {drills ? (
+        // Alt güvenli alan ÇALIŞMA ZAMANI değeri — gerekçeli inline stil (rıhtım yokken CTA'yı korur)
+        <Animated.View key="drills" entering={FadeInDown.duration(380)} className="flex-1" style={{ paddingBottom: insets.bottom + 8 }}>
+          <DrillStage items={drills} />
+          {notice && <NoticeBar text={notice} />}
         </Animated.View>
-      )}
+      ) : (
+        <>
+        <ScrollView
+          ref={scrollRef}
+          className="flex-1"
+          contentContainerClassName="gap-3 px-4 pb-4"
+          showsVerticalScrollIndicator={false}
+          onScroll={onScroll}
+          scrollEventThrottle={64}
+          // İçerik büyüdüğünde (yeni söz, uzun anlatım) en alttaysak altta kal
+          onContentSizeChange={() => {
+            if (atBottomRef.current) scrollRef.current?.scrollToEnd({ animated: true });
+          }}
+        >
+          {messages.map((m) => {
+            // O anki görevin sorusu: görev kartı (MCQ şıkları dahil) — geçmiş görevler düz söz
+            if (task && beat && (beat.kind === "exercise" || beat.kind === "open_response") && m.id === promptMessageId) {
+              return (
+                <TaskCard
+                  key={m.id}
+                  ordinal={ordinal}
+                  total={taskBeats.length}
+                  prompt={beat.runs}
+                  options={choice}
+                  // MCQ yalnız soru sorulduktan SONRA dokunulur (awaiting exercise) — eski kural
+                  locked={inputLocked || awaiting !== "exercise"}
+                  onSelect={(opt) => LessonSessionController.submitOption(opt)}
+                />
+              );
+            }
+            if (m.role === "user") return <MessageBubble key={m.id} role="user" text={m.text} runs={m.runs} />;
+            if (!m.text.trim() && !m.points?.length && !m.runs?.length) return null;
+            // Akan yazı yalnız EN YENİ sözde (geçmiş anında görünür; animate bağlanışta okunur)
+            return <CaptionCard key={m.id} message={m} animate={m.id === lastId} />;
+          })}
+        </ScrollView>
 
-      <LessonDock
-        locked={inputLocked}
-        recording={recording}
-        placeholder={inputLocked ? tr.lesson.thinking : awaiting ? tr.lesson.placeholderAnswer : tr.lesson.placeholderBarge}
-        onSend={(t) => void LessonSessionController.handleUserText(t)}
-        onPressMic={() => void LessonSessionController.pressMic()}
-        onReleaseMic={() => void LessonSessionController.releaseMic()}
-        onTranscript={() => setTranscriptOpen(true)}
-      />
+        {hint && <HintCard hint={hint} label={lesson.ui.labels.hint} />}
+        {notice && <NoticeBar text={notice} />}
+        {phase === "wrapup" && (
+          <Animated.View entering={FadeInDown.duration(320)} className="px-4 pb-1 pt-2">
+            <CtaButton label={tr.lesson.finish} onPress={() => void LessonSessionController.finish()} />
+          </Animated.View>
+        )}
+
+        <LessonDock
+          locked={inputLocked}
+          recording={recording}
+          placeholder={inputLocked ? tr.lesson.thinking(tutorName) : awaiting ? tr.lesson.placeholderAnswer : tr.lesson.placeholderBarge(tutorName)}
+          tutorName={tutorName}
+          onSend={(t) => void LessonSessionController.handleUserText(t)}
+          onPressMic={() => void LessonSessionController.pressMic()}
+          onReleaseMic={() => void LessonSessionController.releaseMic()}
+          onTranscript={() => setTranscriptOpen(true)}
+        />
+
+        </>
+      )}
 
       <TranscriptSheet visible={transcriptOpen} messages={messages} onClose={() => setTranscriptOpen(false)} />
     </KeyboardAvoidingView>

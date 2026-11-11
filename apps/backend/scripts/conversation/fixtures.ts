@@ -1,3 +1,5 @@
+import { buildCore } from "../authored/dsl.js";
+import { LESSONS as A1_AUTHORED } from "../authored/a1.js";
 import { lessonCoreSchema, sceneVariantSchema, type LessonCore, type SceneVariant } from "@glotmate/contracts";
 
 /**
@@ -190,3 +192,23 @@ export const A1_SCENE: SceneVariant = sceneVariantSchema.parse({
   objective: "Introduce yourself to Mia and ask her name.",
   avatarOpening: "Hi there! I don't think we've met yet. Are you new on the team?",
 });
+
+/** A1 rol yapma sahnesi (travel track) — canlıda konu dışına sapan sahne (10 Kas 2026). */
+export const A1_SCENE_TRAVEL: SceneVariant = sceneVariantSchema.parse({
+  persona: { name: "Marta", role: "another traveller at the gate", mood: "relaxed", goal: "to pass the time before boarding" },
+  scene: "You are waiting at an airport gate next to another traveller.",
+  objective: "Introduce yourself and start a short friendly conversation.",
+  avatarOpening: "Excuse me, is this seat free?",
+});
+
+/**
+ * Canlıdaki A1 "Hello, I'm…" dersinin GERÇEK çekirdeği (elle yazılan kaynaktan) —
+ * rol yapma vakaları dersin gerçek hedefleriyle (my name is / nice to meet you /
+ * how are you) sınanır; uydurma hedef sahneyle çelişip yanlış alarm üretiyordu.
+ */
+export const A1_HELLO: LessonCore = lessonCoreSchema.parse(
+  buildCore(A1_AUTHORED.find((a) => a.id === "a1-hello-im")!, {
+    focus: "greeting someone and introducing yourself",
+    mustUse: ["nice to meet you", "my name is", "how are you"],
+  }),
+);

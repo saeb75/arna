@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { DEFAULT_AVATAR_ID, type RichText, type RoleplayDebriefView, type RoleplaySessionOpen } from "@glotmate/contracts";
+import { FALLBACK_TUTOR_NAME } from "../domain/tutors";
 
 export interface RoleplayMessage {
   id: string;
@@ -18,7 +19,10 @@ export type RoleplayPhase = "idle" | "opening" | "playing" | "ending" | "debrief
 interface RoleplaySessionState {
   slug: string | null;
   session: RoleplaySessionOpen | null;
+  /** Öğretmenin yüzü — rol yapmada karakteri öğretmen kendi adıyla oynar (sunucu) */
   avatarId: string;
+  /** Öğretmenin adı (GET /v1/avatar `tutorName`) */
+  tutorName: string;
   phase: RoleplayPhase;
   messages: RoleplayMessage[];
   /** Hedef kimliği → tamamlandı mı (canlı liste) */
@@ -50,6 +54,7 @@ const initial = {
   slug: null,
   session: null,
   avatarId: DEFAULT_AVATAR_ID,
+  tutorName: FALLBACK_TUTOR_NAME,
   phase: "idle" as RoleplayPhase,
   messages: [] as RoleplayMessage[],
   done: {} as Record<string, boolean>,

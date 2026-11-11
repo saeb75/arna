@@ -421,6 +421,10 @@ export default function LessonPage({ params }: { params: Promise<{ id: string }>
         pushTeacher(beat.runs);
         void voice.speak(beat.runs, () => setAwaiting("open_response"));
         break;
+      case "drills":
+        // Oyun bloğu yalnız mobilde (asıl istemci); web dev yüzeyi bloğu atlar
+        window.setTimeout(() => advance(beat.id), 0);
+        break;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lesson, sessionId, started, phase, beatIndex]);

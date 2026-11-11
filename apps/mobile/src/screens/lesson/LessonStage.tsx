@@ -15,20 +15,26 @@ import { tr } from "../../i18n/tr";
 export function LessonStage({
   speaking,
   avatarId,
+  tutorName,
   activity,
+  compact = false,
 }: {
   speaking: boolean;
   avatarId: string;
+  /** Öğretmenin adı (GET /v1/avatar) */
+  tutorName: string;
   activity: AvatarActivity;
+  /** Oyun bloğunda avatar küçülür — alan alıştırma kartına kalır */
+  compact?: boolean;
 }) {
   const status = speaking ? tr.lesson.talking : activity === "listening" ? tr.lesson.listening : null;
   return (
     <View className="flex-row items-center gap-4 px-4 pb-3 pt-1">
-      <View className="h-[180px] w-[120px] overflow-hidden rounded-3xl border border-border bg-card">
-        <AvatarStage fill speaking={speaking} avatarId={avatarId} activity={activity} />
+      <View className={`${compact ? "h-[96px] w-[64px] rounded-2xl" : "h-[180px] w-[120px] rounded-3xl"} overflow-hidden border border-border bg-card`}>
+        <AvatarStage fill speaking={speaking} avatarId={avatarId} tutorName={tutorName} activity={activity} />
       </View>
       <View className="flex-1 gap-1">
-        <Text className="text-xl font-bold text-foreground">{tr.lesson.tutorName}</Text>
+        <Text className="text-xl font-bold text-foreground">{tutorName}</Text>
         <View className="flex-row items-center gap-1.5">
           <View className={`size-2 rounded-full ${status ? "bg-positive" : "bg-muted-foreground/40"}`} />
           <Text className="text-sm text-muted-foreground">{status ?? tr.lesson.waiting}</Text>

@@ -19,6 +19,7 @@ export function LessonDock({
   locked,
   recording,
   placeholder,
+  tutorName,
   onSend,
   onPressMic,
   onReleaseMic,
@@ -27,6 +28,8 @@ export function LessonDock({
   locked: boolean;
   recording: boolean;
   placeholder: string;
+  /** Öğretmenin adı — "… düşünüyor" */
+  tutorName: string;
   onSend: (text: string) => void;
   onPressMic: () => void;
   onReleaseMic: () => void;
@@ -43,7 +46,7 @@ export function LessonDock({
     setTyped("");
     onSend(typed.trim());
   };
-  const caption = recording ? tr.lesson.releaseToSend : locked ? tr.lesson.thinking : tr.lesson.holdToTalk;
+  const caption = recording ? tr.lesson.releaseToSend : locked ? tr.lesson.thinking(tutorName) : tr.lesson.holdToTalk;
 
   return (
     // Alt güvenli alan ÇALIŞMA ZAMANI değeri — gerekçeli inline stil

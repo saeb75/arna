@@ -87,7 +87,7 @@ export async function saveCore(
 
   // mustUse ölçümü besler; modelin de operatörün de düzyazısına bırakılmaz
   const core = lessonCoreSchema.parse({ ...input, practice: { ...input.practice, mustUse: [...catalog.targetPhrases] } });
-  const report = lintCore(core, { forbidden: [] });
+  const report = lintCore(core, { forbidden: [], lessonKind: catalog.kind as "grammar" | "phrases" | "practice" });
   if (report.errors.length) throw new AdminActionError("lint_failed", report);
   if (opts.dry) return { report, detail: null };
 

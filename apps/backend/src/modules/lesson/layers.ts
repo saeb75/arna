@@ -293,6 +293,18 @@ function permuteExerciseChoices(core: LessonCore, coreId: string): LessonCore {
     lecture: {
       ...core.lecture,
       beats: core.lecture.beats.map((b) => {
+        // Oyun bloğu: yazarlıkta doğru şık HEP İLK yazılır (dsl.ts) — burada her şıklı
+        // madde kendi tohumuyla karıştırılır. Eşleştirme ve kartlar istemcide karışır.
+        if (b.kind === "drills") {
+          return {
+            ...b,
+            items: b.items.map((d) => {
+              if (!("options" in d)) return d;
+              const p = permuteChoices(`${coreId}:${b.id}:${d.id}`, d.options, d.correctIndex);
+              return { ...d, options: p.options, correctIndex: p.correctIndex };
+            }),
+          };
+        }
         if (b.kind !== "exercise" || b.answerSpec.kind !== "choice" || !b.options?.length) return b;
         const p = permuteChoices(`${coreId}:${b.id}`, b.options, b.answerSpec.correctIndex);
         return { ...b, options: p.options, answerSpec: { ...b.answerSpec, correctIndex: p.correctIndex } };

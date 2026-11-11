@@ -8,6 +8,9 @@ export type OnboardingStep =
   | "name"
   | "track"
   | "level"
+  /** Öğretmen seçimi (yüz + ses + ad) — öğretmen kaydı yoksa atlanır */
+  | "teacher"
+  /** Açıklama DİLİ (native | english) */
   | "tutor"
   | "interests"
   | "occupation"
@@ -27,6 +30,8 @@ interface OnboardingState {
   track: Track | null;
   level: CefrLevel | null;
   tutorLanguage: TutorLanguage | null;
+  /** Seçilen öğretmen (null = seçmedi → sunucunun varsayılanı) */
+  tutorId: string | null;
   interests: Interest[];
   occupation: string;
   dailyGoal: 5 | 10 | 15 | null;
@@ -46,6 +51,7 @@ const initial = {
   track: null,
   level: null,
   tutorLanguage: "native" as TutorLanguage,
+  tutorId: null as string | null,
   interests: [] as Interest[],
   occupation: "",
   dailyGoal: 10 as const,

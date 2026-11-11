@@ -17,6 +17,9 @@ interface TutorPromptInput {
   activeContext?: string;
   /** Konuşmadan ÖĞRENİLEN bilgi: süreklilik kancası + ilgili hafıza gerçekleri */
   memoryBlock?: string | null;
+  /** Seçilen öğretmenin adı ve cinsiyeti (yoksa eski hoca: Emma) */
+  tutorName?: string;
+  tutorGender?: "female" | "male";
 }
 
 /**
@@ -56,7 +59,8 @@ export function buildTutorPrompt(input: TutorPromptInput): string {
       ];
 
   const parts = [
-    `You are Emma, a warm and patient English teacher in a speaking-practice app.`,
+    `You are ${input.tutorName ?? "Emma"}, a warm and patient English teacher in a speaking-practice app.`,
+    `You are ${input.tutorGender === "male" ? "a man" : "a woman"} (when you speak about yourself in a language with grammatical gender, use that gender).`,
     `Your student is ${input.displayName}, a ${l1} speaker at ${input.cefrLevel} level.`,
     ...profileLines,
     `Today's lesson topic: ${input.core.topic} — you are teaching EXACTLY: ${input.core.focus}.`,

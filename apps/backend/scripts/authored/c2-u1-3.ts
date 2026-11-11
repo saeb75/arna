@@ -14,14 +14,13 @@
  *
  *  Ünite 3 müzakere: ilk teklif, takas, kilit, ve anlaşmasız ayrılmak.
  *
- *  `fill()` BU SEVİYEDE SINIRLI. Çekilecek yapı yokken boşluk doldurma kalıbın
- *  kendisini hatırlatmaya dönüşür — `test-blank-fit`in yakalamadığı ama boş bir
- *  madde. Yalnız gerçek bir çekim varsa kullanıldı; yerine `mcq` (hangi durum uyar)
- *  ve `say` (üretim).
- *
- *  Gramer 4 alıştırma, phrases/practice 3.
+ *  Oyun bloğu (10 Kas 2026): her derste 11-12 madde (3 öğretim maddesi × 3 + 2
+ *  karışık). C2'de beceri İŞLEV seçimi — ağırlık `sit`/`chat` (durum, tek şıkkı
+ *  zorunlu kılan amacı AÇIKÇA söyler; çeldirici yanlış işlev) ve dinleme. `fc`
+ *  yalnız gerçek bir biçim seçimi varsa; `arr`/`err` yalnız tek dizilim/tek kelime
+ *  garantiliyse. Rol yapma açılışları sesli: olayı sözle kurar, "it/this" boşta kalmaz.
  */
-import { fill, mcq, qfill, qmcq, say, sc, type Authored } from "./dsl.js";
+import { arr, chat, err, fc, la, lc, pairs, qfill, qmcq, sc, sit, spk, type Authored } from "./dsl.js";
 
 export const C2_U1_3: Authored[] = [
   // --- Ünite 1 · Nuance and Connotation --------------------------------------
@@ -58,30 +57,55 @@ export const C2_U1_3: Authored[] = [
         form: "that carries a suggestion",
         claims: [
           "'That carries a suggestion of X' names the connotation rather than the meaning.",
-          "Two words can share a definition and still carry different suggestions: 'thrifty' and 'stingy'.",
+          "Two words can describe the same behaviour and carry opposite suggestions: 'thrifty' praises it, 'stingy' criticises it.",
         ],
         ex: ["That carries a suggestion of blame.", "'Cheap' carries a suggestion of poor quality as well as low price."],
       },
     ],
-    ex: [
-      mcq("Which sentence declines the word but keeps the point?", [
-        "I'd hesitate to call it a failure, though it clearly stalled.",
-        "That is completely untrue.",
-        "You have misunderstood the whole project.",
-      ], 0),
-      mcq("Which word can suggest poor quality in addition to low price?", [
-        "cheap",
-        "inexpensive",
-        "affordable",
-      ], 0),
-      say("it / be / more accurate / to say / it / stall", ["It's more accurate to say it stalled.", "It is more accurate to say it stalled."]),
+    ex: [],
+    drills: [
+      // p1 — I'd hesitate to call
+      sit("p1", "A colleague calls your project a failure. You accept that it had problems, but you reject that word. What do you say?", [
+        "I'd hesitate to call it a failure.",
+        "Yes, it was a complete failure.",
+        "There were no problems at all.",
+      ]),
+      fc("p1", "I'd hesitate to ___ it a failure.", ["call", "calling", "called"]),
+      spk("p1", "I'd hesitate to call it a mistake."),
+      // p2 — more accurate to say
+      chat("p2", ["You said the project failed.", "Well, not exactly.", "So what happened, then?", null], [
+        "It's more accurate to say it stalled.",
+        "It's more accurate to say it failed.",
+        "It's less accurate to say it stalled.",
+      ]),
+      lc("p2", "It would be more accurate to call him careful.", [
+        "It would be more polite to ask him first.",
+        "She would describe it as a careful plan.",
+      ]),
+      la("p2", "It's more accurate to say it stalled."),
+      // p3 — that carries a suggestion
+      sit("p3", "'Thrifty' and 'stingy' can both describe someone who spends little money. You want to point out that 'stingy' sounds like criticism. What do you say?", [
+        "'Stingy' carries a suggestion of meanness.",
+        "'Stingy' carries a suggestion of praise.",
+        "'Stingy' suggests exactly what 'thrifty' suggests.",
+      ]),
+      lc("p3", "That carries a suggestion of blame.", [
+        "That carries a lot of weight with me.",
+        "They suggested we should leave early.",
+      ]),
+      fc("p3", "'Cheap' carries a ___ of poor quality.", ["suggestion", "suggest", "suggested"]),
+      // karışık
+      pairs("mix", [
+        ["I'd hesitate to call it X.", "rejects a label"],
+        ["It's more accurate to say Y.", "offers a better word"],
+        ["That carries a suggestion of Z.", "names what a word implies"],
+      ]),
+      sit("mix", "Someone calls your plan 'risky'. You reject that word and offer 'ambitious' instead. What do you say?", [
+        "I'd hesitate to call it risky. It's more accurate to say it's ambitious.",
+        "I'd hesitate to call it ambitious. It's more accurate to say it's risky.",
+        "I'd call it risky. It's more accurate to say it's reckless.",
+      ]),
     ],
-    open: {
-      q: "Someone calls a project of yours 'a failure'. Decline the word, offer a better one, and say what a listener could reasonably take from each of the two.",
-      must: ["I'd hesitate to call", "more accurate to say", "that carries a suggestion"],
-      criteria: "The answer rejects the label, supplies a better one, and weighs what each of the two words would suggest to a listener.",
-      example: "I'd hesitate to call it a failure — that carries a suggestion that nothing was achieved. It's more accurate to say it stalled when the funding changed. A listener hears 'failure' as a verdict on us; 'stalled' as a fact about the money.",
-    },
     success: "The learner declines a word, offers a closer one and names its connotation.",
     quiz: [
       qmcq("What does 'I'd hesitate to call it that' object to?", [
@@ -112,7 +136,7 @@ export const C2_U1_3: Authored[] = [
       sc("Professor Lindqvist", "your tutor", "to practise connotation",
         "The seminar is examining connotation.",
         "Distinguish suggestion from meaning.",
-        "Two words can share a definition and still differ. How?", "probing"),
+        "In your essay you called the plan 'reckless'. Is that really the word you want?", "probing"),
       sc("Ms. Ferrante", "the examiner", "to check lexical precision",
         "The examiner offers a loaded word.",
         "Decline it and offer a closer one.",
@@ -158,25 +182,57 @@ export const C2_U1_3: Authored[] = [
         ex: ["You've clearly worked hard on this.", "You've clearly worked hard — it shows."],
       },
     ],
-    ex: [
-      mcq("Which remark praises against a lowered standard?", [
+    ex: [],
+    drills: [
+      // p1 — it's certainly different
+      sit("p1", "A close friend bought a very strange hat as a joke. You want to tease them without saying you like it and without insulting them directly. What do you say?", [
+        "It's certainly different, I'll give you that.",
+        "It genuinely looks wonderful on you.",
+        "I hate it, and you should take it back.",
+      ]),
+      lc("p1", "It's certainly different from the last one.", [
+        "Well, it certainly made a difference.",
+        "Well, it's certainly the right one.",
+      ]),
+      fc("p1", "Your new haircut is ___ different.", ["certainly", "certain", "certainty"]),
+      // p2 — not bad for
+      sit("p2", "A colleague's first presentation was weak. You want to say something positive that still signals it was weak. What do you say?", [
         "Not bad for a first attempt.",
-        "This is genuinely good work.",
-        "I thought this was excellent.",
-      ], 0),
-      mcq("Why can 'you've clearly worked hard' land badly?", [
-        "Praising effort alone can imply you have little to say about the result.",
-        "It is grammatically incorrect.",
-        "It is too formal for most settings.",
-      ], 0),
-      say("well / it / be / certainly different", ["Well, it's certainly different.", "Well, it is certainly different."]),
+        "That was truly excellent.",
+        "That was a complete disaster.",
+      ]),
+      chat("p2", ["How was the new restaurant?", "The food was average, but it was their first day, so I don't want to be harsh.", "So, your verdict?", null], [
+        "Not bad for a first day.",
+        "It was the worst meal of my life.",
+        "Not bad for a last day.",
+      ]),
+      spk("p2", "Not bad for a first attempt."),
+      // p3 — you've clearly worked hard
+      sit("p3", "A new volunteer spent all weekend on a poster. The design is weak, but the effort is what matters here. What do you say?", [
+        "You've clearly worked hard on this.",
+        "You clearly didn't try at all.",
+        "The design is weak, I'm afraid.",
+      ]),
+      lc("p3", "You've clearly worked hard on this report.", [
+        "You clearly work too hard these days.",
+        "You should work harder on this.",
+      ]),
+      chat("p3", ["My director looked at my report and only said, 'You've clearly worked hard.' Was that a compliment?", null], [
+        "Maybe not. Praising only the effort can mean the result was weak.",
+        "Yes. It means the result was excellent.",
+        "No. It means you worked too little.",
+      ]),
+      // karışık
+      pairs("mix", [
+        ["It's certainly different.", "comments only on being unusual"],
+        ["Not bad for a beginner.", "sets a lower standard"],
+        ["You've clearly worked hard.", "praises effort, not the result"],
+      ]),
+      lc("mix", "It's certainly different, and not bad for a first try.", [
+        "It's certainly the best thing you've written.",
+        "It's different from the first one I tried.",
+      ]),
     ],
-    open: {
-      q: "A close friend shows you a painting you dislike. Use faint praise as the joke it is between you, then say what the same three remarks would do to a colleague who wanted your approval.",
-      must: ["it's certainly different", "not bad for", "you've clearly worked hard"],
-      criteria: "The answer uses the remarks as shared irony and then separates that intent from the effect the same words would have on someone seeking approval.",
-      example: "Well, it's certainly different. You've clearly worked hard, and not bad for a first attempt — I'm being awful, aren't I? To a colleague who wanted my approval, those same three lines would read as a verdict, not a joke.",
-    },
     success: "The learner uses faint praise knowingly and shows awareness of what it implies.",
     quiz: [
       qmcq("What does the 'for' clause in 'not bad for a Monday' do?", [
@@ -195,23 +251,23 @@ export const C2_U1_3: Authored[] = [
       sc("Yevgenia", "a close friend who enjoys teasing", "to get your honest reaction",
         "A close friend wants your view and expects teasing.",
         "Use faint praise as the shared joke.",
-        "Be honest. What do you actually think of it?", "teasing"),
-      sc("Mr. Dunne", "a colleague quoting someone else's remark", "to work out what was meant",
-        "A colleague repeats a remark and cannot read it.",
-        "Explain what the remark implies.",
-        "The director said my deck was 'certainly different'. Good or bad?", "uncertain"),
+        "Imagine my first painting: a purple cow on a beach. Be honest, what would you say about it?", "teasing"),
+      sc("Mr. Dunne", "a colleague showing you his new slides", "to hear your reaction",
+        "A colleague has made very unusual slides and wants your view.",
+        "React with faint praise and notice what it implies.",
+        "Imagine my slides are all bright pink, with music on each one. What would you tell me?", "hopeful"),
       sc("Amara", "a fellow guest at a dinner", "to gossip discreetly about the food",
         "A dinner has produced an unusual dish.",
         "Use faint praise knowingly.",
-        "So — what did you make of that main course?", "conspiratorial"),
+        "That main course was fish in chocolate sauce. What did you make of it?", "conspiratorial"),
       sc("Dr. Ferreira", "your tutor", "to practise implicature",
         "The seminar is examining faint praise.",
         "Explain the mechanism and its cost.",
-        "How does praise end up being heard as criticism?", "probing"),
+        "A classmate's first essay is weak but very unusual. What would you say to them?", "probing"),
       sc("Ms. Whitmore", "the examiner", "to check pragmatic awareness",
-        "The examiner quotes a faintly praising remark.",
-        "Explain what it implies and where it belongs.",
-        "A reviewer wrote that a novel was 'certainly ambitious'. Praise?", "neutral"),
+        "The examiner plays a writer showing you their first story.",
+        "Respond with faint praise and say what it implies.",
+        "Imagine a friend's first story is about a toaster that falls in love. What would you say to them?", "neutral"),
     ],
   },
 
@@ -248,31 +304,55 @@ export const C2_U1_3: Authored[] = [
         form: "in a manner of speaking",
         claims: [
           "'In a manner of speaking' concedes a claim loosely while flagging that it is not exact.",
-          "The flag is what keeps it honest: without it the loose claim is heard as a precise one.",
+          "The flag is what keeps it honest: without it the listener may take the loose claim more precisely than you meant.",
         ],
         ex: ["Yes, in a manner of speaking.", "We agreed, in a manner of speaking."],
       },
     ],
-    ex: [
-      mcq("When is 'something along those lines' misleading rather than careful?", [
-        "when the detail is fixed and you are concealing it",
-        "when the detail is genuinely not decided",
-        "when the question is about timing",
-      ], 0),
-      mcq("What does 'one might say' do to a formulation?", [
-        "presents it tentatively and at some distance",
-        "attributes it to a named source",
-        "marks it as certainly false",
-      ], 0),
-      fill("___ might say the timing was unfortunate. (one)", ["One"]),
-      say("we / agree / in a manner of speaking", ["We agreed, in a manner of speaking."]),
+    ex: [],
+    drills: [
+      // p1 — something along those lines
+      sit("p1", "A reporter asks if the launch is in June. It is planned for early summer, but the exact date is not fixed. What do you say?", [
+        "Early summer, or something along those lines.",
+        "Yes, the launch is on the third of June.",
+        "I can't tell you anything at all.",
+      ]),
+      fc("p1", "A summer launch, or something ___ those lines.", ["along", "among", "across"]),
+      la("p1", "We expect a delay, or something along those lines."),
+      // p2 — one might say
+      sit("p2", "Your manager asks what went wrong. You want to suggest the timing was bad, but say it tentatively and impersonally. What do you say?", [
+        "One might say the timing was unfortunate.",
+        "The timing was a total disaster, full stop.",
+        "I blame you for the timing.",
+      ]),
+      fc("p2", "One might ___ the timing was unfortunate.", ["say", "says", "saying"]),
+      spk("p2", "One might say it was always unlikely."),
+      // p3 — in a manner of speaking
+      chat("p3", ["I hear you and your partner only talked and nothing is signed. But you agreed, right?", null], [
+        "In a manner of speaking, yes.",
+        "Yes, we signed every detail yesterday.",
+        "No, we have never spoken.",
+      ]),
+      lc("p3", "We agreed, in a manner of speaking.", [
+        "We agreed on the manner of payment.",
+        "We agreed to speak in a calm voice.",
+      ]),
+      sit("p3", "You loosely agree that the meeting 'went well', but you want the listener to know this is not exact. What do you say?", [
+        "Yes, in a manner of speaking.",
+        "Yes, exactly, in every way.",
+        "No, the meeting never happened.",
+      ]),
+      // karışık
+      pairs("mix", [
+        ["something along those lines", "confirms the shape, not the detail"],
+        ["one might say", "speaks impersonally, not as 'I'"],
+        ["in a manner of speaking", "flags a claim as loose"],
+      ]),
+      lc("mix", "One might say we agreed, in a manner of speaking.", [
+        "One day we might agree on the manner.",
+        "Someone said we agreed to speak.",
+      ]),
     ],
-    open: {
-      q: "A journalist asks when your product launches. The date is genuinely not fixed. Answer responsively without inventing one.",
-      must: ["something along those lines", "one might say", "in a manner of speaking"],
-      criteria: "The answer stays responsive, declines the specific, and does not imply a decision that has not been made.",
-      example: "Later in the year, or something along those lines — one might say the date depends on testing. We have a plan, in a manner of speaking, but nothing is fixed.",
-    },
     success: "The learner answers responsively without committing to a detail that is not settled.",
     quiz: [
       qmcq("What keeps 'in a manner of speaking' honest?", [
@@ -303,11 +383,11 @@ export const C2_U1_3: Authored[] = [
       sc("Professor Adeyinka", "your tutor", "to practise hedged responsiveness",
         "The seminar is examining strategic imprecision.",
         "Stay responsive without committing.",
-        "Where is the line between declining to specify and misleading?", "probing"),
+        "Your thesis results are not final yet. Can you tell me what you found?", "probing"),
       sc("Mr. Sanderson", "the examiner", "to check hedged answering",
         "The examiner presses for a specific you do not have.",
         "Answer responsively without inventing one.",
-        "Exactly how many hours a week do you study?", "neutral"),
+        "You don't track it exactly, but roughly how many hours a week do you study?", "neutral"),
     ],
   },
 
@@ -336,7 +416,7 @@ export const C2_U1_3: Authored[] = [
         form: "something of an issue",
         claims: [
           "'Something of an issue' understates while still marking the thing as a problem.",
-          "In British English this register is common enough that a listener may take it literally.",
+          "A listener who does not share this habit of understatement may take it literally and miss how serious the problem is.",
         ],
         ex: ["The budget is something of an issue.", "That is something of an issue for us."],
       },
@@ -349,25 +429,53 @@ export const C2_U1_3: Authored[] = [
         ex: ["It was expensive, to put it mildly.", "He was annoyed, to put it mildly."],
       },
     ],
-    ex: [
-      mcq("Which form signals to the listener that you are understating?", [
-        "He was annoyed, to put it mildly.",
-        "He was slightly irritated.",
-        "It was something of an issue.",
-      ], 0),
-      mcq("Why can understatement fail?", [
-        "The listener may not know how bad the thing actually is.",
-        "It is grammatically ambiguous.",
-        "It requires the passive voice.",
-      ], 0),
-      say("it / be / expensive / to put it mildly", ["It was expensive, to put it mildly.", "It is expensive, to put it mildly."]),
+    ex: [],
+    drills: [
+      // p1 — slightly inconvenient
+      sit("p1", "Your friend knows your flight was cancelled and you slept at the airport. You joke about it with deliberate understatement. What do you say?", [
+        "It was slightly inconvenient.",
+        "It was a total nightmare from start to finish.",
+        "It was slightly convenient.",
+      ]),
+      lc("p1", "The fire was slightly inconvenient.", [
+        "The flight was slightly delayed.",
+        "The fire was put out quickly.",
+      ]),
+      spk("p1", "Losing the data was slightly inconvenient."),
+      // p2 — something of an issue
+      fc("p2", "Staffing is something ___ an issue.", ["of", "for", "in"]),
+      sit("p2", "Your team has run out of money for the project. In a calm meeting, you mention it while still marking it as a problem. What do you say?", [
+        "Money is something of an issue right now.",
+        "Money is no issue at all right now.",
+        "Money is something for an issue right now.",
+      ]),
+      la("p2", "Parking is something of an issue here."),
+      // p3 — to put it mildly
+      chat("p3", ["How much did the repairs cost?", null], [
+        "A lot, to put it mildly.",
+        "A lot, to put it mild.",
+        "A lot, to putting it mildly.",
+      ]),
+      sit("p3", "Your manager asks how the client reacted. The client was furious, and your manager knows nothing yet. You speak mildly but make clear it was worse. What do you say?", [
+        "They were unhappy, to put it mildly.",
+        "They were unhappy, but only a little.",
+        "They were delighted, to put it mildly.",
+      ]),
+      lc("p3", "He was annoyed, to put it mildly.", [
+        "He was annoyed and put it away.",
+        "He was mild and easy to talk to.",
+      ]),
+      // karışık
+      sit("mix", "Your landlord ended your lease with one week's notice. A stranger asks about your week and knows nothing. Which answer shows them it is serious?", [
+        "Finding a new flat this week is something of an issue, to put it mildly.",
+        "Finding a new flat this week is slightly inconvenient.",
+        "Finding a new flat this week is no issue at all.",
+      ]),
+      lc("mix", "It was something of an issue, to put it mildly.", [
+        "It was an issue of some kind, I must admit.",
+        "It was mild, so it was not an issue.",
+      ]),
     ],
-    open: {
-      q: "Describe something that went badly wrong to a colleague who already knows the scale, then to a stranger who does not.",
-      must: ["slightly inconvenient", "something of an issue", "to put it mildly"],
-      criteria: "The answer understates with the informed listener and signals the understatement to the uninformed one.",
-      example: "To my colleague: losing the servers was slightly inconvenient. To a stranger: the budget is something of an issue — it went badly wrong, to put it mildly.",
-    },
     success: "The learner understates appropriately and signals it where the listener needs the signal.",
     quiz: [
       qmcq("Why does 'to put it mildly' travel further than bare understatement?", [
@@ -386,19 +494,19 @@ export const C2_U1_3: Authored[] = [
       sc("Domenico", "a friend who knows what happened", "to laugh about a bad week",
         "A friend already knows how bad your week was.",
         "Understate it for effect.",
-        "So how was the great disaster, then?", "amused"),
+        "I heard your flat flooded on the day you moved in. How was the great disaster, then?", "amused"),
       sc("Ms. Iyer", "a colleague being briefed", "to grasp the real scale",
         "A colleague needs the real scale, not a joke.",
         "Signal the understatement.",
-        "Give me the short version. How bad is it?", "focused"),
+        "I heard the client lost all their data overnight. Give me the short version: how bad is it?", "focused"),
       sc("Tobias", "a stranger on a delayed train", "to pass the time",
         "A stranger asks about your delay.",
         "Understate with the signal.",
-        "Have you been waiting long?", "sympathetic"),
+        "This train is four hours late. Have you been waiting long?", "sympathetic"),
       sc("Dr. Marchetti", "your tutor", "to practise register dialling",
         "The seminar is examining over- and understatement.",
         "Dial the description and justify it.",
-        "When does understatement stop working?", "probing"),
+        "Your experiment caught fire last week. How would you describe it to the class?", "probing"),
       sc("Ms. Okonjo", "the examiner", "to check register control",
         "The examiner asks about a setback.",
         "Understate and signal it.",
@@ -423,7 +531,7 @@ export const C2_U1_3: Authored[] = [
         form: "what defines them is",
         claims: [
           "'What defines them is X' commits to one central quality instead of listing several.",
-          "Choosing one is the difficulty; a list of four adjectives describes nobody in particular.",
+          "Choosing one is the difficulty; a generic list of adjectives rarely tells the listener which quality matters most.",
         ],
         ex: ["What defines them is patience.", "What defines them is how little they need to say."],
       },
@@ -444,29 +552,54 @@ export const C2_U1_3: Authored[] = [
         ex: ["I'd describe them as relentless.", "I'd describe them as generous with their time."],
       },
     ],
-    ex: [
-      mcq("Which description commits to one central quality?", [
-        "What defines them is patience.",
-        "They are nice, clever, funny and kind.",
-        "They are a really good person.",
-      ], 0),
-      mcq("What does 'comes across as' report?", [
-        "the impression someone gives",
-        "an established fact about them",
-        "the speaker's own feelings",
-      ], 0),
-      say("I / would describe / them / as / relentless", ["I'd describe them as relentless.", "I would describe them as relentless."]),
+    ex: [],
+    drills: [
+      // p1 — what defines them is
+      sit("p1", "A friend asks what your new manager is like. You want to name one central quality, not a list. What do you say?", [
+        "What defines her is patience.",
+        "She's nice, clever, funny and kind.",
+        "What defines her is nice, clever and kind.",
+      ]),
+      fc("p1", "What ___ him is how little he needs to say.", ["defines", "define", "defining"]),
+      spk("p1", "What defines her is how carefully she listens."),
+      // p2 — they come across as
+      sit("p2", "A new colleague seems cold in meetings, but you have not decided what he is really like. How do you describe this?", [
+        "He comes across as cold.",
+        "He is a cold person, and that's a fact.",
+        "He comes across as warm.",
+      ]),
+      chat("p2", ["Is your neighbour as confident as she seems?", "Not at all. She's very nervous inside.", "So how would you describe her?", null], [
+        "She comes across as confident, though she isn't.",
+        "She comes across as nervous, and she is.",
+        "She is truly confident, through and through.",
+      ]),
+      lc("p2", "They come across as shy at first.", [
+        "They came back cold and tired.",
+        "They come to us at first light.",
+      ]),
+      // p3 — I'd describe them as
+      sit("p3", "You want to call your boss 'relentless', but make clear it is your own view, not a fact. What do you say?", [
+        "I'd describe her as relentless.",
+        "Everyone knows she's relentless.",
+        "She is relentless, and that's a fact.",
+      ]),
+      la("p3", "I'd describe him as generous with his time."),
+      fc("p3", "I'd describe them ___ quietly attentive.", ["as", "like", "for"]),
+      // karışık
+      sit("mix", "Your friend's core quality is loyalty. People think she is shy, but in your view she is calm. Which description fits?", [
+        "What defines her is loyalty. She comes across as shy, but I'd describe her as calm.",
+        "What defines her is shyness. She comes across as loyal, but I'd describe her as calm.",
+        "What defines her is calm. She comes across as loyal, but I'd describe her as shy.",
+      ]),
+      lc("mix", "They come across as reserved, but I'd describe them as kind.", [
+        "They came across a reserved table for us.",
+        "I'd describe the room as kind of small.",
+      ]),
     ],
-    open: {
-      q: "Describe someone you know well so that a stranger would recognise them: one defining quality, the impression they give, and your own reading.",
-      must: ["what defines them is", "they come across as", "I'd describe them as"],
-      criteria: "The answer names a specific quality and separates the impression given from the speaker's own reading.",
-      example: "What defines them is how carefully they listen. They come across as reserved at first, though I'd describe them as quietly attentive rather than distant.",
-    },
     success: "The learner names a specific quality and separates impression from judgement.",
     quiz: [
       qmcq("Why does a list of four adjectives fail?", [
-        "It describes nobody in particular.",
+        "It doesn't say which quality matters most.",
         "It is grammatically incorrect.",
         "It is too informal.",
       ], 0),
@@ -493,7 +626,7 @@ export const C2_U1_3: Authored[] = [
       sc("Professor Lindqvist", "your tutor", "to practise precise description",
         "The seminar is examining descriptive precision.",
         "Commit to one quality and defend it.",
-        "Why does naming four qualities describe nobody?", "probing"),
+        "Someone called your supervisor 'nice, clever, funny and kind'. What would you say actually defines her?", "probing"),
       sc("Ms. Ferrante", "the examiner", "to check descriptive range",
         "The examiner asks about a person.",
         "Describe them precisely.",
@@ -518,7 +651,7 @@ export const C2_U1_3: Authored[] = [
         form: "put another way",
         claims: [
           "'Put another way' signals a restatement, so the listener does not hear a new claim.",
-          "If the restatement adds a fact it is not a reframing, and the signal becomes a lie.",
+          "If the restatement adds a fact it is not a reframing, and the signal becomes misleading.",
         ],
         ex: ["Put another way, we chose caution.", "Put another way, nobody was ready."],
       },
@@ -534,30 +667,58 @@ export const C2_U1_3: Authored[] = [
         form: "or you could say",
         claims: [
           "'Or you could say' offers the alternative framing without abandoning your own.",
-          "Holding both is the point: dropping the first framing turns reframing into retraction.",
+          "Holding both is the point here: if you drop the first framing, it can sound like a retraction.",
         ],
         ex: ["Or you could say we were cautious.", "Or you could say it was never viable."],
       },
     ],
-    ex: [
-      mcq("What turns a reframing into something dishonest?", [
-        "adding a fact that was not there",
-        "using the passive voice",
-        "keeping the original framing too",
-      ], 0),
-      mcq("Which phrase offers an alternative without dropping your own view?", [
-        "Or you could say we were cautious.",
-        "I was wrong about that.",
-        "Forget what I said before.",
-      ], 0),
-      say("put another way / we / choose / caution", ["Put another way, we chose caution."]),
+    ex: [],
+    drills: [
+      // p1 — put another way
+      sit("p1", "You said, 'We waited until the risks were clear.' Now you restate the same fact in other words, adding nothing new. What do you say?", [
+        "Put another way, we chose caution.",
+        "Put another way, we also lost money.",
+        "Put another way, we were never cautious.",
+      ]),
+      fc("p1", "Put another ___, we ran out of time.", ["way", "time", "word"]),
+      spk("p1", "Put another way, we ran out of time."),
+      // p2 — seen differently
+      sit("p2", "The train was cancelled, so you missed a meeting that turned out to be a disaster. You present the same facts from a positive angle. What do you say?", [
+        "Seen differently, the cancellation saved me from a disastrous meeting.",
+        "Seen differently, the meeting was a success.",
+        "Seen differently, the train was on time.",
+      ]),
+      lc("p2", "Seen differently, that was a lucky escape.", [
+        "Seen from here, it looks a long way down.",
+        "She did it differently, and she escaped.",
+      ]),
+      la("p2", "Seen differently, the delay saved us."),
+      // p3 — or you could say
+      chat("p3", ["So you think the plan was too risky?", "I do. The risk was high and the possible profit was small.", "Is there another way to see it?", null], [
+        "Or you could say the profit didn't justify the risk.",
+        "Or you could say it was never risky.",
+        "No, I've changed my mind. It was safe.",
+      ]),
+      sit("p3", "You called the result 'cautious'. You want to offer a second framing but keep your own. What do you say?", [
+        "Or you could say we were slow.",
+        "Forget what I said. We were slow.",
+        "I was wrong to call it cautious.",
+      ]),
+      lc("p3", "Or you could say we were cautious.", [
+        "We could go, or you could stay here.",
+        "You said we would be cautious.",
+      ]),
+      // karışık
+      sit("mix", "Facts: the project was late but under budget. You give one restatement and one alternative view, adding no facts. Which works?", [
+        "Put another way, we missed the deadline. Seen differently, we spent less than planned.",
+        "Put another way, we finished early. Seen differently, we spent less than planned.",
+        "Put another way, we missed the deadline. Seen differently, we spent more than planned.",
+      ]),
+      lc("mix", "Put another way, we were cautious; seen differently, we were slow.", [
+        "Put it away, we were cautious and slow.",
+        "Seen from the other side, we were fast.",
+      ]),
     ],
-    open: {
-      q: "A launch was delayed by six months and cost twice the budget. Frame it three ways, all true.",
-      must: ["put another way", "seen differently", "or you could say"],
-      criteria: "The answer gives three framings of the same facts without adding or removing any.",
-      example: "The launch was six months late at twice the planned cost. Put another way, we delivered, but on neither the schedule nor the budget. Seen differently, that is a half-year delay and a 100% overrun. Or you could say both targets were missed.",
-    },
     success: "The learner produces three framings without altering the facts.",
     quiz: [
       qmcq("What does 'seen differently' change?", [
@@ -567,7 +728,7 @@ export const C2_U1_3: Authored[] = [
       ], 0),
       qfill("___ another way, nobody was ready. (put)", ["Put"]),
       qmcq("Why hold both framings?", [
-        "Dropping the first turns reframing into retraction.",
+        "Dropping the first can sound like a retraction.",
         "It makes the answer longer.",
         "It avoids the first person.",
       ], 0),
@@ -576,11 +737,11 @@ export const C2_U1_3: Authored[] = [
       sc("Ivo", "a friend hearing your version", "to understand what really happened",
         "A friend has heard one version of an event.",
         "Reframe it truthfully.",
-        "I heard it was a disaster. Was it?", "sceptical"),
+        "I heard your team's launch was six months late. Was it a disaster?", "sceptical"),
       sc("Ms. Delgado", "a colleague preparing a review", "to present a fair account",
         "A review must present one set of facts fairly.",
         "Give three truthful framings.",
-        "The board will hear this two ways. How do we put it?", "strategic"),
+        "The launch was six months late but under budget. How do we put that to the board?", "strategic"),
       sc("Hakan", "a fellow traveller comparing experiences", "to compare readings of the same trip",
         "You both experienced the same difficult trip.",
         "Reframe without changing facts.",
@@ -588,7 +749,7 @@ export const C2_U1_3: Authored[] = [
       sc("Dr. Marchetti", "your tutor", "to practise reframing",
         "The seminar is examining framing.",
         "Reframe without adding facts.",
-        "Where does reframing become misrepresentation?", "probing"),
+        "Your study found that half the patients improved. How else could you put that?", "probing"),
       sc("Ms. Okonjo", "the examiner", "to check framing control",
         "The examiner gives you a set of facts.",
         "Frame them three ways, all true.",
@@ -634,25 +795,50 @@ export const C2_U1_3: Authored[] = [
         ex: ["What I mean precisely is that we cannot verify it.", "What I mean precisely is nobody signed it."],
       },
     ],
-    ex: [
-      mcq("Why flag deliberate caution?", [
-        "Unflagged careful speech is often read as hiding something.",
-        "It is grammatically required.",
-        "It shortens the answer.",
-      ], 0),
-      mcq("What does 'let me rephrase that' withdraw?", [
-        "the wording, not the point",
-        "the whole argument",
-        "the previous speaker's claim",
-      ], 0),
-      say("let me / rephrase / I / put / that / badly", ["Let me rephrase — I put that badly.", "Let me rephrase, I put that badly."]),
+    ex: [],
+    drills: [
+      // p1 — I want to be careful
+      sit("p1", "A lawyer asks if you knew about the fault. You will answer slowly, and you want them to see the caution is deliberate, not evasion. How do you begin?", [
+        "I want to be careful how I say this.",
+        "I don't want to answer that.",
+        "I want to be quick about this.",
+      ]),
+      fc("p1", "I want to be careful not ___ overstate it.", ["to", "for", "of"]),
+      lc("p1", "I want to be careful how I say this.", [
+        "I want you to carry this for me.",
+        "I wanted to put it in the car.",
+      ]),
+      // p2 — let me rephrase
+      chat("p2", ["Why was the report late?", "We hid it. No, that's the wrong word.", "So what do you mean?", null], [
+        "Let me rephrase that. We chose to delay it for a week.",
+        "We hid it on purpose, as I said.",
+        "Let me rephrase that. We hid it.",
+      ]),
+      spk("p2", "Let me rephrase that; I put it badly."),
+      sit("p2", "In a meeting you called a colleague's work 'sloppy', and it landed badly. You still think the work needs checking. What do you say?", [
+        "Let me rephrase that: the work needs another check.",
+        "The work is fine. Forget what I said.",
+        "Yes, sloppy is exactly the right word.",
+      ]),
+      // p3 — what I mean precisely
+      sit("p3", "You said, 'We kind of knew.' Now you replace this with the exact claim: you had seen one report, nothing more. What do you say?", [
+        "What I mean precisely is that we had seen one report.",
+        "What I mean precisely is that we knew everything.",
+        "What I mean, roughly, is that we kind of knew.",
+      ]),
+      la("p3", "What I mean precisely is that nobody signed it."),
+      fc("p3", "What I mean ___ is that we cannot verify it.", ["precisely", "precise", "precision"]),
+      // karışık
+      sit("mix", "On the record you said the team 'ignored' a risk. That word is too strong: the precise fact is that nobody escalated it. What do you say?", [
+        "Let me rephrase that. What I mean precisely is that nobody escalated it.",
+        "I want to be careful. We ignored it.",
+        "Let me rephrase that. We ignored it completely.",
+      ]),
+      lc("mix", "I want to be careful, so let me rephrase that.", [
+        "I want to be careful with the car I chose.",
+        "Let me be careful and phone them later.",
+      ]),
     ],
-    open: {
-      q: "You are asked on the record whether your team knew about a fault. You knew of a risk, not the fault. Answer precisely.",
-      must: ["I want to be careful", "let me rephrase", "what I mean precisely"],
-      criteria: "The answer flags the caution, corrects its own wording once, and states the precise claim.",
-      example: "I want to be careful here. We were aware of a risk — let me rephrase, we had seen one report. What I mean precisely is that nobody had confirmed a fault.",
-    },
     success: "The learner flags deliberate caution and states the precise claim.",
     quiz: [
       qmcq("Why does correcting yourself openly cost little?", [
@@ -671,7 +857,7 @@ export const C2_U1_3: Authored[] = [
       sc("Rosalind", "a friend asking about a sensitive matter", "to understand without pushing",
         "A friend asks about something with consequences.",
         "Choose your wording deliberately.",
-        "You can tell me. What actually happened?", "gentle"),
+        "I heard there was a problem with the audit at your work. What actually happened?", "gentle"),
       sc("Mr. Achterberg", "a lawyer taking your statement", "to record an accurate statement",
         "A statement is being recorded.",
         "State the precise claim.",
@@ -683,11 +869,11 @@ export const C2_U1_3: Authored[] = [
       sc("Professor Adeyinka", "your tutor", "to practise precision under consequence",
         "The seminar is examining precision under pressure.",
         "Flag caution and state precisely.",
-        "Why is unflagged caution read as evasion?", "probing"),
+        "Your report says the data was 'wrong'. What exactly do you mean?", "probing"),
       sc("Mr. Sanderson", "the examiner", "to check precision",
         "The examiner asks a question with a trap in it.",
         "Answer precisely.",
-        "So you are saying nobody was responsible?", "neutral"),
+        "Your project failed. So you are saying nobody was responsible?", "neutral"),
     ],
   },
 
@@ -730,25 +916,51 @@ export const C2_U1_3: Authored[] = [
         ex: ["The evidence points to a slowdown.", "Most of the evidence points to one cause."],
       },
     ],
-    ex: [
-      mcq("Which appeal rests on consequence?", [
-        "Think about what happens if nobody acts.",
+    ex: [],
+    drills: [
+      // p1 — think about what happens
+      sit("p1", "Your manager wants to delay fixing a security flaw. You want to argue through a concrete consequence. What do you say?", [
+        "Think about what happens if someone else finds it first.",
+        "The evidence points to a flaw in the code.",
+        "Rules are rules, and we must follow them.",
+      ]),
+      fc("p1", "Think about what ___ next year if we wait.", ["happens", "happen", "happening"]),
+      spk("p1", "Think about what happens when the repair costs double."),
+      // p2 — you know as well
+      sit("p2", "Your colleague has seen the same sales figures as you, and you both know the product is failing. You appeal to that shared knowledge. What do you say?", [
+        "You know as well as I do how this ends.",
+        "Think about what happens next spring.",
+        "The evidence points to a slow year.",
+      ]),
+      lc("p2", "You know as well as anyone what it costs.", [
+        "You know it has cost us a lot of money.",
+        "Anyone can find out how much it is.",
+      ]),
+      fc("p2", "You know as well ___ I do how this ends.", ["as", "than", "like"]),
+      // p3 — evidence points to
+      sit("p3", "Survey data suggests sales will slow, but it is not proof. You want to argue from the data and keep the conclusion open. What do you say?", [
         "The evidence points to a slowdown.",
-        "You know as well as I do.",
-      ], 0),
-      mcq("What does 'points to' claim about the evidence?", [
-        "that it supports a direction rather than proving a conclusion",
-        "that it is conclusive",
-        "that it comes from an authority",
-      ], 0),
-      say("you / know / as well / as I / do / how this / end", ["You know as well as I do how this ends."]),
+        "The evidence proves there will be a slowdown.",
+        "Trust me, I'm the expert here.",
+      ]),
+      chat("p3", ["Is it certain that the new rule caused the drop?", null], [
+        "Not certain, but most of the evidence points to it.",
+        "Yes, the evidence proves it beyond doubt.",
+        "Certain, because I say so.",
+      ]),
+      la("p3", "Most of the evidence points to one cause."),
+      // karışık
+      pairs("mix", [
+        ["Think about what happens if...", "appeal to consequence"],
+        ["You know as well as I do...", "appeal to shared knowledge"],
+        ["The evidence points to...", "appeal to data"],
+      ]),
+      sit("mix", "You argue for a trial with a cautious manager. You name a concrete risk of doing nothing, then the data. Which fits?", [
+        "Think about what happens if we wait: a rival gets there first. The evidence points to rising demand.",
+        "You know as well as I do that we must wait. The data doesn't matter.",
+        "Think about how I feel. The evidence points nowhere.",
+      ]),
     ],
-    open: {
-      q: "Persuade a cautious manager to fund a trial using all three appeals, then say which one you would drop with a listener who distrusts you, and why.",
-      must: ["think about what happens", "you know as well", "evidence points to"],
-      criteria: "The answer uses all three appeals and justifies dropping one for a listener who distrusts the speaker.",
-      example: "The evidence points to demand we cannot meet. You know as well as I do what a stockout costs. Think about what happens if a competitor gets there first. With someone who distrusts me I would drop the shared-knowledge appeal — it would read as pressure.",
-    },
     success: "The learner uses all three appeals with something concrete behind each.",
     quiz: [
       qmcq("When does 'you know as well as I do' backfire?", [
@@ -767,7 +979,7 @@ export const C2_U1_3: Authored[] = [
       sc("Emmerich", "a friend resisting a decision", "to decide what to do",
         "A friend is putting off a decision.",
         "Choose the appeal that will move them.",
-        "I know I should deal with it. Why now, though?", "reluctant"),
+        "I know I should deal with my tax return. Why now, though?", "reluctant"),
       sc("Ms. Castellanos", "a cautious manager", "to hear a case worth funding",
         "A manager needs persuading to fund a trial.",
         "Use all three appeals.",
@@ -779,11 +991,11 @@ export const C2_U1_3: Authored[] = [
       sc("Dr. Ferreira", "your tutor", "to practise appeals",
         "The seminar is examining rhetorical appeal.",
         "Match the appeal to the listener.",
-        "Which appeal works on someone who distrusts you?", "probing"),
+        "You want the department to fund your project. How would you persuade them?", "probing"),
       sc("Ms. Whitmore", "the examiner", "to check persuasive range",
         "The examiner asks you to argue a case.",
         "Use all three appeals.",
-        "Persuade me that cities should ban cars?", "neutral"),
+        "Can you persuade me that cities should ban cars?", "neutral"),
     ],
   },
 
@@ -825,26 +1037,47 @@ export const C2_U1_3: Authored[] = [
         ex: ["Why would anyone agree to that?", "Why would anyone risk it twice?"],
       },
     ],
-    ex: [
-      fill("Who ___ want a shorter week? (would not)", ["wouldn't", "would not"]),
-      mcq("When does 'who wouldn't want X?' fail?", [
-        "when a reasonable person would answer 'I wouldn't'",
-        "when the listener agrees with you",
-        "when the sentence is long",
-      ], 0),
-      mcq("What does 'isn't that the point?' do to an objection?", [
-        "turns it into support for your case",
-        "concedes it entirely",
-        "changes the subject",
-      ], 0),
-      say("why / would / anyone / risk / it / twice", ["Why would anyone risk it twice?"]),
+    ex: [],
+    drills: [
+      // p1 — who wouldn't want
+      arr("p1", "Who wouldn't want a shorter week?"),
+      sit("p1", "You argue for free lunches at work and want a question that assumes everyone agrees. What do you say?", [
+        "Who wouldn't want a free lunch?",
+        "Does anyone here want a free lunch?",
+        "Why would anyone want a free lunch?",
+      ]),
+      spk("p1", "Who wouldn't want to be told the truth?"),
+      // p2 — isn't that the point
+      sit("p2", "Your manager objects: 'But a trial might fail.' Finding out what fails is exactly why you run a trial. What do you say?", [
+        "Isn't that the whole point of trying it?",
+        "Yes, so let's cancel the trial.",
+        "Why would anyone run a trial?",
+      ]),
+      fc("p2", "___ that exactly the point?", ["Isn't", "Doesn't", "Aren't"]),
+      lc("p2", "Isn't that the whole point of testing?", [
+        "Isn't this the last day of the trial?",
+        "That was the point I tried to make.",
+      ]),
+      // p3 — why would anyone
+      sit("p3", "Someone suggests signing a contract nobody has read. You want to say there is no reason to do this, using a question. What do you say?", [
+        "Why would anyone sign that without reading it?",
+        "Who wouldn't want to sign that?",
+        "Would you like to sign that now?",
+      ]),
+      la("p3", "Why would anyone agree to that?"),
+      err("p3", "Why would anyone risks it twice?", "risks", "risk"),
+      // karışık
+      sit("mix", "You argue for a four-day week. Someone objects that it is only an experiment. Which reply uses two rhetorical questions for your case?", [
+        "Who wouldn't want a shorter week? And isn't that the point of an experiment?",
+        "Who would want a shorter week? And isn't an experiment pointless?",
+        "Why would anyone want a shorter week? Isn't that the point?",
+      ]),
+      chat("mix", ["Nobody needs a trial. Let's just decide.", null], [
+        "Why would anyone decide without data? Isn't that the whole point of testing?",
+        "Who wouldn't want to decide without data?",
+        "Why would anyone run a trial? Let's decide.",
+      ]),
     ],
-    open: {
-      q: "Argue for a four-day week using all three question forms, and say where a listener could turn one against you.",
-      must: ["who wouldn't want", "isn't that the point", "why would anyone"],
-      criteria: "The answer uses all three forms and identifies one that a listener could answer against the speaker.",
-      example: "Who wouldn't want a shorter working week? Why would anyone reject a trial before seeing the results? Of course, a shift worker might have good reasons to object — but isn't that the point of testing different models first?",
-    },
     success: "The learner uses the question forms and spots one that could be turned against them.",
     quiz: [
       qmcq("What does 'why would anyone do that?' claim?", [
@@ -863,7 +1096,7 @@ export const C2_U1_3: Authored[] = [
       sc("Emmerich", "a friend arguing the other side", "to test your reasoning",
         "A friend is arguing against your position.",
         "Use rhetorical questions.",
-        "Go on then, make the case for a four-day week?", "challenging"),
+        "Go on then, why should anyone want a four-day week?", "challenging"),
       sc("Ms. Castellanos", "a manager weighing a proposal", "to be persuaded or not",
         "A manager is undecided about a proposal.",
         "Use questions that make your point.",
@@ -875,7 +1108,7 @@ export const C2_U1_3: Authored[] = [
       sc("Dr. Ferreira", "your tutor", "to practise rhetorical questions",
         "The seminar is examining rhetorical questions.",
         "Use them and name their risk.",
-        "How does a rhetorical question hand the point away?", "probing"),
+        "The library closes at six. Why should it stay open later?", "probing"),
       sc("Ms. Whitmore", "the examiner", "to check rhetorical control",
         "The examiner invites a case.",
         "Use rhetorical questions.",
@@ -921,25 +1154,54 @@ export const C2_U1_3: Authored[] = [
         ex: ["We explained it over and over.", "The same question, over and over."],
       },
     ],
-    ex: [
-      mcq("Which phrase depends on the count being exact?", [
-        "not once but twice",
-        "again and again",
-        "over and over",
-      ], 0),
-      mcq("What does 'over and over' emphasise?", [
-        "the wearing effect rather than the count",
-        "the precise number",
-        "the speaker's authority",
-      ], 0),
-      say("they / miss / it / not once but twice", ["They missed it not once but twice."]),
+    ex: [],
+    drills: [
+      // p1 — again and again
+      sit("p1", "Over a year you reported the same fault to a supplier many times. You want the pattern to be heard. What do you say?", [
+        "We reported it again and again.",
+        "We reported it not once but twice.",
+        "We reported it only once.",
+      ]),
+      lc("p1", "The same fault, again and again.", [
+        "The same old film on the screen.",
+        "Not the same fault this time.",
+      ]),
+      fc("p1", "We asked them again ___ again.", ["and", "or", "but"]),
+      // p2 — not once but twice
+      sit("p2", "A supplier missed exactly two deadlines this month. You want the exact count to give your complaint force. What do you say?", [
+        "They missed it not once but twice.",
+        "They missed it again and again.",
+        "They missed it not twice but once.",
+      ]),
+      chat("p2", ["How often did the bank lose your forms?", "Two times in one month.", "Really? Say that again.", null], [
+        "Not once but twice this month.",
+        "Again and again, every single day.",
+        "Not twice but once this month.",
+      ]),
+      spk("p2", "They missed it not once but twice."),
+      // p3 — over and over
+      sit("p3", "You want to stress how tiring it was to explain the same thing to a client many times, not the number of times. What do you say?", [
+        "We explained it over and over.",
+        "We explained it not once but twice.",
+        "We explained it once and then stopped.",
+      ]),
+      lc("p3", "The same question, over and over.", [
+        "The same question was over quickly.",
+        "The questions are all over the place.",
+      ]),
+      fc("p3", "We explained it over and ___.", ["over", "under", "out"]),
+      // karışık
+      sit("mix", "A courier lost your parcel exactly twice, and you had to call them many times about it. Which sentence keeps the count exact?", [
+        "They lost it not once but twice, and I called again and again.",
+        "They lost it again and again, and I called not once but twice.",
+        "They lost it over and over, and I called only once.",
+      ]),
+      chat("mix", ["So they missed two deadlines, and you chased them for weeks?", null], [
+        "Yes. They failed not once but twice, and we chased them over and over.",
+        "Yes. They failed again and again, and we chased them not once but twice.",
+        "No. They never failed, and we never chased them.",
+      ]),
     ],
-    open: {
-      q: "Complain about a supplier who has failed repeatedly. Use repetition for force, and be exact where you claim a number.",
-      must: ["again and again", "not once but twice", "over and over"],
-      criteria: "The answer uses repetition for emphasis and keeps any stated count accurate.",
-      example: "We raised the same fault again and again. We explained the impact over and over. And they missed the deadline not once but twice this quarter.",
-    },
     success: "The learner uses repetition for emphasis without overstating the count.",
     quiz: [
       qmcq("Why must 'not once but twice' be exact?", [
@@ -962,15 +1224,15 @@ export const C2_U1_3: Authored[] = [
       sc("Ms. Delgado", "a colleague preparing a complaint", "to make a complaint land",
         "A written complaint needs force without exaggeration.",
         "Use repetition and keep counts exact.",
-        "This draft reads flat. Can you make it land?", "practical"),
+        "They missed two deadlines, and we sent ten reminders. Can you make that complaint land?", "practical"),
       sc("Hakan", "a fellow passenger after repeated delays", "to share the frustration",
         "The same delay has happened repeatedly.",
         "Use repetition for effect.",
-        "Third time this week, is it?", "exasperated"),
+        "Our train is late again. Third time this week, is it?", "exasperated"),
       sc("Dr. Marchetti", "your tutor", "to practise emphasis",
         "The seminar is examining repetition.",
         "Use repetition and name its limit.",
-        "When does repetition stop adding force?", "probing"),
+        "Your group missed two deadlines and ignored many reminders. How would you report that to me?", "probing"),
       sc("Ms. Okonjo", "the examiner", "to check rhetorical emphasis",
         "The examiner asks about a persistent problem.",
         "Use repetition for emphasis.",
@@ -995,7 +1257,7 @@ export const C2_U1_3: Authored[] = [
         form: "here's the opportunity",
         claims: [
           "'Here's the opportunity' opens with the gap rather than with your solution.",
-          "A solution presented before the problem forces the listener to reconstruct the problem themselves.",
+          "A solution presented before the problem can force the listener to reconstruct the problem themselves.",
         ],
         ex: ["Here's the opportunity we are missing.", "Here's the opportunity in plain terms."],
       },
@@ -1003,7 +1265,7 @@ export const C2_U1_3: Authored[] = [
         form: "what this gives you",
         claims: [
           "'What this gives you is X' states the benefit in the listener's terms, not the builder's.",
-          "'You' is the work: the same sentence with 'we' describes your project instead of their gain.",
+          "'You' puts the listener's gain first; 'we' frames the same benefit as shared, or as your own.",
         ],
         ex: ["What this gives you is two weeks back.", "What this gives you is one place to look."],
       },
@@ -1016,25 +1278,54 @@ export const C2_U1_3: Authored[] = [
         ex: ["Imagine if we could halve that.", "Imagine if we could see it in real time."],
       },
     ],
-    ex: [
-      mcq("Why open with the opportunity rather than the solution?", [
-        "Otherwise the listener must reconstruct the problem themselves.",
-        "It is the conventional order in English.",
-        "It makes the pitch shorter.",
-      ], 0),
-      mcq("Which sentence states the benefit in the listener's terms?", [
+    ex: [],
+    drills: [
+      // p1 — here's the opportunity
+      sit("p1", "You start a pitch to a busy director. You want to name the gap before your solution. How do you begin?", [
+        "Here's the opportunity: scheduling costs us two weeks a quarter, and we could win that back.",
+        "We built a brilliant scheduling tool.",
+        "Let me show you our new software first.",
+      ]),
+      fc("p1", "Here's the ___ in plain terms.", ["opportunity", "opportune", "opportunely"]),
+      lc("p1", "Here's the opportunity in plain terms.", [
+        "Here are the plans for the new term.",
+        "There's no opportunity for that here.",
+      ]),
+      // p2 — what this gives you
+      sit("p2", "You describe a new tool to a manager. You want to state the benefit in the manager's own terms. What do you say?", [
         "What this gives you is two weeks back.",
-        "We have built a scheduling tool.",
-        "Our team worked on this for months.",
-      ], 0),
-      say("imagine / if / we / could / halve / that", ["Imagine if we could halve that."]),
+        "What this gives us is a nice project.",
+        "We spent months building this.",
+      ]),
+      chat("p2", ["So what's in it for me?", null], [
+        "What this gives you is one place to look.",
+        "What this gives me is a promotion.",
+        "What we built is very complex.",
+      ]),
+      lc("p2", "What this gives you is two weeks back.", [
+        "What did she give you two weeks ago?",
+        "This gives us a week off in May.",
+      ]),
+      // p3 — imagine if we could
+      sit("p3", "You want the listener to picture the outcome before judging how it works. What do you say?", [
+        "Imagine if we could halve that.",
+        "Here is how the system works.",
+        "Imagine if we couldn't do anything.",
+      ]),
+      la("p3", "Imagine if we could halve that."),
+      spk("p3", "Imagine if we could see it in real time."),
+      // karışık
+      sit("mix", "You open a pitch with the problem, then give the benefit in the listener's terms. Which works?", [
+        "Here's the opportunity: reports take days, not minutes. What this gives you is answers in minutes.",
+        "What this gives us is fame. Here's the opportunity for us.",
+        "Here's our tool. What this gives our team is more work.",
+      ]),
+      chat("mix", ["You've got two minutes. Go.", null], [
+        "Here's the opportunity: we waste a day a week. Imagine if we could get it back. Can I run a pilot?",
+        "Imagine if I had more time. Here's my tool.",
+        "We built a tool. It took months.",
+      ]),
     ],
-    open: {
-      q: "Pitch a tool that saves your team two weeks a quarter. Open with the opportunity, give the benefit, and end with a specific ask.",
-      must: ["here's the opportunity", "what this gives you", "imagine if we could"],
-      criteria: "The answer opens with the gap, states the benefit in the listener's terms and ends with a concrete ask.",
-      example: "Here's the opportunity: we lose two weeks a quarter to scheduling. Imagine if we could halve that. What this gives you is two weeks of team capacity back each quarter. I'm asking for approval to run a six-week trial.",
-    },
     success: "The learner opens with the opportunity and closes with a specific ask.",
     quiz: [
       qmcq("What does swapping 'you' for 'we' do to a benefit?", [
@@ -1065,7 +1356,7 @@ export const C2_U1_3: Authored[] = [
       sc("Professor Lindqvist", "your tutor", "to practise pitching",
         "The seminar is examining pitch structure.",
         "Open with the gap and close with the ask.",
-        "Why does a pitch fail without an ask?", "probing"),
+        "You have two minutes to pitch your research project to the committee. What have you got?", "probing"),
       sc("Ms. Ferrante", "the examiner", "to check persuasive structure",
         "The examiner invites a pitch.",
         "Pitch with a clear ask.",
@@ -1090,7 +1381,7 @@ export const C2_U1_3: Authored[] = [
         form: "I know how it sounds",
         claims: [
           "'I know how it sounds' shows you have heard your own claim from their side.",
-          "It disarms the objection they were assembling, because you have said it first.",
+          "It can take the force out of the objection they were assembling, because you have said it first.",
         ],
         ex: ["I know how it sounds.", "I know how it sounds, and I thought the same."],
       },
@@ -1111,25 +1402,54 @@ export const C2_U1_3: Authored[] = [
         ex: ["You're right to question the cost.", "You're right to question it — so did I."],
       },
     ],
-    ex: [
-      mcq("Why is 'hear me out' a smaller ask than 'agree with me'?", [
-        "It asks for a hearing, not a decision.",
-        "It is shorter.",
-        "It is more formal.",
-      ], 0),
-      mcq("What makes 'you're right to question it' credible?", [
-        "answering the question rather than moving past it",
-        "saying it early",
-        "repeating it twice",
-      ], 0),
-      say("I / know / how / it / sound / and I / think / the same", ["I know how it sounds, and I thought the same."]),
+    ex: [],
+    drills: [
+      // p1 — I know how it sounds
+      sit("p1", "You propose a four-day week. You expect your boss to call it crazy, so you name the objection first. How do you start?", [
+        "I know how it sounds, but the numbers work.",
+        "This is obviously a great idea.",
+        "I don't care how it sounds.",
+      ]),
+      lc("p1", "I know how it sounds, and I thought the same.", [
+        "I know how it sounds when it rains.",
+        "I thought it sounded the same as before.",
+      ]),
+      fc("p1", "I know how it ___, but the plan is sound.", ["sounds", "sound", "sounding"]),
+      // p2 — hear me out
+      sit("p2", "Your colleague has already said no to your plan. You ask only for two minutes of attention, not agreement. What do you say?", [
+        "Hear me out for two minutes.",
+        "Agree with me for two minutes.",
+        "Don't listen, just sign it.",
+      ]),
+      chat("p2", ["I've already decided. The answer is no.", "I'd still like you to know the numbers.", "Why should I listen?", null], [
+        "Just hear me out for two minutes.",
+        "You shouldn't, so I'll stop.",
+        "Because you must agree with me.",
+      ]),
+      spk("p2", "Hear me out for two minutes."),
+      // p3 — you're right to question
+      sit("p3", "Your boss doubts the cost of your plan. You treat the doubt as reasonable and then answer it. What do you say?", [
+        "You're right to question the cost. It pays for itself by year three.",
+        "You're right to question the cost. Anyway, moving on.",
+        "You're wrong to question the cost.",
+      ]),
+      la("p3", "You're right to question the cost."),
+      lc("p3", "You're right to question it, and I did too.", [
+        "You're right, it's a question of time.",
+        "You wrote the questions, didn't you?",
+      ]),
+      // karışık
+      sit("mix", "A sceptical investor says your idea sounds too good to be true. You admit how it sounds and ask for a short hearing. What do you say?", [
+        "I know how it sounds. Hear me out for two minutes.",
+        "It is too good to be true. Goodbye.",
+        "You're right, so don't listen to me.",
+      ]),
+      chat("mix", ["Your plan sounds expensive and a bit mad.", null], [
+        "I know how it sounds, and you're right to question the cost. It pays for itself in a year.",
+        "It's not mad, and you're wrong to question it.",
+        "I know how it sounds, so let's forget it.",
+      ]),
     ],
-    open: {
-      q: "Someone has already decided your proposal is too expensive. Acknowledge the scepticism, ask for a hearing, and answer the cost objection.",
-      must: ["I know how it sounds", "hear me out", "you're right to question"],
-      criteria: "The answer acknowledges the objection, asks for a hearing and then actually answers the objection.",
-      example: "I know how it sounds. Hear me out for two minutes. You're right to question the cost — it is high in year one and lower than the current spend by year three.",
-    },
     success: "The learner acknowledges the scepticism and answers it rather than moving past it.",
     quiz: [
       qmcq("What does 'I know how it sounds' disarm?", [
@@ -1148,7 +1468,7 @@ export const C2_U1_3: Authored[] = [
       sc("Yevgenia", "a friend who thinks your plan is mad", "to be convinced or to talk you out of it",
         "A friend has already decided against your plan.",
         "Get a hearing and answer the objection.",
-        "This sounds like a terrible idea. Convince me?", "sceptical"),
+        "Quitting your job to open a bakery sounds like a terrible idea. Can you convince me?", "sceptical"),
       sc("Mr. Dunne", "a colleague opposed on cost", "to protect the budget",
         "A colleague has decided the proposal is too expensive.",
         "Acknowledge and answer the cost objection.",
@@ -1156,15 +1476,15 @@ export const C2_U1_3: Authored[] = [
       sc("Amara", "a fellow traveller doubting your route", "to avoid a bad decision",
         "Your companion thinks your plan will fail.",
         "Ask for a hearing and answer.",
-        "We will miss the connection. Why risk it?", "worried"),
+        "Your route gives us only ten minutes to change trains. We will miss the connection. Why risk it?", "worried"),
       sc("Dr. Ferreira", "your tutor", "to practise persuading a sceptic",
         "The seminar is examining resistance.",
         "Acknowledge, ask, answer.",
-        "Why say the objection out loud before they do?", "probing"),
+        "I think your research topic is a waste of time. Can you convince me?", "probing"),
       sc("Ms. Whitmore", "the examiner", "to check persuasion under resistance",
         "The examiner states a firm objection.",
         "Get a hearing and answer it.",
-        "I think working from home makes teams worse. Well?", "neutral"),
+        "I think working from home makes teams worse. What do you say to that?", "neutral"),
     ],
   },
 
@@ -1206,25 +1526,54 @@ export const C2_U1_3: Authored[] = [
         ex: ["No obligation at all.", "Have a look — no obligation at all."],
       },
     ],
-    ex: [
-      mcq("What undoes 'it's entirely your call'?", [
-        "following it with more argument",
-        "saying it after your case",
-        "saying it quietly",
-      ], 0),
-      mcq("Why are the hedges in 'it might be worth considering' load-bearing?", [
-        "Without them it becomes advice that was not requested.",
-        "They make the sentence grammatical.",
-        "They shorten the sentence.",
-      ], 0),
-      say("have / a look / no obligation / at all", ["Have a look — no obligation at all.", "Have a look, no obligation at all."]),
+    ex: [],
+    drills: [
+      // p1 — it's entirely your call
+      sit("p1", "You have told a friend why you prefer the earlier train. Now you hand the decision back and stop arguing. What do you say?", [
+        "It's entirely your call.",
+        "It's entirely your call, but you'd be silly not to.",
+        "You should take the earlier train.",
+      ]),
+      chat("p1", ["So what would you do in my place?", "I told you what I think.", "And now?", null], [
+        "Now it's entirely your call.",
+        "Now you have to do what I said.",
+        "Now it's entirely my call.",
+      ]),
+      err("p1", "It's entirely you call.", "you", "your"),
+      // p2 — it might be worth considering
+      sit("p2", "A friend has not asked for advice, but you think a September course could help. You mention it at low intensity. What do you say?", [
+        "It might be worth considering the September course.",
+        "You must take the September course.",
+        "You'd be a fool to miss the September course.",
+      ]),
+      lc("p2", "It might be worth considering.", [
+        "It might be worth a lot of money.",
+        "It might be the one she was choosing.",
+      ]),
+      la("p2", "It might be worth considering the September course."),
+      // p3 — no obligation at all
+      sit("p3", "You offer a neighbour a free trial of your service. You want them to feel completely free to say no. What do you add?", [
+        "No obligation at all.",
+        "You'll have to pay if you say no.",
+        "Everyone else has already said yes.",
+      ]),
+      spk("p3", "Have a look, no obligation at all."),
+      chat("p3", ["Do I have to buy anything, now or later, if I come to the demo?", null], [
+        "No obligation at all.",
+        "Yes, everyone buys something.",
+        "No, but you'll need to buy something after the demo.",
+      ]),
+      // karışık
+      sit("mix", "A colleague is choosing a supplier. You suggest one option gently, then hand the decision back. Which works?", [
+        "It might be worth considering the local firm. It's entirely your call.",
+        "You must choose the local firm. It's entirely your call.",
+        "It might be worth considering the local firm. Decide now.",
+      ]),
+      lc("mix", "Have a look, no obligation at all; it's entirely your call.", [
+        "Have a look at all the calls you missed.",
+        "It's not an obligation to call at all.",
+      ]),
     ],
-    open: {
-      q: "A friend has not asked for advice, but you think a professional course would help them. Mention it once and leave the decision with them.",
-      must: ["it's entirely your call", "it might be worth considering", "no obligation at all"],
-      criteria: "The answer states the view once, hands the decision back, and does not argue after handing it back.",
-      example: "It might be worth considering the short course they run in September. Have a look if you want — no obligation at all, and I won't raise it again. It's entirely your call.",
-    },
     success: "The learner states the view once and leaves the decision genuinely open.",
     quiz: [
       qmcq("What does 'no obligation at all' do?", [
@@ -1243,7 +1592,7 @@ export const C2_U1_3: Authored[] = [
       sc("Emmerich", "a friend who has not asked for advice", "to be left to decide",
         "You have a view your friend did not ask for.",
         "Say it once and hand the decision back.",
-        "I'm fine, honestly. Why do you keep looking at me like that?", "guarded"),
+        "Work has been so stressful lately, but I'm fine, honestly. Why, what are you thinking?", "guarded"),
       sc("Ms. Castellanos", "a colleague making their own decision", "to decide without being pushed",
         "A colleague must make a decision that is theirs.",
         "Offer a view without pressure.",
@@ -1255,11 +1604,11 @@ export const C2_U1_3: Authored[] = [
       sc("Dr. Ferreira", "your tutor", "to practise low-pressure influence",
         "The seminar is examining influence and autonomy.",
         "Make the case and hand it back.",
-        "When does reassurance become pressure?", "probing"),
+        "Your classmate has chosen a topic you think is too big. What would you say to them?", "probing"),
       sc("Ms. Whitmore", "the examiner", "to check restraint",
         "The examiner describes their own decision.",
         "Offer a view without pressing.",
-        "I am thinking of giving up my degree. Thoughts?", "neutral"),
+        "I am thinking of giving up my degree. What do you think?", "neutral"),
     ],
   },
 
@@ -1301,25 +1650,51 @@ export const C2_U1_3: Authored[] = [
         ex: ["I'm asking you to look at the data once.", "I'm asking you to suspend judgement for a week."],
       },
     ],
-    ex: [
-      mcq("What does 'what would convince you?' test?", [
-        "whether any evidence would change their mind",
-        "how much they know",
-        "whether they are listening",
-      ], 0),
-      mcq("Why ask for a shift rather than agreement?", [
-        "It leaves room to move partway.",
-        "It is more polite.",
-        "It avoids the conditional.",
-      ], 0),
-      say("I / be / ask / you / to / look at / the data / once", ["I'm asking you to look at the data once.", "I am asking you to look at the data once."]),
+    ex: [],
+    drills: [
+      // p1 — what would convince you
+      sit("p1", "Your manager is firmly against remote work. Before arguing, you want to find out what evidence could change their view. What do you ask?", [
+        "What would convince you otherwise?",
+        "Why are you so stubborn?",
+        "Don't you agree with me?",
+      ]),
+      fc("p1", "What would ___ you otherwise?", ["convince", "convinces", "convincing"]),
+      lc("p1", "What would convince you I'm right?", [
+        "What would you like to drink tonight?",
+        "Who told you that I'm right?",
+      ]),
+      // p2 — does that shift anything
+      sit("p2", "You have just shown your friend new figures. You want to check if their view has moved at all, without assuming it has. What do you ask?", [
+        "Does that shift anything in your view?",
+        "So now you agree with me, right?",
+        "That proves I'm right, doesn't it?",
+      ]),
+      chat("p2", ["Hm. That's an interesting number.", null], [
+        "Does that shift anything at all?",
+        "Great, so you've changed your mind.",
+        "So you admit you were wrong.",
+      ]),
+      spk("p2", "So, does that shift anything?"),
+      // p3 — I'm asking you to
+      sit("p3", "You want your manager to read one quarter of data before deciding. You name exactly this small change. What do you say?", [
+        "I'm asking you to look at one quarter of data.",
+        "I'm asking you to completely change your mind.",
+        "Please just reconsider everything.",
+      ]),
+      la("p3", "I'm asking you to read the report."),
+      fc("p3", "I'm asking you ___ look at the data once.", ["to", "for", "that"]),
+      // karışık
+      sit("mix", "Your friend says only real cases from your town would convince her. You give one case, check for movement, and name a small request. Which works?", [
+        "Does that shift anything? I'm asking you to read one more case.",
+        "So you agree now. I'm asking you to admit it.",
+        "What would convince you? I don't care.",
+      ]),
+      chat("mix", ["I've believed this for twenty years.", null], [
+        "What would convince you otherwise? I'm asking you to look at one study.",
+        "Twenty years of being wrong, then.",
+        "Then you must agree with me now.",
+      ]),
     ],
-    open: {
-      q: "Someone says remote work harms teams. You ask what would convince them; they answer 'evidence from our own team'. Respond, check for movement, and name one small change.",
-      must: ["what would convince you", "does that shift anything", "I'm asking you to"],
-      criteria: "The answer tests what evidence would move them, checks for movement, and names a specific small change.",
-      example: "What would convince you otherwise? If our own team's evidence would: retention rose twelve per cent during the trial. Does that shift anything? I'm asking you to look at one quarter of data before deciding.",
-    },
     success: "The learner tests for movement and names a specific change rather than demanding agreement.",
     quiz: [
       qmcq("What does the answer to 'what would convince you?' tell you?", [
@@ -1338,11 +1713,11 @@ export const C2_U1_3: Authored[] = [
       sc("Yevgenia", "a friend with a fixed view", "to defend a long-held position",
         "A friend holds a view they have never examined.",
         "Test what would move them.",
-        "I have thought this for twenty years. What could possibly change it?", "immovable"),
+        "For twenty years I have believed cities cannot work without cars. Before you argue, what do you want to ask me?", "immovable"),
       sc("Mr. Dunne", "a manager set against remote work", "to make the right call for the team",
         "A manager believes remote work harms teams.",
         "Ask what would convince them.",
-        "Teams need to be in a room. Surely you agree?", "entrenched"),
+        "I am sure teams need to be in one room. Before you argue, what do you want to ask me?", "entrenched"),
       sc("Amara", "a fellow traveller with a firm opinion", "to have a real argument",
         "A long journey has produced a real disagreement.",
         "Test for movement.",
@@ -1350,11 +1725,11 @@ export const C2_U1_3: Authored[] = [
       sc("Dr. Ferreira", "your tutor", "to practise genuine persuasion",
         "The seminar is examining belief change.",
         "Test what evidence would move them.",
-        "Why ask what would convince someone before arguing?", "probing"),
+        "I am sure online classes are worse than real ones. Before you argue, what would you like to ask me?", "probing"),
       sc("Ms. Whitmore", "the examiner", "to check persuasive technique",
         "The examiner holds a firm view.",
         "Test for movement and name a change.",
-        "Exams are the only fair way to assess. Change my mind?", "neutral"),
+        "Exams are the only fair way to assess. What would you ask me first?", "neutral"),
     ],
   },
 
@@ -1397,25 +1772,62 @@ export const C2_U1_3: Authored[] = [
         ex: ["Ideally we'd want it by June.", "Ideally we'd want both, realistically one."],
       },
     ],
-    ex: [
-      mcq("Why does a goal invite more than a demand does?", [
-        "A goal invites a counter-offer rather than a yes or no.",
-        "A goal is more polite.",
-        "A demand is grammatically stronger.",
-      ], 0),
-      mcq("What does calling a figure 'our starting point' signal?", [
-        "that it is an opening rather than a limit",
-        "that the figure is final",
-        "that you cannot afford more",
-      ], 0),
-      say("that / be / our starting point / on volume", ["That is our starting point on volume.", "That's our starting point on volume."]),
+    ex: [],
+    drills: [
+      // p1 — what we're looking for
+      sit("p1", "You open a contract negotiation. You state your aim as a goal that invites a counter-offer, not as a demand. What do you say?", [
+        "What we're looking for is a five-year contract.",
+        "We demand a five-year contract, no less.",
+        "Five years, or we leave.",
+      ]),
+      lc("p1", "What we're looking for is simple.", [
+        "Where we're going is not far.",
+        "We're looking at a small room.",
+      ]),
+      spk("p1", "What we're looking for is a five-year contract."),
+      // p2 — our starting point
+      sit("p2", "You name forty units as your first figure, but you want it heard as an opening, not your limit. What do you say?", [
+        "Our starting point is forty.",
+        "Forty is our final offer.",
+        "We can't go above or below forty.",
+      ]),
+      chat("p2", ["What's your figure?", "Forty units, but we have room to move.", "So forty is your absolute limit?", null], [
+        "No, that's our starting point.",
+        "Yes, that's our starting point.",
+        "No, that's our final point.",
+      ]),
+      fc("p2", "Our ___ point is forty.", ["starting", "started", "starts"]),
+      lc("p2", "That is our starting point on volume.", [
+        "That is the point where we started.",
+        "That's a good point about the music.",
+      ]),
+      // p3 — ideally we'd want
+      sit("p3", "You'd love delivery by June, but you know it may not happen. You name your best case and admit it is the best case. What do you say?", [
+        "Ideally we'd want it by June.",
+        "We must have it by June.",
+        "June is the latest we will accept.",
+      ]),
+      chat("p3", ["When do you need delivery?", "June would be best, but July is fine too.", "So what's your timeline?", null], [
+        "Ideally we'd want it by June, but we can be flexible.",
+        "Ideally we'd want it by June, and we can't move at all.",
+        "We need it by June, and that's final.",
+      ]),
+      lc("p3", "Ideally we'd want both, realistically one.", [
+        "Realistically, we can only pay for one.",
+        "Ideally, it would be warm in June.",
+      ]),
+      // karışık
+      pairs("mix", [
+        ["What we're looking for is...", "states an aim, inviting an offer"],
+        ["Our starting point is...", "marks a figure as an opening"],
+        ["Ideally we'd want...", "admits it is the best case"],
+      ]),
+      sit("mix", "You open with your aim, then give forty units as a first figure that can move. Which fits?", [
+        "What we're looking for is volume. Our starting point is forty units.",
+        "We demand volume. Forty units is our final figure.",
+        "What we're looking for is forty units, and we won't move.",
+      ]),
     ],
-    open: {
-      q: "Open a negotiation for a supply contract: state your goal, mark your figure as an opening, and name your best case.",
-      must: ["what we're looking for", "our starting point", "ideally we'd want"],
-      criteria: "The answer opens with a goal, marks the figure as an opening and distinguishes the best case from the requirement.",
-      example: "What we're looking for is a three-year term. Our starting point is forty units a month. Ideally we'd want delivery by June.",
-    },
     success: "The learner opens with a goal and marks the position as an opening.",
     quiz: [
       qmcq("What is the cost of 'ideally we'd want'?", [
@@ -1434,19 +1846,19 @@ export const C2_U1_3: Authored[] = [
       sc("Severina", "a private seller", "to sell at a good price",
         "You are opening a negotiation over a private sale.",
         "Open with a goal, not a demand.",
-        "I have had a lot of interest. What are you offering?", "confident"),
+        "I am selling my car, and I have had a lot of interest. What are you offering?", "confident"),
       sc("Mr. Vandermeer", "a supplier's negotiator", "to agree favourable terms",
         "A supply contract negotiation is opening.",
         "State your goal and mark your opening.",
         "Let us start with your numbers. Where are you?", "businesslike"),
-      sc("Ines", "a landlord discussing a lease", "to let the property on good terms",
-        "Lease terms are being opened.",
+      sc("Ines", "a host renting out a holiday flat for a month", "to let the flat on good terms",
+        "Terms for a month-long holiday rental are being opened.",
         "Open without closing the conversation.",
-        "The advertised rent is the rent. Or is it?", "firm"),
+        "My asking price is three thousand for the month. What are you looking for?", "firm"),
       sc("Professor Ashworth", "your tutor", "to practise opening moves",
         "The seminar is examining opening positions.",
         "Open with a goal and mark it as an opening.",
-        "Why does an opening demand cost you the negotiation?", "probing"),
+        "You are negotiating time in the lab with another research group. What is your opening position?", "probing"),
       sc("Ms. Roux", "the examiner", "to check negotiation openings",
         "The examiner invites your opening position.",
         "Open with a goal.",
@@ -1478,8 +1890,9 @@ export const C2_U1_3: Authored[] = [
       {
         form: "we could move on",
         claims: [
-          "'We could move on price' names which item is in play and, by omission, which are not.",
+          "'We could move on price' puts price in play; add 'not on scope' if you want the other items to stay fixed.",
           "'Could' keeps the movement hypothetical until you get something in return.",
+          "Name the item: without it, 'we could move on' means 'let's go to the next topic'.",
         ],
         ex: ["We could move on price.", "We could move on timing, not on scope."],
       },
@@ -1492,25 +1905,54 @@ export const C2_U1_3: Authored[] = [
         ex: ["We could accept the later date in exchange for a longer term.", "We can reduce the price in exchange for earlier payment."],
       },
     ],
-    ex: [
-      mcq("What happens to a concession offered before its condition?", [
-        "The other side has already banked it.",
-        "It becomes more persuasive.",
-        "It must be repeated.",
-      ], 0),
-      mcq("What does 'could' do in 'we could move on price'?", [
-        "keeps the movement hypothetical until you get something back",
-        "makes the offer final",
-        "signals uncertainty about the figure",
-      ], 0),
-      say("if / you / can do / June / we / can do / the higher volume", ["If you can do June, we can do the higher volume."]),
+    ex: [],
+    drills: [
+      // p1 — if you can do
+      sit("p1", "A client wants a lower price. You will only lower it if they sign for three years, and you say both in one sentence. What do you say?", [
+        "If you can do three years, we can do the lower price.",
+        "OK, we'll lower the price. Maybe you could sign for three years?",
+        "We can't lower the price at all.",
+      ]),
+      fc("p1", "If you can ___ June, we can do the higher volume.", ["do", "does", "doing"]),
+      spk("p1", "If you can do that, we have a deal."),
+      // p2 — we could move on
+      sit("p2", "You are willing to change the price, but not the scope. You name the item in play. What do you say?", [
+        "We could move on price, not on scope.",
+        "We could move on scope, not on price.",
+        "We can't move on anything.",
+      ]),
+      chat("p2", ["Is the delivery date fixed?", "Not completely.", "So what are you saying?", null], [
+        "We could move on timing, if you can do a longer term.",
+        "Timing is completely fixed.",
+        "We could move on to lunch now.",
+      ]),
+      lc("p2", "We could move on timing, not on scope.", [
+        "We could move into town next spring.",
+        "We could talk about timing at noon.",
+      ]),
+      // p3 — in exchange for
+      sit("p3", "You accept a later date, and you want a longer contract in return. You state the trade openly. What do you say?", [
+        "We can accept the later date in exchange for a longer term.",
+        "We can accept the later date as a gift.",
+        "We can't accept the later date.",
+      ]),
+      fc("p3", "We'll waive the fee in exchange ___ a longer contract.", ["for", "of", "to"]),
+      chat("p3", ["Can you give us free delivery?", null], [
+        "Yes, in exchange for a bigger order.",
+        "Yes, in exchange of a bigger order.",
+        "Yes, exchange for a bigger order.",
+      ]),
+      // karışık
+      sit("mix", "You can move on timing if the client signs for three years. You name the item and the trade. Which fits?", [
+        "We could move on timing in exchange for a three-year term.",
+        "We could move on timing, and we ask for nothing.",
+        "In exchange for timing, we could move on.",
+      ]),
+      lc("mix", "If you can do June, we could move on price.", [
+        "If you can come in June, we could talk.",
+        "If you can't do June, we can't move.",
+      ]),
     ],
-    open: {
-      q: "You can accept a later date if you get a longer contract. Offer the trade without giving the date away first.",
-      must: ["if you can do", "we could move on", "in exchange for"],
-      criteria: "The answer conditions the concession in the same breath and names the exchange.",
-      example: "We could move on timing, not on scope. If you can do a three-year term, we could accept September in exchange for the longer commitment.",
-    },
     success: "The learner conditions the concession and names the exchange.",
     quiz: [
       qmcq("Why name the exchange openly?", [
@@ -1529,7 +1971,7 @@ export const C2_U1_3: Authored[] = [
       sc("Severina", "a private buyer", "to get a lower price",
         "A buyer is pressing you to drop the price.",
         "Trade rather than give away.",
-        "Knock something off and I will take it today. Deal?", "opportunistic"),
+        "Knock fifty off the bike and I will take it today. Deal?", "opportunistic"),
       sc("Mr. Vandermeer", "a client renegotiating terms", "to improve their terms",
         "A client wants a later date without giving anything.",
         "Condition the concession.",
@@ -1537,11 +1979,11 @@ export const C2_U1_3: Authored[] = [
       sc("Ines", "a market trader", "to close a sale",
         "A price is being haggled in a market.",
         "Trade explicitly.",
-        "For you, a special price. What do you say?", "shrewd"),
+        "This rug is two hundred, but for you, a special price: one eighty. What do you say?", "shrewd"),
       sc("Professor Ashworth", "your tutor", "to practise conditional concession",
         "The seminar is examining trading.",
         "Condition every concession.",
-        "Why must the condition come in the same breath?", "probing"),
+        "The other group wants the lab on Mondays too. What could you offer them, and for what?", "probing"),
       sc("Ms. Roux", "the examiner", "to check negotiation trading",
         "The examiner asks for a concession.",
         "Trade rather than give.",
@@ -1584,28 +2026,54 @@ export const C2_U1_3: Authored[] = [
           "'Let's park that' sets one blocking item aside so the rest can progress.",
           "Parked items must be picked up again; a park that is really a drop will be noticed.",
         ],
-        ex: ["Let's park that and come back to it.", "Let's park the indemnity clause."],
+        ex: ["Let's park that and come back to it.", "Let's park the payment clause."],
       },
     ],
-    ex: [
-      mcq("Why does naming a deadlock work only once?", [
-        "Repeated, it becomes a complaint about the other side.",
-        "It is grammatically awkward.",
-        "The phrase is too informal.",
-      ], 0),
-      mcq("What removes the leverage of a deadline?", [
-        "letting it pass without consequence",
-        "setting it in writing",
-        "naming it early",
-      ], 0),
-      say("let us / park / that / and / come back / to it", ["Let's park that and come back to it.", "Let us park that and come back to it."]),
+    ex: [],
+    drills: [
+      // p1 — going round in circles
+      sit("p1", "A negotiation has repeated the same arguments for an hour. You name the deadlock without blaming the other side. What do you say?", [
+        "We're going round in circles here.",
+        "You keep repeating yourself.",
+        "You are the reason we are stuck.",
+      ]),
+      lc("p1", "We're going round in circles on this one point.", [
+        "We're going round to the shop at one.",
+        "We're sitting in a circle at this point.",
+      ]),
+      fc("p1", "We're going round in ___ here.", ["circles", "circle", "rounds"]),
+      // p2 — by end of week
+      sit("p2", "A decision has been open for weeks. You set a real date so that it becomes a decision. What do you say?", [
+        "Let's make a decision by end of week.",
+        "Let's make a decision whenever we feel like it.",
+        "Let's not make any decision yet.",
+      ]),
+      chat("p2", ["When do you need our answer?", null], [
+        "By end of week.",
+        "Until end of week.",
+        "Since end of week.",
+      ]),
+      spk("p2", "We need an answer by end of week."),
+      // p3 — let's park that
+      sit("p3", "One clause is blocking everything, but four other items are ready. You set the clause aside for now. What do you say?", [
+        "Let's park that and come back to it.",
+        "Let's drop that clause forever.",
+        "Let's not discuss anything else until it's solved.",
+      ]),
+      la("p3", "Let's park the payment clause."),
+      fc("p3", "Let's ___ that and come back to it.", ["park", "parks", "parking"]),
+      // karışık
+      sit("mix", "Talks are stuck on one clause, and the deal must close soon. You name the deadlock, set the clause aside and give a date. Which fits?", [
+        "We're going round in circles. Let's park that and decide it by end of week.",
+        "We're going round in circles. Let's drop the deal by end of week.",
+        "You're stuck. Let's park the whole deal.",
+      ]),
+      chat("mix", ["We've argued about this clause all morning.", null], [
+        "Let's park that and decide it by end of week.",
+        "Let's park that and never come back to it.",
+        "Let's keep arguing until someone gives up.",
+      ]),
     ],
-    open: {
-      q: "A negotiation has stalled on one clause with four items still open. Name the deadlock, park the clause and set a date.",
-      must: ["going round in circles", "by end of week", "let's park that"],
-      criteria: "The answer names the deadlock without blame, parks the blocking item and sets a real date.",
-      example: "We're going round in circles on this clause. Let's park that and deal with the other four items. We decide the clause by end of week, either way.",
-    },
     success: "The learner names the deadlock, parks the blocker and sets a date.",
     quiz: [
       qmcq("What does parking an item allow?", [
@@ -1636,7 +2104,7 @@ export const C2_U1_3: Authored[] = [
       sc("Professor Ashworth", "your tutor", "to practise deadlock language",
         "The seminar is examining deadlock.",
         "Name it, park it, date it.",
-        "Why must a parked item be picked up again?", "probing"),
+        "Our group has argued about the report title for an hour, and four sections are still unwritten. What do we do now?", "probing"),
       sc("Ms. Roux", "the examiner", "to check deadlock handling",
         "The examiner describes a stalled negotiation.",
         "Break the deadlock.",
@@ -1661,7 +2129,7 @@ export const C2_U1_3: Authored[] = [
         form: "based on what I bring",
         claims: [
           "'Based on what I bring' justifies a figure by contribution rather than by personal need.",
-          "Need is not an argument your employer can act on; contribution is one they can check.",
+          "Personal need is usually less relevant to a pay decision than contribution, which your employer can check.",
         ],
         ex: ["Based on what I bring, I'd expect more.", "Based on what I bring to the team."],
       },
@@ -1671,7 +2139,7 @@ export const C2_U1_3: Authored[] = [
           "'I was hoping for X' names a figure at low intensity, which keeps a refusal survivable.",
           "The past tense does the softening; 'I want X' turns the same figure into a demand.",
         ],
-        ex: ["I was hoping for sixty.", "I was hoping for something closer to sixty."],
+        ex: ["I was hoping for sixty thousand.", "I was hoping for something closer to sixty thousand."],
       },
       {
         form: "is there flexibility",
@@ -1682,25 +2150,50 @@ export const C2_U1_3: Authored[] = [
         ex: ["Is there flexibility on the base?", "Is there flexibility at all here?"],
       },
     ],
-    ex: [
-      mcq("Why justify a figure by contribution rather than need?", [
-        "Contribution is something the employer can check and act on.",
-        "Need is impolite to mention.",
-        "Contribution is easier to describe.",
-      ], 0),
-      mcq("What does the past tense in 'I was hoping for' do?", [
-        "lowers the intensity so a refusal is survivable",
-        "places the request in the past",
-        "makes the figure negotiable",
-      ], 0),
-      say("be / there / flexibility / on the base", ["Is there flexibility on the base?"]),
+    ex: [],
+    drills: [
+      // p1 — based on what I bring
+      sit("p1", "In a pay review, you want to justify a higher figure by your contribution, not your personal needs. What do you say?", [
+        "Based on what I bring, I'd expect more.",
+        "My rent went up, so I need more.",
+        "Everyone else earns more than me.",
+      ]),
+      fc("p1", "Based on what I ___ to the team, I'd expect more.", ["bring", "brings", "bringing"]),
+      lc("p1", "Based on what I bring to the team.", [
+        "Bring what you want to the party.",
+        "Based on what I read in the report.",
+      ]),
+      // p2 — I was hoping for
+      sit("p2", "You want to name sixty-five thousand at low intensity, so that a refusal is easy to survive. What do you say?", [
+        "I was hoping for sixty-five thousand.",
+        "I want sixty-five thousand, or I leave.",
+        "Give me sixty-five thousand now.",
+      ]),
+      chat("p2", ["What figure did you have in mind?", "I'd like to keep this friendly, even if the answer is no.", "Of course. So, the figure?", null], [
+        "I was hoping for something closer to sixty thousand.",
+        "I was hoping for something closer to sixty thousand, or I quit.",
+        "I hope for sixty thousand yesterday.",
+      ]),
+      spk("p2", "I was hoping for something closer to sixty thousand."),
+      // p3 — is there flexibility
+      sit("p3", "Your manager says the budget is tight. You ask whether the base salary can move, without pressing. What do you say?", [
+        "Is there flexibility on the base?",
+        "You must find more money.",
+        "Then I'll take another offer.",
+      ]),
+      la("p3", "Is there flexibility on the base?"),
+      fc("p3", "Is ___ flexibility at all here?", ["there", "it", "they"]),
+      // karışık
+      sit("mix", "You led two big accounts this year and want a raise to sixty thousand. You give the reason, the figure, and ask about room to move. Which fits?", [
+        "Based on what I bring, I was hoping for sixty thousand. Is there flexibility?",
+        "I need more money for my rent. I want sixty.",
+        "I was hoping for sixty. If not, I'm leaving.",
+      ]),
+      lc("mix", "Based on what I bring, I was hoping for sixty thousand.", [
+        "Based on what you said, I was going to sit.",
+        "I was hoping you'd bring sixty chairs.",
+      ]),
     ],
-    open: {
-      q: "Ask for a rise. Justify the figure by what you contribute, name it softly, and ask about flexibility.",
-      must: ["based on what I bring", "I was hoping for", "is there flexibility"],
-      criteria: "The answer justifies by contribution, names a figure at low intensity and asks about the constraint.",
-      example: "Based on what I bring — two accounts and the onboarding rewrite — I was hoping for something closer to sixty. Is there flexibility on the base, or is the structure fixed?",
-    },
     success: "The learner justifies by contribution and asks about flexibility without threatening.",
     quiz: [
       qmcq("What does 'is there flexibility?' also get you?", [
@@ -1723,15 +2216,15 @@ export const C2_U1_3: Authored[] = [
       sc("Mr. Vandermeer", "your manager in a review", "to keep a good person affordably",
         "A pay review is happening now.",
         "Justify by contribution and ask about flexibility.",
-        "You wanted to discuss your package. Go ahead?", "receptive"),
-      sc("Ines", "a client setting your day rate", "to agree a rate",
-        "A freelance rate is being set.",
+        "You wanted to discuss your package. What did you have in mind?", "receptive"),
+      sc("Ines", "a tour agency hiring you as a guide for the summer", "to agree a rate",
+        "Your weekly rate as a tour guide is being set.",
         "Justify by contribution.",
-        "Our usual rate is four hundred. Does that work?", "matter-of-fact"),
+        "Our usual weekly rate for guides is four hundred. Does that work for you?", "matter-of-fact"),
       sc("Professor Ashworth", "your tutor", "to practise self-advocacy",
         "The seminar is examining pay negotiation.",
         "Justify by contribution.",
-        "Why is need a weak argument in a pay conversation?", "probing"),
+        "The university offers you a research assistant job at eighteen an hour. What do you say?", "probing"),
       sc("Ms. Roux", "the examiner", "to check self-advocacy",
         "The examiner plays your manager.",
         "Ask and justify.",
@@ -1756,7 +2249,7 @@ export const C2_U1_3: Authored[] = [
         form: "I understand the frustration",
         claims: [
           "'I understand the frustration' acknowledges the feeling without agreeing with the demand.",
-          "Acknowledging and then conceding teaches the other side that pressure works.",
+          "Acknowledging and then conceding can signal to the other side that pressure works.",
         ],
         ex: ["I understand the frustration.", "I understand the frustration, and the answer is still no."],
       },
@@ -1772,30 +2265,62 @@ export const C2_U1_3: Authored[] = [
         form: "that's simply not possible",
         claims: [
           "'That's simply not possible' presents the point as a firm constraint rather than a preference.",
-          "Use it only when you genuinely cannot offer the thing: a limit that later moves costs you every future limit.",
+          "Use it only when you genuinely cannot offer the thing: a limit that later moves can undermine every limit you state after it.",
         ],
         ex: ["That's simply not possible this week.", "I'm afraid that's simply not possible."],
       },
     ],
-    ex: [
-      mcq("What does acknowledging and then conceding teach?", [
-        "that pressure works",
-        "that you are reasonable",
-        "that the limit is real",
-      ], 0),
-      mcq("Why offer an alternative with a refusal?", [
-        "A refusal alone leaves nothing to accept.",
-        "It sounds more apologetic.",
-        "It shortens the conversation.",
-      ], 0),
-      say("what / I / can offer / be / next Tuesday", ["What I can offer is next Tuesday."]),
+    ex: [],
+    drills: [
+      // p1 — I understand the frustration
+      sit("p1", "A client is angry that delivery cannot happen this week. You acknowledge the feeling but keep your answer. What do you say?", [
+        "I understand the frustration, and the answer is still no.",
+        "I understand the frustration, so fine, we'll do it.",
+        "That's not my problem.",
+      ]),
+      lc("p1", "I understand the frustration.", [
+        "I don't understand the question.",
+        "I can't stand the heat in here.",
+      ]),
+      spk("p1", "I understand the frustration, but the answer is no."),
+      // p2 — what I can offer
+      sit("p2", "You refuse to add a free extra feature, but you want to give the client a concrete alternative. What do you say?", [
+        "What I can offer is the feature next month at a discount.",
+        "There is nothing I can offer.",
+        "What I can offer is nothing at all.",
+      ]),
+      chat("p2", ["So you can't deliver on Friday. What now?", null], [
+        "What I can offer is next Tuesday.",
+        "What I can offer is Friday, as you asked.",
+        "What I can't offer is anything.",
+      ]),
+      fc("p2", "What I can ___ is a partial refund.", ["offer", "offers", "offering"]),
+      // p3 — that's simply not possible
+      sit("p3", "A client wants the full project by Friday. Your team cannot do it in that time. You state it as a firm constraint. What do you say?", [
+        "That's simply not possible by Friday.",
+        "I'd rather not do it by Friday.",
+        "Maybe, if you ask nicely.",
+      ]),
+      lc("p3", "I'm afraid that's simply not possible.", [
+        "I'm afraid of simple questions.",
+        "It's possible, but I'm afraid to try.",
+      ]),
+      chat("p3", ["Your team says the work needs four more days. Can't you finish it by tomorrow?", null], [
+        "I'm afraid that's simply not possible.",
+        "Of course, it's simply no problem.",
+        "I'm afraid that's simply possible.",
+      ]),
+      // karışık
+      sit("mix", "A client demands same-day delivery at no extra cost. It cannot be done, but next-day delivery can. Which reply fits?", [
+        "I understand the frustration. That's simply not possible, but what I can offer is next-day delivery.",
+        "I understand the frustration, so we'll deliver today for free.",
+        "That's simply not possible, and I have nothing else to offer.",
+      ]),
+      lc("mix", "I understand the frustration; what I can offer is Tuesday.", [
+        "I understand the question; what I can't do is Tuesday.",
+        "What I can offer you is a cup of tea.",
+      ]),
     ],
-    open: {
-      q: "A client demands delivery this week at the same price. It cannot be done. Acknowledge, refuse and offer an alternative.",
-      must: ["I understand the frustration", "what I can offer", "that's simply not possible"],
-      criteria: "The answer acknowledges the feeling, holds the limit and offers a concrete alternative.",
-      example: "I understand the frustration, but delivery this week at that price — that's simply not possible. The full scope takes four days. What I can offer is Tuesday delivery, or a reduced scope by Friday.",
-    },
     success: "The learner acknowledges the frustration, holds the limit and offers an alternative.",
     quiz: [
       qmcq("What does a limit that turns out to be movable cost you?", [
@@ -1814,23 +2339,23 @@ export const C2_U1_3: Authored[] = [
       sc("Severina", "a friend asking for too much", "to get what they want",
         "A friend is pressing for something you cannot do.",
         "Hold the limit and offer an alternative.",
-        "You could do it if you really wanted to, couldn't you?", "pushy"),
+        "I need you to finish my website by tomorrow. You could do it if you really wanted to, couldn't you?", "pushy"),
       sc("Mr. Vandermeer", "a client applying sustained pressure", "to get more for the same price",
         "A client is demanding the impossible.",
         "Acknowledge, refuse, offer.",
-        "We have been a good customer. Make this happen?", "pressing"),
+        "We need the full order this week at the same price. We have been a good customer. Can you make this happen?", "pressing"),
       sc("Ines", "a guest demanding an upgrade", "to get a better room",
         "A guest is demanding something unavailable.",
         "Hold the limit humanely.",
-        "There must be something you can do. Well?", "indignant"),
+        "My room faces the car park, and I want a sea view tonight. There must be something you can do, surely?", "indignant"),
       sc("Professor Ashworth", "your tutor", "to practise holding position",
         "The seminar is examining pressure.",
         "Acknowledge without conceding.",
-        "What does conceding after acknowledging teach the other side?", "probing"),
+        "Imagine I am a student who wants full marks for a very late essay. What do you say to me?", "probing"),
       sc("Ms. Roux", "the examiner", "to check composure under pressure",
         "The examiner presses you repeatedly.",
         "Hold the limit and offer an alternative.",
-        "I am not accepting that answer. Try again?", "neutral"),
+        "I am the client: I want the work done by tomorrow at half the price. What do you say?", "neutral"),
     ],
   },
 
@@ -1851,7 +2376,7 @@ export const C2_U1_3: Authored[] = [
         form: "speaking for my side",
         claims: [
           "'Speaking for my side' marks whose interest you are stating, which matters when three are present.",
-          "Unmarked, a claim in a three-way room is heard as a claim about what everyone wants.",
+          "Unmarked, a claim in a three-way room can be misheard as a claim about what everyone wants.",
         ],
         ex: ["Speaking for my side, the date matters most.", "Speaking for my side only."],
       },
@@ -1859,7 +2384,7 @@ export const C2_U1_3: Authored[] = [
         form: "can we all accept",
         claims: [
           "'Can we all accept X?' tests the whole room rather than the loudest person in it.",
-          "'Accept' asks for less than 'agree', which is often what a three-way deal can actually reach.",
+          "'Accept' can frame the question as what everyone can live with rather than what they prefer, which is often all a three-way deal can reach.",
         ],
         ex: ["Can we all accept that?", "Can we all accept a phased start?"],
       },
@@ -1872,25 +2397,54 @@ export const C2_U1_3: Authored[] = [
         ex: ["That works for us.", "That works for us, with the earlier review."],
       },
     ],
-    ex: [
-      mcq("Why mark whose interest you are stating?", [
-        "Unmarked, it is heard as a claim about what everyone wants.",
-        "It is more formal.",
-        "It shortens the discussion.",
-      ], 0),
-      mcq("Why does 'accept' ask for less than 'agree'?", [
-        "Accepting allows someone to live with a deal they do not prefer.",
-        "It is a shorter word.",
-        "It is the legal term.",
-      ], 0),
-      say("can / we / all / accept / a phased start", ["Can we all accept a phased start?"]),
+    ex: [],
+    drills: [
+      // p1 — speaking for my side
+      sit("p1", "Three departments are choosing a start date. You state what your own team needs and mark it as only your team's view. What do you say?", [
+        "Speaking for my side, the start date matters most.",
+        "Everyone here agrees the date matters most.",
+        "The date matters most to all of us.",
+      ]),
+      lc("p1", "Speaking for my side, the budget matters most.", [
+        "Speaking of dates, mine is on Friday.",
+        "Speak to my side about the date.",
+      ]),
+      spk("p1", "Speaking for my side, scope matters more."),
+      // p2 — can we all accept
+      sit("p2", "Three teams have different preferences. You test whether everyone can live with a phased start, not whether they love it. What do you ask?", [
+        "Can we all accept a phased start?",
+        "Does everyone love a phased start?",
+        "I'll decide: a phased start.",
+      ]),
+      chat("p2", ["Finance wants April, and sales wants July.", null], [
+        "Can we all accept a start in May?",
+        "Can only finance accept a start in May?",
+        "We all accept April, then.",
+      ]),
+      la("p2", "Can we all accept a phased start?"),
+      // p3 — that works for us
+      sit("p3", "The group proposes May. Your team is happy with it. In a three-way meeting, you make your position explicit. What do you say?", [
+        "That works for us.",
+        "Whatever.",
+        "That doesn't work for us.",
+      ]),
+      lc("p3", "That works for us, with the earlier review.", [
+        "That worked for us in the last review.",
+        "Does that work for you as well?",
+      ]),
+      fc("p3", "That ___ for us.", ["works", "work", "working"]),
+      // karışık
+      sit("mix", "In a three-way meeting, your team prefers June but can live with May. You mark your view, then test the room. Which fits?", [
+        "Speaking for my side, we prefer June. Can we all accept May?",
+        "We all prefer June. Can we all accept June?",
+        "Speaking for everyone, May is final.",
+      ]),
+      chat("mix", ["Can everyone accept a phased start in May?", null], [
+        "Speaking for my side, that works for us.",
+        "Speaking for everyone, that works for us.",
+        "I'd rather not say anything about that.",
+      ]),
     ],
-    open: {
-      q: "Three departments want different start dates. Speak for yours, test the room, and commit or decline explicitly.",
-      must: ["speaking for my side", "can we all accept", "that works for us"],
-      criteria: "The answer marks its own interest, tests the whole room and commits or declines explicitly.",
-      example: "Speaking for my side, the date matters more than the scope. Can we all accept a phased start in May? If the review moves earlier, that works for us.",
-    },
     success: "The learner marks their own interest and tests the whole room.",
     quiz: [
       qmcq("Why confirm each party's position explicitly?", [
@@ -1909,7 +2463,7 @@ export const C2_U1_3: Authored[] = [
       sc("Severina", "one of three friends planning together", "to get a plan everyone accepts",
         "Three friends want different things from one plan.",
         "Speak for yourself and test the room.",
-        "So that is three different answers. Who is going to decide?", "impatient"),
+        "One of us wants the beach, one the mountains and one the city. How do we find a plan all three of us can live with?", "impatient"),
       sc("Mr. Vandermeer", "one of three departments", "to protect their own timeline",
         "Three departments need one start date.",
         "Mark your interest and test the room.",
@@ -1921,7 +2475,7 @@ export const C2_U1_3: Authored[] = [
       sc("Professor Ashworth", "your tutor", "to practise multi-party language",
         "The seminar is examining three-way negotiation.",
         "Mark interest and test the room.",
-        "Why does a two-way habit fail in a three-way room?", "probing"),
+        "Three student groups want the same room on Friday. How do you start the meeting?", "probing"),
       sc("Ms. Roux", "the examiner", "to check multi-party handling",
         "The examiner describes three competing interests.",
         "Speak for one and test the room.",
@@ -1946,7 +2500,7 @@ export const C2_U1_3: Authored[] = [
         form: "I don't think we",
         claims: [
           "'I don't think we can get there' declines the deal rather than the person.",
-          "Locating the failure in the gap between positions leaves nobody to blame.",
+          "Locating the failure in the gap between positions reduces direct blame and keeps the focus on the positions.",
         ],
         ex: ["I don't think we can get there on price.", "I don't think we're going to agree."],
       },
@@ -1967,25 +2521,54 @@ export const C2_U1_3: Authored[] = [
         ex: ["Let's stay in touch.", "Let's stay in touch — things may change."],
       },
     ],
-    ex: [
-      mcq("Why locate the failure in the gap between positions?", [
-        "It leaves nobody to blame.",
-        "It is more formal.",
-        "It avoids naming the price.",
-      ], 0),
-      mcq("When can 'no hard feelings' sound insincere?", [
-        "after a genuinely acrimonious negotiation",
-        "when it is said first",
-        "when the deal was large",
-      ], 0),
-      say("I / not think / we / can get / there / on price", ["I don't think we can get there on price.", "I do not think we can get there on price."]),
+    ex: [],
+    drills: [
+      // p1 — I don't think we
+      sit("p1", "The gap on price is too wide to close. You end the deal without blaming the other side. What do you say?", [
+        "I don't think we can get there on price.",
+        "Your offer is ridiculous.",
+        "You never wanted a deal.",
+      ]),
+      lc("p1", "I don't think we're going to agree.", [
+        "We're going to agree to that, I think.",
+        "I don't think we should go to the gym.",
+      ]),
+      fc("p1", "I don't think we can get ___ on price.", ["there", "their", "they"]),
+      // p2 — no hard feelings
+      sit("p2", "A friendly negotiation ends without a deal. Nobody argued. You want to show the refusal is not personal. What do you say?", [
+        "No hard feelings; it was a fair offer.",
+        "No hard feelings, but you were awful.",
+        "I won't forget how badly you treated me.",
+      ]),
+      chat("p2", ["So, no deal this time?", "Not this time, I'm afraid.", "Fair enough. Are we still friends?", null], [
+        "Of course. No hard feelings.",
+        "Of course. Hard feelings, though.",
+        "No. I'm still angry about this.",
+      ]),
+      spk("p2", "No hard feelings, it was a fair offer."),
+      // p3 — let's stay in touch
+      sit("p3", "You turned down a supplier, but you may genuinely need them next year. You keep the relationship open. What do you say?", [
+        "Let's stay in touch; things may change.",
+        "Please don't contact us again.",
+        "We won't need you again.",
+      ]),
+      fc("p3", "Let's stay in ___.", ["touch", "touched", "touching"]),
+      lc("p3", "Let's stay in touch, things may change.", [
+        "Let's stay at home, it looks like rain.",
+        "Let's not touch anything in here.",
+      ]),
+      // karışık
+      sit("mix", "A calm negotiation fails on price. You end it without blame, mark it as not personal, and keep the door open. Which fits?", [
+        "I don't think we can get there. No hard feelings, and let's stay in touch.",
+        "You ruined this. No hard feelings, though.",
+        "I don't think we can get there. Don't call us again.",
+      ]),
+      pairs("mix", [
+        ["I don't think we can get there.", "declines the deal"],
+        ["No hard feelings.", "says it isn't personal"],
+        ["Let's stay in touch.", "keeps the door open"],
+      ]),
     ],
-    open: {
-      q: "Decline a deal you cannot make work. Blame neither side, keep it clean, and leave the door open.",
-      must: ["I don't think we", "no hard feelings", "let's stay in touch"],
-      criteria: "The answer declines without blame and leaves the relationship genuinely open.",
-      example: "I don't think we can get there on price — the gap is too wide this year. No hard feelings at all; it was a fair offer. Let's stay in touch, because things may change.",
-    },
     success: "The learner declines without blame and keeps the relationship open.",
     quiz: [
       qmcq("What is remembered about an empty 'let's stay in touch'?", [
@@ -2004,7 +2587,7 @@ export const C2_U1_3: Authored[] = [
       sc("Severina", "a friend whose offer you are refusing", "to part on good terms",
         "You are turning down a friend's proposal.",
         "Decline cleanly and keep the friendship.",
-        "So that is a no, then?", "disappointed"),
+        "You have heard my offer to start a business together. So that is a no, then?", "disappointed"),
       sc("Mr. Vandermeer", "a counterpart in a failed negotiation", "to end professionally",
         "A negotiation has failed on price.",
         "Walk away without blame.",
@@ -2012,11 +2595,11 @@ export const C2_U1_3: Authored[] = [
       sc("Ines", "a seller whose price you will not meet", "to sell if possible",
         "You cannot meet the seller's price.",
         "Decline and leave the door open.",
-        "That is my final price. Yes or no?", "final"),
+        "Three hundred for the carpet is my final price. Yes or no?", "final"),
       sc("Professor Ashworth", "your tutor", "to practise walking away",
         "The seminar is examining failed negotiations.",
         "Decline without blame.",
-        "Why does walking away well matter more than the deal?", "probing"),
+        "We cannot agree on price, but we may work together next year. How would you end the conversation?", "probing"),
       sc("Ms. Roux", "the examiner", "to check closure without agreement",
         "The examiner offers terms you must refuse.",
         "Decline cleanly.",

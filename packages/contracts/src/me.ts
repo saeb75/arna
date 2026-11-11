@@ -2,6 +2,7 @@ import { z } from "zod";
 import { entitlementSchema } from "./billing.js";
 import { cefrLevelSchema } from "./levels.js";
 import { interestSchema, trackSchema, tutorLanguageSchema } from "./profile.js";
+import { publicTutorSchema, tutorIdSchema } from "./tutors.js";
 
 // ============================================================================
 // /v1/me — öğrencinin kendi hesabı (profil, abonelik, kota, istatistik)
@@ -23,6 +24,8 @@ export const meProfileSchema = z.object({
   interests: z.array(z.string()),
   occupation: z.string().nullable(),
   timezone: z.string(),
+  /** Kullanıcının SEÇTİĞİ öğretmen (null = seçmedi → varsayılan). Gizlenmişse de burada kalır; çözümlenmiş hali `MeResponse.tutor` */
+  tutorId: z.string().nullable(),
 });
 export type MeProfile = z.infer<typeof meProfileSchema>;
 
@@ -34,6 +37,11 @@ export const meResponseSchema = z.object({
   /** null = onboarding bitmemiş (istemci kapısı /onboarding'e yollar) */
   profile: meProfileSchema.nullable(),
   entitlement: entitlementSchema,
+  /**
+   * Derslerde/rol yapmada görünecek öğretmen — sunucu çözümler (seçim gizlenmişse
+   * ya da yoksa varsayılan). null = hiç öğretmen kaydı yok (eski davranış: global avatar).
+   */
+  tutor: publicTutorSchema.nullable(),
 });
 export type MeResponse = z.infer<typeof meResponseSchema>;
 
@@ -47,6 +55,8 @@ export const profilePatchSchema = z
     cefrLevel: cefrLevelSchema,
     track: trackSchema,
     tutorLanguage: tutorLanguageSchema,
+    /** Öğretmen seçimi — yalnız aktif öğretmen kabul edilir (sunucu doğrular) */
+    tutorId: tutorIdSchema,
     dailyGoalMinutes: dailyGoalSchema,
     interests: z.array(interestSchema).min(1).max(8),
     occupation: z.string().trim().max(120).nullable(),

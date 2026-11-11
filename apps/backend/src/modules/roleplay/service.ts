@@ -19,6 +19,8 @@ import { languageName, nativeLanguageOf } from "../../lib/language.js";
 import { completeJson } from "../llm/index.js";
 import { getAttempt, getPublishedRoleplay } from "./queries.js";
 import { buildPersonaPrompt, ROLEPLAY_TURN_VERSION } from "./personaPrompt.js";
+import { castNameFor, castPersona } from "../tutor/cast.js";
+import { pinOf, resolveTutorById } from "../tutor/registry.js";
 
 export class RoleplayError extends Error {
   constructor(
@@ -52,11 +54,16 @@ export interface RoleplayBrief {
 }
 
 export async function openRoleplaySession(userId: string, slug: string): Promise<RoleplayBrief> {
-  const rp = await getPublishedRoleplay(slug);
-  if (!rp) throw new RoleplayError("not_found", "Roleplay bulunamadı ya da yayında değil");
+  const published = await getPublishedRoleplay(slug);
+  if (!published) throw new RoleplayError("not_found", "Roleplay bulunamadı ya da yayında değil");
 
   const [profile] = await db.select().from(userProfiles).where(eq(userProfiles.userId, userId)).limit(1);
   if (!profile) throw new RoleplayError("no_profile", "Profil bulunamadı");
+
+  // Karakteri seçilen öğretmen KENDİ adıyla oynar; öğretmen oturuma pinlenir (ses + ad sabit)
+  const tutor = await resolveTutorById(profile.tutorId);
+  const pin = pinOf(tutor);
+  const rp = { ...published, spec: castPersona(published.spec, castNameFor(pin)) };
 
   const decision = resolvePlayedLevel(rp.spec, profile.cefrLevel as CefrLevel);
 
@@ -76,7 +83,7 @@ export async function openRoleplaySession(userId: string, slug: string): Promise
   // CHECK kısıtının istediği şekil: kind='roleplay' → revizyon DOLU, katalog NULL.
   const [session] = await db
     .insert(sessions)
-    .values({ userId, sessionKind: "roleplay", roleplayRevisionId: rp.revisionId })
+    .values({ userId, sessionKind: "roleplay", roleplayRevisionId: rp.revisionId, state: { tutor: pin } })
     .returning();
   const sessionId = session!.id;
 
@@ -332,6 +339,8 @@ export async function roleplayDebrief(
   userId: string,
   sessionId: string,
   spec: RoleplaySpec,
+  /** Koçluğu yapan öğretmenin adı (oturum pini; yoksa "Emma") */
+  tutorName = "Emma",
 ): Promise<RoleplayDebrief | null> {
   const attempt = await getAttempt(sessionId);
   if (!attempt) return null;
@@ -383,7 +392,7 @@ export async function roleplayDebrief(
     const out = await completeJson({
       purpose: "chat",
       system: [
-        `You are Emma, a warm English coach reviewing a role-play the student just finished.`,
+        `You are ${tutorName}, a warm English coach reviewing a role-play the student just finished.`,
         `Write AT MOST 3 short coaching items, most important first. Priorities in order:`,
         `1. A moment where communication actually broke down (if any).`,
         `2. One missed objective and a sentence the student could have said for it.`,

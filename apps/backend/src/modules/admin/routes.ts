@@ -11,6 +11,9 @@ import {
   adminRoleplaySpecBodySchema,
   adminSessionsQuerySchema,
   adminTtsPreviewBodySchema,
+  adminTutorBodySchema,
+  adminTutorCreateBodySchema,
+  tutorIdSchema,
   catalogLessonIdSchema,
   ttsSettingsSchema,
 } from "@glotmate/contracts";
@@ -41,6 +44,8 @@ import {
   setRoleplayStatus,
 } from "./roleplays.js";
 import { getAdminSessionDetail, getAdminSessions } from "./sessions.js";
+import { createTutor, listAdminTutors, TutorAdminError, updateTutor } from "./tutors.js";
+import { sampleLine } from "../tutor/routes.js";
 import {
   AdminActionError,
   generateLocale,
@@ -89,6 +94,14 @@ function sendRoleplayError(reply: FastifyReply, err: unknown) {
 
 const roleplayParams = z.object({ id: z.string().regex(/^[a-z0-9][a-z0-9-]{1,63}$/) });
 const userParams = z.object({ id: z.string().uuid() });
+
+function sendTutorError(reply: FastifyReply, err: unknown) {
+  if (err instanceof TutorAdminError) {
+    const status = err.code === "not_found" ? 404 : err.code === "exists" ? 409 : 400;
+    return reply.code(status).send({ error: err.code, message: err.message });
+  }
+  throw err;
+}
 
 function sendTtsError(reply: FastifyReply, err: unknown) {
   if (err instanceof TtsError) {
@@ -374,6 +387,40 @@ export default async function adminRoutes(app: FastifyInstance) {
       avatars: AVATAR_IDS.map((id) => ({ id, label: AVATAR_LABELS[id], system: AVATAR_SYSTEM_OF[id] })),
       updatedAt: stored.updatedAt,
     };
+  });
+
+  // --- Öğretmenler (yüz + ses + ad; kullanıcı onboarding/ayarlarda seçer) --------
+  app.get("/admin/tutors", { preHandler: app.requireAdmin }, async () => {
+    return await listAdminTutors();
+  });
+
+  app.post("/admin/tutors", { preHandler: app.requireAdmin }, async (request, reply) => {
+    const body = adminTutorCreateBodySchema.safeParse(request.body);
+    if (!body.success) return reply.code(400).send({ error: "invalid_input", issues: body.error.issues });
+    try {
+      return await createTutor(body.data, request.userId ?? null);
+    } catch (err) {
+      return sendTutorError(reply, err);
+    }
+  });
+
+  app.put("/admin/tutors/:id", { preHandler: app.requireAdmin }, async (request, reply) => {
+    const p = z.object({ id: tutorIdSchema }).safeParse(request.params);
+    const body = adminTutorBodySchema.safeParse(request.body);
+    if (!p.success || !body.success) {
+      return reply.code(400).send({ error: "invalid_input", issues: body.success ? [] : body.error.issues });
+    }
+    try {
+      return await updateTutor(p.data.id, body.data, request.userId ?? null);
+    } catch (err) {
+      return sendTutorError(reply, err);
+    }
+  });
+
+  /** Öğretmenin tanıtım cümlesi — panel sesi önizlerken kullanıcının duyacağı cümleyi bilsin */
+  app.get("/admin/tutors/sample-line", { preHandler: app.requireAdmin }, async (request) => {
+    const q = z.object({ name: z.string().trim().min(1).max(24) }).safeParse(request.query ?? {});
+    return { text: sampleLine(q.success ? q.data.name : "Emma") };
   });
 
   // Kaydetmeden dinleme — gerçek sağlayıcı çağrısı, önbellek yok; kötüye kullanım için düşük tavan

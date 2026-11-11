@@ -4,6 +4,7 @@ import { MailCheck } from "lucide-react-native";
 import { Button } from "../../components/ui/Button";
 import { SheetHeader } from "../../components/ui/SheetHeader";
 import { AuthController } from "../../controllers/AuthController";
+import { useTutorName } from "../../hooks/useTutorName";
 import { tr } from "../../i18n/tr";
 import { useAuthStore } from "../../stores/useAuthStore";
 import { useThemeColors } from "../../theme/useThemeColors";
@@ -12,13 +13,14 @@ import { EmailForm } from "./EmailForm";
 import { OrDivider } from "./OrDivider";
 
 /**
- * Misafiri KALICI yap — AYNI kullanıcı: ilerleme, Emma'nın hafızası ve satın
+ * Misafiri KALICI yap — AYNI kullanıcı: ilerleme, öğretmenin hafızası ve satın
  * alma olduğu gibi kalır. E-posta doğrulaması açıksa "e-postanı kontrol et".
  */
 export function SaveProgressSheet() {
   const colors = useThemeColors();
   const pending = useAuthStore((s) => s.pendingEmail);
   const busy = useAuthStore((s) => s.busy);
+  const tutorName = useTutorName();
 
   useEffect(() => AuthController.clearError(), []);
 
@@ -43,7 +45,7 @@ export function SaveProgressSheet() {
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets
     >
-        <SheetHeader title={tr.auth.saveTitle} body={tr.auth.saveBody} />
+        <SheetHeader title={tr.auth.saveTitle} body={tr.auth.saveBody(tutorName)} />
         <AppleButton disabled={busy} onPress={() => void AuthController.linkApple()} />
         <OrDivider />
         <EmailForm cta={tr.auth.create} onSubmit={(email, password) => void AuthController.linkEmail(email, password)} />

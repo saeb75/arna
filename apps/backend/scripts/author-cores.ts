@@ -1,7 +1,10 @@
 /**
  * ELLE YAZILMIŞ ÇEKİRDEKLERİ DB'YE YAZAR — LLM ÇAĞRISI YOK.
  *
- *   set -a; source .env; set +a; npx tsx scripts/author-cores.ts --level A1 [--dry]
+ *   set -a; source .env; set +a; npx tsx scripts/author-cores.ts --level A1 [--dry] [--only id1,id2]
+ *
+ * `--only`: yalnız verilen dersler yazılır (ör. yeni formata geçen ilk dersler
+ * `--replace-published` ile yazılırken seviyenin geri kalanına dokunulmaz).
  *
  * `scripts/authored/<level>.ts` içindeki dersleri şema + lintCore + lintScenes
  * kapılarından geçirip `status='ready'` olarak yazar. Yayın AYRI adımdır
@@ -33,13 +36,19 @@ const dry = args.includes("--dry");
  * — paketler eski iddiaları anlatıyordu, çekirdek değişince yalan söylerler.
  */
 const forcePublished = args.includes("--replace-published");
+const onlyArg = args.includes("--only") ? args[args.indexOf("--only") + 1] : undefined;
+const only = onlyArg ? new Set(onlyArg.split(",").map((s) => s.trim()).filter(Boolean)) : null;
 if (!level || level.startsWith("--")) {
   console.error("--level zorunlu (ör. --level A1)");
   process.exit(1);
 }
 
 const mod = (await import(`./authored/${level.toLowerCase()}.js`)) as { LESSONS: Authored[] };
-const authored = mod.LESSONS;
+const authored = only ? mod.LESSONS.filter((a) => only.has(a.id)) : mod.LESSONS;
+if (only) {
+  const unknown = [...only].filter((id) => !authored.some((a) => a.id === id));
+  if (unknown.length) throw new Error(`--only: yazımda olmayan kimlikler: ${unknown.join(", ")}`);
+}
 
 const rows = await db
   .select()
@@ -64,7 +73,7 @@ for (const a of authored) {
   );
   const scenes = sceneSetSchema.parse(buildScenes(a));
 
-  const coreReport = lintCore(core, { forbidden: [] });
+  const coreReport = lintCore(core, { forbidden: [], lessonKind: cat.kind as "grammar" | "phrases" | "practice" });
   if (coreReport.errors.length) throw new Error(`${a.id} lintCore:\n  - ${coreReport.errors.join("\n  - ")}`);
   const sceneReport = lintScenes(scenes, { forbidden: [] });
   if (sceneReport.errors.length) throw new Error(`${a.id} lintScenes:\n  - ${sceneReport.errors.join("\n  - ")}`);
@@ -130,7 +139,8 @@ for (const a of authored) {
     .onConflictDoUpdate({
       target: [lessonSceneSets.coreId, lessonSceneSets.sceneFormat, lessonSceneSets.promptVersion],
       set: { scenes: scenes.scenes, status: "ready", model: "authored/claude", updatedAt: new Date() },
-      setWhere: eq(lessonSceneSets.status, "ready"),
+      // --replace-published sahne setini de değiştirir (yoksa yayınlı açılışlar eskide kalırdı)
+      ...(forcePublished ? {} : { setWhere: eq(lessonSceneSets.status, "ready") }),
     });
 
   written++;
@@ -141,8 +151,8 @@ for (const a of authored) {
 // bir satır doğurur; eskisi 'ready' olarak kalıp incelemeyi ve yayını kirletir
 // (servis yolu zaten yalnız güncel hash'i arar, yani sessiz ölü veri). Yayınsız ve
 // paketsiz olanları siliyoruz — yayınlı ya da paketli satıra DOKUNMUYORUZ, çünkü
-// eski oturumlar onlara bağlı olabilir.
-if (!dry) {
+// eski oturumlar onlara bağlı olabilir. `--only` koşusunda yapılmaz (kısmi yazım).
+if (!dry && !only) {
   const stale = await db
     .select({ id: lessonCores.id, lesson: lessonCores.catalogLessonId })
     .from(lessonCores)
@@ -174,7 +184,7 @@ if (allWarnings.length) {
 }
 
 const done = new Set(authored.map((a) => a.id));
-const remaining = rows.filter((r) => !done.has(r.id));
+const remaining = only ? [] : rows.filter((r) => !done.has(r.id));
 console.log(`${dry ? "[KURU KOŞU] " : ""}${written}/${authored.length} ders yazıldı · ${remaining.length} ders henüz yazılmadı`);
 if (remaining.length) console.log(`  eksikler: ${remaining.map((r) => r.id).join(", ")}`);
 

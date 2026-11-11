@@ -155,6 +155,8 @@ export interface RenderScriptOptions {
   displayName: string;
   cefrLevel: string;
   memoryBlock: string | null;
+  /** Seçilen öğretmenin adı (yoksa "Emma") — selamlama LLM'inin kimliği */
+  tutorName?: string;
   userId: string;
   sessionId: string;
   /** Dersin İngilizce adı (katalog `title`) — selamlamada okunur */
@@ -248,7 +250,7 @@ async function buildSessionScript(opts: RenderScriptOptions): Promise<SessionScr
     const { callback } = await completeJson({
       purpose: "chat",
       system: [
-        `You are Emma, a warm English teacher greeting one student. The greeting sentence itself is`,
+        `You are ${opts.tutorName ?? "Emma"}, a warm English teacher greeting one student. The greeting sentence itself is`,
         `already written; you supply ONLY a short warm callback to what you know about this student.`,
         ``,
         `Rules:`,

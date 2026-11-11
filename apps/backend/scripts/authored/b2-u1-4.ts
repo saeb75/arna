@@ -19,7 +19,7 @@
  *
  *  Gramer derslerinde 4 alıştırma, phrases/practice'te 3.
  */
-import { fill, mcq, qfill, qmcq, say, sc, type Authored } from "./dsl.js";
+import { arr, chat, err, fc, la, lc, qfill, qmcq, sc, sit, spk, type Authored } from "./dsl.js";
 
 export const B2_U1_4: Authored[] = [
   // --- Ünite 1 · Looking Back with Regret ------------------------------------
@@ -47,8 +47,8 @@ export const B2_U1_4: Authored[] = [
       {
         form: "had I known",
         claims: [
-          "In formal speech you can drop 'if' and put 'had' first: had I known.",
-          "In this form you drop 'if' and put 'had' before the subject; it is more common in formal writing than in speech.",
+          "You can drop 'if' and put 'had' before the subject: had I known.",
+          "This inverted form is formal; it is more common in writing than in everyday speech.",
         ],
         ex: ["Had I known, I would have acted differently.", "Had we booked earlier, it would have been cheaper."],
       },
@@ -61,22 +61,38 @@ export const B2_U1_4: Authored[] = [
         ex: ["If only I'd asked for help.", "If only we'd taken the earlier train."],
       },
     ],
-    ex: [
-      fill("If I ___ known about the meeting, I would have come. (know)", ["had"]),
-      mcq("Which sentence is correct?", [
-        "If we had left earlier, we wouldn't have missed it.",
-        "If we would have left earlier, we wouldn't have missed it.",
-        "If we left earlier, we wouldn't have missed it.",
-      ], 0),
-      fill("___ I known the truth, I would have told you. (had, formal)", ["Had"]),
-      say("if only / I / ask for help", ["If only I'd asked for help.", "If only I had asked for help."]),
+    ex: [],
+    drills: [
+      // p1 — if I had known
+      fc("p1", "If I ___ known about the meeting, I would have come.", ["had", "have", "would"]),
+      arr("p1", "If I had known, I would have called you.", ["will"]),
+      err("p1", "If I had know about it, I would have told you.", "know", "known"),
+      // p2 — had I known (devrik)
+      lc("p2", "Had we booked earlier, it would have been cheaper.", [
+        "We had booked early, so it was cheaper.",
+        "Have you booked yet? It might be cheaper.",
+      ]),
+      fc("p2", "___ I known, I would have acted differently.", ["Had", "If", "Would"]),
+      arr("p2", "Had I known, I would have acted differently.", ["knew"]),
+      // p3 — if only I'd
+      chat("p3", ["You look upset. What's wrong?", null], [
+        "I missed the last train. If only I'd left earlier.",
+        "I missed the last train. If only I have left earlier.",
+        "I missed the last train. If only I had leave earlier.",
+      ]),
+      fc("p3", "If only we ___ taken the earlier train.", ["had", "have", "would"]),
+      spk("p3", "If only I'd asked for help."),
+      // karışık
+      sit("mix", "You didn't know the shop closed early, so you arrived too late. You say what you would have done, and then add a short regret. What do you say?", [
+        "If I had known, I would have gone earlier. If only I'd checked!",
+        "If I had known, I would have gone earlier. If only I have checked!",
+        "If I would have known, I would have gone earlier. If only I'd checked!",
+      ]),
+      lc("mix", "If only I'd checked. Had I known, I would have stayed.", [
+        "If only I could check. I know, so I will stay.",
+        "I checked it. I knew, so I stayed at home.",
+      ]),
     ],
-    open: {
-      q: "Think of something you found out too late. Say what you would have done if you had known earlier.",
-      must: ["if I had known", "had I known", "if only I'd"],
-      criteria: "The answer uses the past perfect after 'if' to describe a past situation that was not true.",
-      example: "If I had known the deadline was Friday, I'd have started sooner. Had I known, I would have asked. If only I'd checked.",
-    },
     success: "The learner builds the if-half with the past perfect correctly at least twice.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -95,23 +111,23 @@ export const B2_U1_4: Authored[] = [
       sc("Delphine", "a friend who found out before you did", "to work out how the misunderstanding happened",
         "You both missed an event because nobody passed on the message.",
         "Explain what you would have done differently.",
-        "I assumed someone had told you. When did you actually find out?", "apologetic"),
+        "Nobody told you about the party, so you missed it. What would you have done if you had known?", "apologetic"),
       sc("Rasheed", "your manager after a missed deadline", "to understand what went wrong without blaming anyone",
         "A deadline slipped because information did not reach the right person.",
         "Explain what you would have done with better information.",
-        "I am not looking for blame. What would have helped you here?", "measured"),
+        "Nobody told you the plan had changed. In a formal report, how would you describe what you would have done differently?", "measured"),
       sc("Astrid", "a fellow traveller who took a different route", "to compare how your journeys went",
         "You took a slow route while she took a fast one.",
         "Say what you would have done with better information.",
-        "You came the long way? How did that happen?", "sympathetic"),
+        "I took the fast train and you took the slow bus. What would you have done if you had known about the train?", "sympathetic"),
       sc("Dr. Ferreira", "your teacher", "to practise the if-half of the third conditional",
         "The class is discussing decisions made without full information.",
         "Describe a past situation you would change.",
-        "Think of something you learned too late. What would you have done?", "encouraging"),
+        "Think of something you found out too late. What do you wish you had done?", "encouraging"),
       sc("Ms. Whitlock", "the examiner", "to check the third conditional if-clause",
         "The examiner asks about a past misunderstanding.",
         "Use the past perfect after 'if' correctly.",
-        "Could you tell me about a time when you did not have all the information?", "neutral"),
+        "Please describe a time you were missing important information. What would you have done if you had known?", "neutral"),
     ],
   },
 
@@ -132,7 +148,7 @@ export const B2_U1_4: Authored[] = [
         form: "I would have",
         claims: [
           "The result half uses would have plus the past participle.",
-          "'Would' never appears in the if-half of this pattern in standard writing.",
+          "In this pattern the if-half uses had plus the past participle, not would.",
         ],
         ex: ["I would have called you straight away.", "She would have understood."],
       },
@@ -153,22 +169,35 @@ export const B2_U1_4: Authored[] = [
         ex: ["It would have been much easier.", "It might have been worse."],
       },
     ],
-    ex: [
-      fill("If you had asked, I ___ have helped you.", ["would", "'d"]),
-      mcq("Which sentence is correct?", [
+    ex: [],
+    drills: [
+      // p1 — would have + V3
+      fc("p1", "If you had asked, I ___ have helped you.", ["would", "will", "had"]),
+      arr("p1", "We would have missed the train.", ["miss"]),
+      err("p1", "If I had known, I would have call you.", "call", "called"),
+      // p2 — we'd have / would've
+      sit("p2", "Your friends went to the beach without inviting you and your sister. You tell them you both would have joined. What do you say?", [
         "We'd have come if you had asked.",
         "We'd have came if you had asked.",
-        "We would of come if you had asked.",
-      ], 0),
-      fill("With a map it ___ have been much easier.", ["would"]),
-      say("she / would have / understand", ["She would have understood.", "She'd have understood."]),
+        "We'd had come if you had asked.",
+      ]),
+      fc("p2", "They'd ___ told us if they had known.", ["have", "of", "had"]),
+      err("p2", "We would of come if you had asked.", "of", "have"),
+      // p3 — would have been / might have
+      fc("p3", "It would have ___ much easier with a map.", ["been", "be", "being"]),
+      lc("p3", "It might have been worse.", [
+        "It would have been better.",
+        "It may get worse later.",
+      ]),
+      spk("p3", "It would have been much easier."),
+      // karışık
+      chat("mix", ["I took the bus in the end. It took two hours.", null], [
+        "If you'd called me, I'd have driven you. It would have been quicker.",
+        "If you'd called me, I'd have drove you. It would have been quicker.",
+        "If you'd called me, I'd driven you. It would have been quicker.",
+      ]),
+      la("mix", "We'd have helped, and it would have been easier.", ["will"]),
     ],
-    open: {
-      q: "Think of a time you did not ask for help. Say what would have happened if you had.",
-      must: ["I would have", "we'd have", "it would have been"],
-      criteria: "The answer uses would have plus the past participle to describe an unreal past result.",
-      example: "If I had asked, I would have finished on time. We'd have shared the work and it would have been easier.",
-    },
     success: "The learner completes the result half with would have plus a past participle at least twice.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -187,23 +216,23 @@ export const B2_U1_4: Authored[] = [
       sc("Corina", "a friend who would have helped", "to point out you should have asked",
         "You struggled alone with something a friend could have helped with.",
         "Say what would have happened if you had asked.",
-        "You did all that on your own? Why didn't you say anything?", "exasperated"),
+        "You moved house all on your own last week. If I had been free, how would it have been different?", "exasperated"),
       sc("Malik", "a colleague reviewing a difficult week", "to learn from how the work was shared",
         "The team is looking back at a week that went badly.",
         "Describe the result if the work had been shared.",
-        "Looking back at last week, what would have made the difference?", "constructive"),
+        "Last week was hard for the whole team. What would have made it easier?", "constructive"),
       sc("Freya", "a guide you did not book", "to explain what the tour would have covered",
         "You explored alone and missed most of the sights.",
         "Say what would have been different with a guide.",
-        "You went round on your own? What did you manage to see?", "curious"),
+        "You walked round the city without a guide. If you had booked a tour, what would you have seen?", "curious"),
       sc("Mr. Anand", "your teacher", "to practise the result half",
         "The class is completing unreal past sentences.",
         "Complete the result half correctly.",
-        "If you had studied a different subject, what would have happened?", "encouraging"),
+        "Imagine you had studied a different subject. What would you have done after school?", "encouraging"),
       sc("Mrs. Boateng", "the examiner", "to check the result clause",
         "The examiner asks about an unreal past outcome.",
         "Build the result half accurately.",
-        "Could you tell me what would have been different if you had made another choice?", "neutral"),
+        "Think of a choice you made last year. What would have happened if you had chosen differently?", "neutral"),
     ],
   },
 
@@ -245,22 +274,43 @@ export const B2_U1_4: Authored[] = [
         ex: ["We ought to have asked first.", "They ought to have warned us."],
       },
     ],
-    ex: [
-      fill("I ___ have listened to you when you warned me. (should)", ["should"]),
-      mcq("Which sentence is correct?", [
-        "We ought to have asked first.",
-        "We ought have asked first.",
-        "We ought to had asked first.",
-      ], 0),
-      fill("You ___ have sent that email before checking. (should not)", ["shouldn't", "should not"]),
-      say("they / ought to have / warn us", ["They ought to have warned us."]),
+    ex: [],
+    drills: [
+      // p1 — should have
+      fc("p1", "I ___ have checked the times before we left.", ["should", "ought", "had"]),
+      sit("p1", "You missed your flight because you did not check the time. You regret it. What do you say?", [
+        "I should have checked the time.",
+        "I should checked the time.",
+        "I should have check the time.",
+      ]),
+      arr("p1", "I should have listened to you.", ["listen"]),
+      // p2 — you shouldn't have
+      chat("p2", ["I sent the angry email to the whole team.", null], [
+        "You shouldn't have sent it so quickly.",
+        "You shouldn't have send it so quickly.",
+        "You shouldn't sent it so quickly.",
+      ]),
+      sit("p2", "A friend gives you an expensive present for no reason. You thank them warmly. What do you say?", [
+        "Oh, you shouldn't have!",
+        "Oh, you shouldn't have to!",
+        "Oh, you should haven't!",
+      ]),
+      err("p2", "We shouldn't have leave it so late.", "leave", "left"),
+      // p3 — ought to have
+      fc("p3", "We ought ___ have asked first.", ["to", "for", "of"]),
+      lc("p3", "They ought to have warned us.", [
+        "They wanted to warn us.",
+        "They have warned us twice.",
+      ]),
+      spk("p3", "We ought to have asked first."),
+      // karışık
+      sit("mix", "Your colleague booked the wrong hotel in a hurry, and you forgot to check the booking. You say what each of you did wrong. What do you say?", [
+        "You shouldn't have rushed, and I ought to have checked.",
+        "You shouldn't have rushed, and I ought have checked.",
+        "You shouldn't rushed, and I ought to have checked.",
+      ]),
+      la("mix", "I should have listened, and you shouldn't have shouted.", ["shout"]),
     ],
-    open: {
-      q: "Think of a decision you regret. Say what you should have done and what you shouldn't have done.",
-      must: ["I should have", "you shouldn't have", "ought to have"],
-      criteria: "The answer expresses regret with should have and criticises an action with shouldn't have.",
-      example: "I should have read the contract. You shouldn't have signed so quickly either; we ought to have asked first.",
-    },
     success: "The learner uses should have and shouldn't have correctly to talk about a past decision.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -279,23 +329,23 @@ export const B2_U1_4: Authored[] = [
       sc("Ilse", "a friend who warned you", "to hear you admit she was right",
         "A friend advised against something and you went ahead anyway.",
         "Admit the mistake and say what you should have done.",
-        "Be honest with me. How did it actually go?", "gentle"),
+        "I warned you about that trip, but you went anyway. What should you have done?", "gentle"),
       sc("Tobias", "a colleague after a rushed decision", "to work out what went wrong in the process",
         "A decision was made too quickly and caused problems.",
         "Say what should have been done differently.",
-        "Nobody is blaming anyone. What should we have done differently?", "even"),
+        "Our new colleague sent the client the wrong price without checking. What do you think of what she did?", "even"),
       sc("Marisol", "a fellow traveller who lost her documents", "to talk through what she could have done",
         "Someone you met is upset about a mistake while travelling.",
         "Advise gently using should have.",
-        "I keep going over it in my head. What would you have done?", "regretful"),
+        "I left my passport on the train this morning. Be honest, what did I do wrong?", "regretful"),
       sc("Mr. Novak", "your teacher", "to practise regret forms",
         "The class is talking about decisions they regret.",
         "Express regret with should have.",
-        "What is one thing you should have done differently this year?", "encouraging"),
+        "Think about this year. What should you have done differently?", "encouraging"),
       sc("Ms. Iqbal", "the examiner", "to check regret forms",
         "The examiner asks about a past decision.",
         "Express regret and criticism correctly.",
-        "Could you tell me about a decision you would make differently now?", "neutral"),
+        "Please speak formally. Think of a decision you regret: what was the right thing to do at the time?", "neutral"),
     ],
   },
 
@@ -334,25 +384,46 @@ export const B2_U1_4: Authored[] = [
           "Words like 'now' and 'today' make the present result explicit.",
           "Use the standard third conditional instead when the result also belongs to the past.",
         ],
-        ex: ["We would be living abroad now.", "They would be finished by now."],
+        ex: ["We would be living abroad now.", "They would be finished by now.", "I often wonder where we would be now."],
       },
     ],
-    ex: [
-      fill("If I ___ studied harder, I would speak French now. (have)", ["had", "'d"]),
-      mcq("Which sentence links a past cause to a present result?", [
-        "If I'd taken that job, I would be in Berlin now.",
-        "If I'd taken that job, I would have been in Berlin.",
-        "If I take that job, I will be in Berlin.",
-      ], 0),
-      fill("If we had bought the flat, we ___ still be there.", ["would", "'d"]),
-      say("she / would be / much happier / today", ["She would be much happier today.", "She'd be much happier today."]),
+    ex: [],
+    drills: [
+      // p1 — if I'd studied (geçmiş neden)
+      fc("p1", "If I ___ studied medicine, my life would look very different.", ["had", "would", "have"]),
+      err("p1", "If we'd buy that flat, we'd still be there.", "buy", "bought"),
+      sit("p1", "Years ago you decided not to learn to drive. Now you depend on buses. What do you say?", [
+        "If I'd learned to drive, I'd have a car now.",
+        "If I'd learn to drive, I'd have a car now.",
+        "If I learned to drive, I'd had a car now.",
+      ]),
+      // p2 — I'd be (şimdiki sonuç)
+      fc("p2", "If I'd stayed in that job, I ___ be a manager now.", ["would", "will", "had"]),
+      chat("p2", ["You never moved to the coast in the end, did you?", null], [
+        "No. If I had moved, I'd be much happier now.",
+        "No. If I had moved, I'd been much happier now.",
+        "No. If I had moved, I'll be much happier now.",
+      ]),
+      lc("p2", "She'd be much happier today.", [
+        "She is much happier today.",
+        "She'd have been much happier then.",
+      ]),
+      // p3 — now / today
+      fc("p3", "If we'd bought that house, we would be living there ___.", ["now", "yesterday", "last year"]),
+      sit("p3", "Last year you didn't take a job abroad. Today you think about the result. What do you say?", [
+        "If I'd taken that job, I would be living abroad now.",
+        "If I'd taken that job, I would living abroad now.",
+        "If I'd taken that job, I will be living abroad now.",
+      ]),
+      spk("p3", "We would be living abroad now."),
+      // karışık
+      sit("mix", "Last year you didn't save any money. Today your friends are on holiday and you are at home. What do you say?", [
+        "If I had saved money, I'd be on holiday now.",
+        "If I had saved money, I'd have be on holiday now.",
+        "If I saved money, I'd been on holiday now.",
+      ]),
+      la("mix", "If I'd studied harder, I'd be a doctor now.", ["been"]),
     ],
-    open: {
-      q: "Think of a decision from years ago. Say how your life today would be different if you had chosen otherwise.",
-      must: ["if I'd studied", "I'd be", "we would be now"],
-      criteria: "The answer uses a past perfect if-clause with a present result using would plus a base verb.",
-      example: "If I'd studied abroad, I'd be working elsewhere. We would be now living in another country entirely.",
-    },
     success: "The learner joins a past condition to a present result correctly at least twice.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -371,23 +442,23 @@ export const B2_U1_4: Authored[] = [
       sc("Anouk", "an old schoolfriend", "to compare how differently your lives turned out",
         "Two old friends meet and compare the paths they took.",
         "Describe how a past choice shapes your life now.",
-        "We started in the same place. How did you end up here?", "reflective"),
+        "We went to the same school, but you chose a different path. Where would you be now if you'd studied something else?", "reflective"),
       sc("Kenji", "a colleague considering a career change", "to hear whether changing direction is worth it",
         "A colleague is deciding whether to retrain.",
         "Describe how an earlier choice affects you today.",
-        "You changed direction once, didn't you? Where would you be if you hadn't?", "thoughtful"),
+        "You changed careers once. Where would you be today if you hadn't?", "thoughtful"),
       sc("Larissa", "someone you meet while travelling", "to swap stories about roads not taken",
         "Two travellers talk about the lives they might have had.",
         "Describe your present life against a different past.",
-        "Everyone I meet out here left something behind. What about you?", "open"),
+        "You left your home town years ago. How would your life be different now if you had stayed?", "open"),
       sc("Mrs. Petersen", "your teacher", "to practise mixed conditionals",
         "The class is linking past choices to present situations.",
         "Build a mixed conditional.",
-        "How would today be different if you had made another choice ten years ago?", "encouraging"),
+        "Think of a choice from ten years ago. How would today be different if you had chosen otherwise?", "encouraging"),
       sc("Mr. Larsen", "the examiner", "to check the mixed conditional",
         "The examiner asks how a past decision still matters.",
         "Link past condition and present result accurately.",
-        "Could you tell me how an earlier decision still affects you today?", "neutral"),
+        "Please describe an earlier decision. How would your life be now if you had decided differently?", "neutral"),
     ],
   },
 
@@ -429,21 +500,39 @@ export const B2_U1_4: Authored[] = [
         ex: ["At the time I thought it was hopeless.", "At the time it felt like a disaster."],
       },
     ],
-    ex: [
-      fill("___ back, it was the right decision after all.", ["Looking"]),
-      mcq("Which sentence shows knowledge you did not have then?", [
-        "With hindsight, the warning signs were there.",
-        "At that moment I saw the warning signs.",
-        "I always knew about the warning signs.",
-      ], 0),
-      say("at the time / I / think / it was hopeless", ["At the time I thought it was hopeless."]),
+    ex: [],
+    drills: [
+      // p1 — looking back
+      fc("p1", "___ back, it was the right decision.", ["Looking", "Looked", "Look"]),
+      arr("p1", "Looking back, I made a mistake.", ["look"]),
+      lc("p1", "Looking back, I was far too cautious.", [
+        "Looking ahead, I'll be more careful.",
+        "At first I was very curious.",
+      ]),
+      // p2 — with hindsight
+      fc("p2", "___ hindsight, we moved too fast.", ["With", "By", "At"]),
+      sit("p2", "Your team launched a product too early. Now you know it needed more testing. You say this in a meeting. What do you say?", [
+        "With hindsight, we launched it too early.",
+        "With hindsight, we will launch it too early.",
+        "With a hindsight, we launched it too early.",
+      ]),
+      err("p2", "With hindsights, the warning signs were there.", "hindsights", "hindsight"),
+      // p3 — at the time I
+      chat("p3", ["Were you scared when the company closed?", null], [
+        "At the time I was terrified.",
+        "On the time I was terrified.",
+        "At the time I am terrified.",
+      ]),
+      fc("p3", "At the ___ I thought it was the end of the world.", ["time", "times", "timing"]),
+      spk("p3", "At the time I thought it was hopeless."),
+      // karışık
+      sit("mix", "Years ago you turned down a job and felt relieved. Now you think it was a mistake. You describe both feelings. What do you say?", [
+        "At the time I felt relieved, but looking back, it was a mistake.",
+        "At the time I feel relieved, but looking back, it was a mistake.",
+        "At the time I felt relieved, but look back, it was a mistake.",
+      ]),
+      la("mix", "With hindsight, I was wrong at the time.", ["look"]),
     ],
-    open: {
-      q: "Think of a difficult period in your life. Say how you saw it then and how you see it now.",
-      must: ["looking back", "with hindsight", "at the time I"],
-      criteria: "The answer contrasts what the speaker believed then with the judgement they make now.",
-      example: "At the time I thought I had failed. Looking back, it taught me a lot; with hindsight it was necessary.",
-    },
     success: "The learner contrasts a past view with a present judgement using at least two hindsight expressions.",
     quiz: [
       qmcq("Which phrase opens a reflection?", ["Looking back,", "Right now,", "From now on,"], 0),
@@ -458,23 +547,23 @@ export const B2_U1_4: Authored[] = [
       sc("Bettina", "an old friend", "to look back on a shared difficult year",
         "Two friends who went through a hard period together are reflecting.",
         "Describe how your view has changed.",
-        "That whole year was chaos, wasn't it? How do you see it now?", "warm"),
+        "That whole year was chaos. Looking back, how do you see it now?", "warm"),
       sc("Gareth", "a colleague at a project review", "to draw honest lessons from a hard project",
         "The team is reviewing a project that nearly failed.",
         "Reflect on what you know now.",
-        "We survived it. What do you see differently now?", "candid"),
+        "The project almost failed. With hindsight, what do you think went wrong?", "candid"),
       sc("Sandrine", "a traveller ending a long trip", "to make sense of a journey that went wrong",
         "Someone is at the end of a trip that did not go to plan.",
         "Reflect on how your view changed.",
-        "Nothing went as planned. Was it still worth it, do you think?", "reflective"),
+        "Your long trip is nearly over. How did you feel at the start, and how do you see it now?", "reflective"),
       sc("Mr. Dabiri", "your teacher", "to practise reflective language",
         "The class is reflecting on a difficult experience.",
         "Contrast then and now.",
-        "How do you see a past difficulty differently today?", "encouraging"),
+        "Think of a difficult time in your past. How did you feel at the time, and how do you see it now?", "encouraging"),
       sc("Ms. Halvorsen", "the examiner", "to check reflective language",
         "The examiner asks for a reflection on the past.",
         "Contrast past belief and present judgement.",
-        "Could you tell me about something you now see differently?", "neutral"),
+        "Please describe something you now see differently. What did you think at the time?", "neutral"),
     ],
   },
 
@@ -516,21 +605,50 @@ export const B2_U1_4: Authored[] = [
         ex: ["If that hadn't happened, I would still be there.", "If that hadn't come up, I'd have stayed."],
       },
     ],
-    ex: [
-      fill("___ when everything changed for me. (that is)", ["That's", "That is"]),
-      mcq("Which sentence marks a turning point?", [
-        "It all changed after that conversation.",
-        "It changes every day.",
-        "It will change soon.",
-      ], 0),
-      say("if that / not happen / I / still be there", ["If that hadn't happened, I would still be there.", "If that hadn't happened, I'd still be there."]),
+    ex: [],
+    drills: [
+      // p1 — that's when everything
+      chat("p1", ["So you met your old teacher by chance at the station?", null], [
+        "Yes, and that's when everything changed for me.",
+        "Yes, and that's when everything changing for me.",
+        "Yes, and that's when everything change for me.",
+      ]),
+      sit("p1", "You are telling a story. After months of confusion, a friend explained the problem, and suddenly you understood. You mark that moment. What do you say?", [
+        "That's when everything became clear.",
+        "That's when everything become clear.",
+        "That's when everything becomed clear.",
+      ]),
+      spk("p1", "That's when everything changed for me."),
+      // p2 — it all changed
+      fc("p2", "After that conversation, it all ___ very quickly.", ["changed", "change", "changing"]),
+      lc("p2", "It all changed after that conversation.", [
+        "It all started with a conversation.",
+        "Nothing changed after that call.",
+      ]),
+      chat("p2", ["You were unhappy in that job for years. Then your boss left?", null], [
+        "Yes, and it all changed after that.",
+        "Yes, and it all change after that.",
+        "Yes, and it all changing after that.",
+      ]),
+      // p3 — if that hadn't
+      sit("p3", "A missed bus made you meet your best friend. You imagine the other past. What do you say?", [
+        "If that hadn't happened, we would never have met.",
+        "If that hasn't happened, we would never have met.",
+        "If that hadn't happened, we would never met.",
+      ]),
+      err("p3", "If that hadn't come up, I'd have stay.", "stay", "stayed"),
+      la("p3", "If that hadn't happened, I'd still be at home.", ["haven't"]),
+      // karışık
+      chat("mix", ["What made you leave the city?", "I lost my flat, and then a friend offered me a room by the sea.", "And then?", null], [
+        "That's when everything changed. If that hadn't happened, I'd still be in the city.",
+        "That's when everything changed. If that didn't happened, I'd still be in the city.",
+        "That's when everything changed. If that hadn't happened, I still be in the city.",
+      ]),
+      lc("mix", "That's when everything changed. If that hadn't happened, I'd still be there.", [
+        "That's when everything started. If that happens, I'll still be there.",
+        "That was when nothing changed. I had been there for years.",
+      ]),
     ],
-    open: {
-      q: "Tell me about one decision that changed your direction. Say what followed and where you would be without it.",
-      must: ["that's when everything", "it all changed", "if that hadn't"],
-      criteria: "The answer names a decisive moment, describes what followed and imagines the alternative.",
-      example: "I turned down a safe job. That's when everything changed and it all changed fast. If that hadn't happened, I'd still be there.",
-    },
     success: "The learner names a turning point and explains what followed from it.",
     quiz: [
       qmcq("Which sentence looks at the alternative past?", [
@@ -549,23 +667,23 @@ export const B2_U1_4: Authored[] = [
       sc("Njeri", "a close friend", "to hear the story properly for the first time",
         "A friend knows the outline of your story but not the detail.",
         "Tell the story of the turning point.",
-        "You have never actually told me how all this started. Will you now?", "attentive"),
+        "You've never told me how all this started. What was the moment everything changed?", "attentive"),
       sc("Viktor", "a colleague who is stuck", "to hear how someone else changed direction",
         "A colleague is considering a big change and wants a real story.",
         "Describe your own turning point.",
-        "I am stuck. How did you know it was time to change?", "searching"),
+        "I'm stuck in my job. How did you know it was time to change?", "searching"),
       sc("Paloma", "someone you meet on a long journey", "to swap life stories",
         "A long journey leads to a real conversation.",
         "Tell the story of your decisive moment.",
-        "We have hours to kill. What brought you out here?", "easy"),
+        "We have hours to kill. What happened that brought you out here?", "easy"),
       sc("Ms. Adeyemi", "your teacher", "to practise narrating a decisive moment",
         "The class is telling turning-point stories.",
         "Tell your story with a clear moment.",
-        "What was the moment that changed your direction?", "encouraging"),
+        "What was the moment that changed your direction, and where would you be if it hadn't happened?", "encouraging"),
       sc("Mr. Castellano", "the examiner", "to check extended narration",
         "The examiner asks for a longer personal story.",
         "Narrate the decision and its consequences.",
-        "Could you tell me about a decision that changed your life?", "neutral"),
+        "Please describe a moment that changed your life. What would have happened if it hadn't?", "neutral"),
     ],
   },
 
@@ -607,21 +725,47 @@ export const B2_U1_4: Authored[] = [
         ex: ["I'd never do that again.", "I'd never leave it that late again."],
       },
     ],
-    ex: [
-      fill("___ I'd change is the timing, not the decision itself. (what)", ["What"]),
-      mcq("Which sentence turns regret into a plan?", [
-        "Next time I'd ask more questions.",
-        "Last time I asked more questions.",
-        "I am asking more questions.",
-      ], 0),
-      say("I / would never / do that / again", ["I'd never do that again.", "I would never do that again."]),
+    ex: [],
+    drills: [
+      // p1 — what I'd change is
+      fc("p1", "What I'd change ___ the timing.", ["is", "are", "it is"]),
+      sit("p1", "A project went badly because you told the team about the changes too late. A colleague asks what you learned. What do you say?", [
+        "What I'd change is when I told the team.",
+        "What I'd change it is when I told the team.",
+        "What would I change is when I told the team.",
+      ]),
+      spk("p1", "What I'd change is the timing."),
+      // p2 — next time I'd / I'll
+      chat("p2", ["You rushed the interview answers. Would you do it the same way?", null], [
+        "No. Next time I'd take more time to think.",
+        "No. Next time I'd taking more time to think.",
+        "No. Next time I'd took more time to think.",
+      ]),
+      sit("p2", "You have decided for certain to book earlier next year. You state this firm plan. What do you say?", [
+        "Next time I'll book earlier.",
+        "Next time I'll booking earlier.",
+        "Next time I'll to book earlier.",
+      ]),
+      lc("p2", "Next time I'd ask more questions.", [
+        "Last time I asked no questions.",
+        "Next week I'll answer the questions.",
+      ]),
+      // p3 — I'd never do that again
+      fc("p3", "I'd never do that ___.", ["again", "before", "yet"]),
+      err("p3", "I'd never does that again.", "does", "do"),
+      la("p3", "I'd never leave it that late again.", ["left"]),
+      // karışık
+      chat("mix", ["So, after all that, what's the lesson for you?", null], [
+        "What I'd change is the plan. Next time I'd start earlier.",
+        "What I'd change is the plan. Next time I'd started earlier.",
+        "What I'd change is the plan. Next time I'd to start earlier.",
+      ]),
+      sit("mix", "You lent money to a stranger and lost it. You tell a friend what you'd do differently, and that you'd never repeat it. What do you say?", [
+        "Next time I'd say no. I'd never do that again.",
+        "Next time I'd say no. I'd never did that again.",
+        "Next time I'd said no. I'd never do that again.",
+      ]),
     ],
-    open: {
-      q: "Think of a mistake you made. Say what you would change and what you would do next time.",
-      must: ["what I'd change", "next time I'd", "I'd never do that"],
-      criteria: "The answer names what would change and states a plan for a similar situation.",
-      example: "What I'd change is how fast I agreed. Next time I'd sleep on it. I'd never do that under pressure again.",
-    },
     success: "The learner states what they would change and what they would do differently next time.",
     quiz: [
       qmcq("Which sentence states a lesson?", [
@@ -629,7 +773,7 @@ export const B2_U1_4: Authored[] = [
         "What I changed was the plan.",
         "What changes is the plan.",
       ], 0),
-      qfill("Next time I ___ take my time.", ["would", "'d"]),
+      qfill("If it ever happened again, next time I ___ take my time.", ["would", "'d"]),
       qmcq("Which sentence closes a reflection firmly?", [
         "I'd never do that again.",
         "I did that once.",
@@ -640,23 +784,23 @@ export const B2_U1_4: Authored[] = [
       sc("Emeka", "a friend who made the same mistake", "to compare what you both learned",
         "Two friends realise they made similar mistakes.",
         "Say what you would change.",
-        "I did almost exactly the same thing last year. What would you change?", "wry"),
+        "I made almost the same mistake last year. What would you change if it happened again?", "wry"),
       sc("Hanne", "your mentor at work", "to turn a mistake into a lesson",
         "A mentoring conversation after something went wrong.",
         "State the lesson and the plan.",
-        "Mistakes are only expensive if we learn nothing. What did you take from it?", "supportive"),
+        "That project went badly. What would you do differently next time?", "supportive"),
       sc("Diego", "a fellow traveller who lost money", "to help him see what to do next time",
         "Someone you met made an expensive travel mistake.",
         "Share your own lesson.",
-        "I feel so stupid about it. Have you ever done anything like that?", "embarrassed"),
+        "I lost my money to a stranger, and I feel so stupid. What's a mistake you would never make again?", "embarrassed"),
       sc("Mr. Okonkwo", "your teacher", "to practise reflective planning",
         "The class is reflecting on mistakes and lessons.",
         "State what you would do differently.",
-        "What is one thing you would do differently next time?", "encouraging"),
+        "Think of a recent mistake. What would you change, and what would you do next time?", "encouraging"),
       sc("Ms. Rossi", "the examiner", "to check reflective language",
         "The examiner asks about learning from experience.",
         "State the change and the plan.",
-        "Could you tell me about a mistake and what you learned from it?", "neutral"),
+        "Please describe a past mistake. What would you do differently next time?", "neutral"),
     ],
   },
 
@@ -699,22 +843,42 @@ export const B2_U1_4: Authored[] = [
         ex: ["It could've been anyone.", "The delay could've caused a serious accident."],
       },
     ],
-    ex: [
-      fill("It ___ have been much worse, honestly. (might/could)", ["might", "could"]),
-      mcq("Which sentence describes a narrow escape?", [
-        "It could have gone badly, but it didn't.",
-        "It goes badly every time.",
-        "It will go badly.",
-      ], 0),
-      fill("The delay ___ have caused a serious accident. (can)", ["could"]),
-      say("we / might have / miss / the flight", ["We might have missed the flight."]),
+    ex: [],
+    drills: [
+      // p1 — might have been
+      fc("p1", "We ___ have missed the flight, but it was delayed.", ["might", "will", "had"]),
+      lc("p1", "It might have been much worse.", [
+        "It must be much worse now.",
+        "It was much better than that.",
+      ]),
+      arr("p1", "We might have missed the flight.", ["miss"]),
+      // p2 — could have gone
+      sit("p2", "Your friend climbed onto a wet roof to get a ball. He is fine, but he took a big risk. What do you say?", [
+        "You could have fallen!",
+        "You could fallen!",
+        "You could have fell!",
+      ]),
+      fc("p2", "Luckily we were fine, but it ___ have gone badly.", ["could", "can", "will"]),
+      chat("p2", ["The brakes failed, but I managed to stop the car.", null], [
+        "Wow, that could have gone very wrong.",
+        "Wow, that could has gone very wrong.",
+        "Wow, that could have go very wrong.",
+      ]),
+      // p3 — could've (could of değil)
+      err("p3", "It could of been anyone.", "of", "have"),
+      spk("p3", "The delay could've caused an accident.", ["The delay could have caused an accident."]),
+      fc("p3", "That ladder was broken. You ___ been badly hurt.", ["could've", "could of", "could"]),
+      // karışık
+      sit("mix", "A tree fell on the road five minutes after you drove past. You tell a friend it was a risk, and that someone was possibly hurt. What do you say?", [
+        "It could have gone badly. Someone might have been hurt.",
+        "It could have gone badly. Someone might have be hurt.",
+        "It could have went badly. Someone might have been hurt.",
+      ]),
+      lc("mix", "It could've gone badly. It might have been much worse.", [
+        "It could go badly. It might be much worse.",
+        "It went badly. It was much worse.",
+      ]),
     ],
-    open: {
-      q: "Think of a time something nearly went wrong. Say how it could have turned out.",
-      must: ["might have been", "could have gone", "it could've"],
-      criteria: "The answer describes a past possibility that did not happen, using might have or could have.",
-      example: "We nearly missed the connection. It might have been a disaster, it could have gone badly, and it could've left us stranded.",
-    },
     success: "The learner describes at least two past possibilities using might have or could have.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -722,7 +886,7 @@ export const B2_U1_4: Authored[] = [
         "You could have hurted yourself.",
         "You could of hurt yourself.",
       ], 0),
-      qfill("It ___ have been anyone in that photo. (may)", ["might", "could"]),
+      qfill("It ___ have been anyone in that photo. (might)", ["might", "could"]),
       qmcq("Which sentence is less certain?", [
         "It might have been worse.",
         "It would have been worse.",
@@ -733,15 +897,15 @@ export const B2_U1_4: Authored[] = [
       sc("Solveig", "a neighbour after a near accident", "to talk through what nearly happened",
         "Something nearly went badly wrong on your street.",
         "Describe how it could have turned out.",
-        "That was far too close. Did you see what happened?", "shaken"),
+        "That car nearly hit you! What could have happened?", "shaken"),
       sc("Idris", "a colleague after a near miss at work", "to review a risk that was avoided",
         "A mistake was caught just in time.",
         "Describe the possible outcomes.",
-        "We caught it with an hour to spare. What could have happened?", "sober"),
+        "We caught the error with an hour to spare. What could have gone wrong?", "sober"),
       sc("Camille", "a fellow passenger after a delay", "to compare how close you both came to missing it",
         "A delayed connection nearly stranded several travellers.",
         "Describe what could have happened.",
-        "Ten more minutes and none of us would have made it. Were you cutting it fine too?", "relieved"),
+        "Ten more minutes and we would have missed the boat. What might have happened to your plans?", "relieved"),
       sc("Mr. Bergqvist", "your teacher", "to practise past possibility",
         "The class is describing near misses.",
         "Describe a past possibility.",
@@ -749,7 +913,7 @@ export const B2_U1_4: Authored[] = [
       sc("Ms. Nakamura", "the examiner", "to check past possibility forms",
         "The examiner asks about a close call.",
         "Use might have and could have accurately.",
-        "Could you tell me about a time when something nearly went wrong?", "neutral"),
+        "Please describe a narrow escape you once had. How might it have been worse?", "neutral"),
     ],
   },
 
@@ -791,22 +955,46 @@ export const B2_U1_4: Authored[] = [
         ex: ["There was no need to rush.", "There was no need to worry about it."],
       },
     ],
-    ex: [
-      fill("You ___ have brought anything, but thank you. (need not)", ["needn't", "need not"]),
-      mcq("Which sentence means the action WAS done unnecessarily?", [
+    ex: [],
+    drills: [
+      // p1 — needn't have (yapıldı ama gereksizdi)
+      fc("p1", "You ___ have brought anything, but thank you!", ["needn't", "didn't need", "don't need"]),
+      sit("p1", "You queued for two hours for concert tickets. Then you saw that the hall was half empty. What do you say?", [
         "We needn't have queued at all.",
-        "We didn't need to queue.",
-        "We do not need to queue.",
-      ], 0),
-      fill("I ___ need to book, so I just turned up. (did not)", ["didn't", "did not"]),
-      say("there / be / no need / to rush", ["There was no need to rush."]),
+        "We needn't queued at all.",
+        "We needn't to have queued at all.",
+      ]),
+      err("p1", "You needn't have cook so much food.", "cook", "cooked"),
+      // p2 — didn't need to (genelde yapılmadı)
+      sit("p2", "The museum was free, so you did not buy a ticket. What do you say?", [
+        "I didn't need to buy a ticket.",
+        "I needn't have bought a ticket.",
+        "I didn't need buying a ticket.",
+      ]),
+      fc("p2", "I didn't need ___ book, so I just turned up.", ["to", "for", "have"]),
+      lc("p2", "She didn't need to pay.", [
+        "She had to pay twice.",
+        "She didn't want to stay.",
+      ]),
+      // p3 — there was no need
+      chat("p3", ["Sorry, I was panicking all morning about the test.", null], [
+        "There was no need to panic.",
+        "There was no need panic.",
+        "There was no need of panic.",
+      ]),
+      spk("p3", "There was no need to rush."),
+      fc("p3", "There was no ___ to bring so much.", ["need", "needs", "needed"]),
+      // karışık
+      chat("mix", ["I bought a new suit for the dinner, but everyone was in jeans.", null], [
+        "You needn't have bought it. There was no need to dress up.",
+        "You needn't have buy it. There was no need to dress up.",
+        "You didn't need have bought it. There was no need to dress up.",
+      ]),
+      lc("mix", "I didn't need to book. There was no need to rush.", [
+        "I needed to book. There was a need to rush.",
+        "I didn't want to look. There was no time to rest.",
+      ]),
     ],
-    open: {
-      q: "Think of an effort that turned out to be unnecessary. Say what you did and what was not needed.",
-      must: ["you needn't have", "I didn't need to", "there was no need"],
-      criteria: "The answer distinguishes an action done unnecessarily from an action that was never required.",
-      example: "I queued for an hour, but there was no need. I didn't need to book, and you needn't have waited with me.",
-    },
     success: "The learner uses needn't have and didn't need to with the correct meanings.",
     quiz: [
       qmcq("Which sentence means the person did it anyway?", [
@@ -825,23 +1013,23 @@ export const B2_U1_4: Authored[] = [
       sc("Yusuf", "a neighbour who over-prepared", "to laugh about the wasted effort",
         "Both of you prepared for something that turned out to be simple.",
         "Say what was unnecessary.",
-        "I spent all morning getting ready and it took ten minutes. Did you do the same?", "amused"),
+        "I spent all morning getting ready, and the visit took ten minutes. What did you do recently that turned out to be unnecessary?", "amused"),
       sc("Ingrid", "a colleague who worked late unnecessarily", "to prevent the same waste next time",
         "Someone worked all weekend on something that was cancelled.",
         "Say what was not necessary.",
-        "I finished the whole report and then heard it was cancelled. What went wrong here?", "frustrated"),
+        "I finished the whole report, and then the meeting was cancelled. What would you say to me about all that work?", "frustrated"),
       sc("Rafael", "a guide explaining what you did not need", "to save you effort next time",
         "You over-prepared for a trip.",
         "Say which preparations were unnecessary.",
-        "You have packed for a month! Shall I tell you what you actually need?", "amused"),
+        "You packed for a month, but the trip is only a week. What did you bring that you didn't need?", "amused"),
       sc("Mrs. Lindqvist", "your teacher", "to practise the two negative forms",
         "The class is sorting necessary from unnecessary past actions.",
         "Use both forms correctly.",
-        "What did you do that turned out to be completely unnecessary?", "encouraging"),
+        "Think of something you prepared for that turned out not to matter. What happened?", "encouraging"),
       sc("Mr. Ferreira", "the examiner", "to check the distinction",
         "The examiner asks about wasted effort.",
         "Distinguish the two forms clearly.",
-        "Could you tell me about a time you prepared for something unnecessarily?", "neutral"),
+        "Please describe a time you prepared too much for something. What was unnecessary?", "neutral"),
     ],
   },
 
@@ -861,8 +1049,8 @@ export const B2_U1_4: Authored[] = [
       {
         form: "I'd rather you",
         claims: [
-          "'I'd rather you' plus a past form talks about what someone else did.",
-          "With the past perfect it expresses a preference about what the other person actually did.",
+          "'I'd rather you' plus the past simple is about now or the future: I'd rather you didn't tell anyone.",
+          "With the past perfect it is about the past: you would have preferred the other person to act differently.",
         ],
         ex: ["I'd rather you hadn't mentioned it.", "I'd rather you had asked me first."],
       },
@@ -883,22 +1071,42 @@ export const B2_U1_4: Authored[] = [
         ex: ["I wish you hadn't said that.", "I wish we hadn't left so early."],
       },
     ],
-    ex: [
-      fill("I'd rather you ___ mentioned it in front of everyone. (have not)", ["hadn't", "had not"]),
-      mcq("Which sentence is correct?", [
-        "I'd rather you had asked me first.",
-        "I'd rather you would ask me first.",
-        "I'd rather you asking me first.",
-      ], 0),
-      fill("I ___ you hadn't said that. (wish)", ["wish"]),
-      say("I / would sooner / you / tell me directly", ["I'd sooner you had told me directly.", "I would sooner you had told me directly."]),
+    ex: [],
+    drills: [
+      // p1 — I'd rather you + geçmiş
+      fc("p1", "I'd rather you ___ mentioned it to anyone.", ["hadn't", "haven't", "don't"]),
+      sit("p1", "Yesterday your flatmate told your parents about your new job before you could. You say calmly what you would have preferred. What do you say?", [
+        "I'd rather you hadn't told them.",
+        "I'd rather you didn't tell them.",
+        "I'd rather you haven't told them.",
+      ]),
+      arr("p1", "I'd rather you hadn't mentioned it.", ["haven't"]),
+      // p2 — I'd sooner
+      fc("p2", "I'd ___ you had told me directly.", ["sooner", "soon", "soonest"]),
+      lc("p2", "I'd sooner we hadn't gone at all.", [
+        "We should have gone sooner.",
+        "I'd go sooner if I could.",
+      ]),
+      err("p2", "I'd sooner you had tell me directly.", "tell", "told"),
+      // p3 — I wish you hadn't
+      chat("p3", ["I told everyone at work about your new baby.", null], [
+        "Oh no. I wish you hadn't told them.",
+        "Oh no. I wish you didn't tell them.",
+        "Oh no. I wish you haven't told them.",
+      ]),
+      spk("p3", "I wish we hadn't left so early."),
+      fc("p3", "I wish you ___ said that in front of everyone.", ["hadn't", "wouldn't", "don't"]),
+      // karışık
+      sit("mix", "A colleague sent your draft to the boss without asking you. You say it directly first, and then more softly. What do you say?", [
+        "I wish you hadn't sent it. I'd rather you had asked me first.",
+        "I wish you hadn't sent it. I'd rather you have asked me first.",
+        "I wish you didn't send it. I'd rather you had asked me first.",
+      ]),
+      lc("mix", "I wish you hadn't said that. I'd rather you'd asked me.", [
+        "I wish you could say that. I'd ask you first.",
+        "I said that to you. I'd rather you knew.",
+      ]),
     ],
-    open: {
-      q: "Someone shared your news before you were ready. Tell them politely that you wish they hadn't.",
-      must: ["I'd rather you", "I'd sooner", "I wish you hadn't"],
-      criteria: "The answer expresses regret about another person's past action without accusing them directly.",
-      example: "I'd rather you hadn't told them yet. I'd sooner you had asked me first; I wish you hadn't mentioned it.",
-    },
     success: "The learner expresses a preference about someone else's past action politely.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -917,23 +1125,23 @@ export const B2_U1_4: Authored[] = [
       sc("Marek", "a friend who shared your news", "to understand why you are upset",
         "A friend told other people something you had not announced.",
         "Say politely that you wish they hadn't.",
-        "You have been quiet all evening. Have I done something?", "concerned"),
+        "I told everyone your news before you could. What would you have preferred me to do?", "concerned"),
       sc("Priya", "a colleague who copied in the whole team", "to handle the situation without a row",
         "A private message was forwarded to a whole team.",
         "Express your preference politely.",
-        "I thought everyone should see it. Was that wrong?", "unaware"),
+        "I copied the whole team into your private email. What would you have preferred?", "unaware"),
       sc("Hugo", "a travel companion who changed the booking", "to sort out a decision made without you",
         "Your companion changed a shared booking alone.",
         "Say what you would have preferred.",
-        "I moved the booking forward a day. That works, doesn't it?", "breezy"),
+        "I moved our booking forward a day without asking you. What would you rather I had done?", "breezy"),
       sc("Ms. Dubois", "your teacher", "to practise polite regret",
         "The class is practising sensitive conversations.",
         "Express regret about someone else's action politely.",
-        "How would you tell a friend you wish they had not shared your news?", "encouraging"),
+        "A friend shared your secret with the whole class. What would you say to them?", "encouraging"),
       sc("Mr. Aaltonen", "the examiner", "to check polite regret forms",
         "The examiner describes an awkward situation.",
         "Express your preference politely.",
-        "Imagine a friend announced your plans early. What would you say to them?", "neutral"),
+        "Imagine a friend announced your plans too early. What would you say to them?", "neutral"),
     ],
   },
 
@@ -975,21 +1183,46 @@ export const B2_U1_4: Authored[] = [
         ex: ["What if we had gone by train?", "What if she had never called?"],
       },
     ],
-    ex: [
-      fill("___ we had taken the other road that night. (suppose)", ["Suppose"]),
-      mcq("Which sentence imagines a past that did not happen?", [
-        "Imagine if we'd stayed another week.",
-        "Imagine we stay another week.",
-        "We stayed another week.",
-      ], 0),
-      say("what if / we / go / by train", ["What if we had gone by train?"]),
+    ex: [],
+    drills: [
+      // p1 — suppose / supposing
+      fc("p1", "Suppose we ___ taken the other road.", ["had", "have", "would"]),
+      sit("p1", "Last year your team chose plan A. In a meeting, you invite everyone to imagine the other choice. What do you say?", [
+        "Suppose we had chosen plan B.",
+        "Suppose we have chosen plan B.",
+        "Suppose we had choose plan B.",
+      ]),
+      err("p1", "Supposing they had say no.", "say", "said"),
+      // p2 — imagine if we'd
+      chat("p2", ["We nearly stayed in Lisbon for another week.", null], [
+        "Imagine if we'd stayed!",
+        "Imagine if we've stayed!",
+        "Imagine if we'd staying!",
+      ]),
+      lc("p2", "Imagine if nobody had noticed.", [
+        "I imagined that nobody noticed.",
+        "Imagine if somebody notices.",
+      ]),
+      spk("p2", "Imagine if we'd stayed another week."),
+      // p3 — what if we had
+      fc("p3", "What if we ___ gone by train?", ["had", "have", "were"]),
+      sit("p3", "You drove to the coast and sat in traffic for hours. Now you ask your partner about the other option. What do you say?", [
+        "What if we had gone by train?",
+        "What if we had go by train?",
+        "What if we have gone by train?",
+      ]),
+      arr("p3", "What if we had missed the boat?", ["has"]),
+      // karışık
+      chat("mix", ["We almost didn't go to the party where you met Sam.", null], [
+        "Imagine if we'd stayed home! What if I had never met him?",
+        "Imagine if we'd stay home! What if I had never met him?",
+        "Imagine if we'd stayed home! What if I have never met him?",
+      ]),
+      lc("mix", "Suppose we had said no. What if they had left?", [
+        "Suppose we say no. What if they leave?",
+        "We said no, so they left.",
+      ]),
     ],
-    open: {
-      q: "Think of a trip or decision from your past. Imagine out loud how it would have gone the other way.",
-      must: ["suppose we had", "imagine if we'd", "what if we had"],
-      criteria: "The answer opens an unreal past scenario and follows it through to a consequence.",
-      example: "Suppose we had taken the coast road. Imagine if we'd stopped there; what if we had never met them?",
-    },
     success: "The learner opens an unreal past scenario and develops it.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -1004,23 +1237,23 @@ export const B2_U1_4: Authored[] = [
       sc("Lucia", "a friend who was there", "to imagine the evening going differently",
         "You are both replaying an evening that changed things.",
         "Imagine the alternative version.",
-        "We nearly did not go that night, do you remember? What if we hadn't?", "playful"),
+        "We nearly stayed home the night we met. What other version of that night can you imagine?", "playful"),
       sc("Tomasz", "a colleague reviewing a decision", "to test a decision by imagining the alternative",
         "The team is stress-testing a choice already made.",
         "Play out the alternative.",
-        "Let us test this properly. What if we had gone the other way?", "analytical"),
+        "We chose the cheaper supplier last year. What other choice would you test, and how might it have gone?", "analytical"),
       sc("Aiko", "a travel companion", "to imagine the trip you did not take",
         "You chose one route over another.",
         "Imagine the other route.",
-        "We could have gone north instead. What would that have been like?", "wistful"),
+        "We went south, but we could have gone north. How do you imagine the other trip?", "wistful"),
       sc("Mr. Villanueva", "your teacher", "to practise unreal past scenarios",
         "The class is imagining alternative histories.",
         "Open and develop an unreal past.",
-        "Suppose you had chosen a different subject. Where would that have led?", "encouraging"),
+        "Think of a subject you nearly chose at school. How would you describe that other path?", "encouraging"),
       sc("Mrs. Sorensen", "the examiner", "to check unreal past scenarios",
         "The examiner invites you to imagine an alternative.",
         "Open the scenario and follow it through.",
-        "Could you imagine how your life would have gone with one different choice?", "neutral"),
+        "Please describe one choice in your past that could have gone the other way. How do you imagine it?", "neutral"),
     ],
   },
 
@@ -1062,21 +1295,43 @@ export const B2_U1_4: Authored[] = [
         ex: ["As luck would have it, she was there too.", "As luck would have it, the shop was closed."],
       },
     ],
-    ex: [
-      fill("It was ___ to be, I suppose. (mean)", ["meant"]),
-      mcq("Which sentence says a bad-looking outcome was fortunate?", [
-        "It's just as well we left early.",
-        "It's a pity we left early.",
-        "We left early as usual.",
-      ], 0),
-      say("as luck / would have it / she / be there too", ["As luck would have it, she was there too."]),
+    ex: [],
+    drills: [
+      // p1 — meant to be
+      fc("p1", "We met on a train by chance. It was ___ to be.", ["meant", "mean", "meaning"]),
+      sit("p1", "You did not get a flat you wanted, but you accept it calmly. What do you say?", [
+        "It just wasn't meant to be.",
+        "It just wasn't mean to be.",
+        "It just wasn't meant be.",
+      ]),
+      lc("p1", "It was meant to be, I think.", [
+        "It was mine to keep, I think.",
+        "I meant to see you, I think.",
+      ]),
+      // p2 — just as well
+      chat("p2", ["The trains were cancelled, but you left early. Lucky you!", null], [
+        "It's just as well I left early.",
+        "It's just as good I left early.",
+        "It's just so well I left early.",
+      ]),
+      fc("p2", "It's just as ___ we left early. The roads were closed later.", ["well", "good", "better"]),
+      err("p2", "It's just so well that we booked a table.", "so", "as"),
+      // p3 — as luck would have it
+      fc("p3", "As luck would ___ it, she was there too.", ["have", "has", "had"]),
+      spk("p3", "As luck would have it, she was there too."),
+      sit("p3", "You forgot your umbrella, but by coincidence your friend had a spare one. You tell the story. What do you say?", [
+        "As luck would have it, my friend had a spare one.",
+        "As luck would have, my friend had a spare one.",
+        "As the luck would have it, my friend had a spare one.",
+      ]),
+      // karışık
+      chat("mix", ["So you missed your flight and then met your future business partner at the airport?", null], [
+        "Yes! As luck would have it, he was on the next flight. It was meant to be.",
+        "Yes! As luck would have it, he was on the next flight. It was meant be.",
+        "Yes! As luck has it, he was on the next flight. It was meant to be.",
+      ]),
+      la("mix", "As luck would have it, it was meant to be.", ["mean"]),
     ],
-    open: {
-      q: "Tell me about a coincidence or a lucky escape in your life. React to how it turned out.",
-      must: ["meant to be", "just as well", "as luck would have"],
-      criteria: "The answer describes a coincidence and comments on it as lucky or fated.",
-      example: "As luck would have it, my train was cancelled. It's just as well, because I met her later. It was meant to be.",
-    },
     success: "The learner describes a coincidence and comments on it with a fixed expression.",
     quiz: [
       qmcq("Which sentence accepts a failure calmly?", [
@@ -1095,23 +1350,23 @@ export const B2_U1_4: Authored[] = [
       sc("Beatriz", "a friend who loves a coincidence", "to swap stories about lucky timing",
         "Two friends are trading stories about strange timing.",
         "Describe a coincidence from your life.",
-        "The strangest thing happened to me this morning. Do you get things like that?", "delighted"),
+        "I bumped into my old best friend in another country this morning. What's the luckiest coincidence that has happened to you?", "delighted"),
       sc("Callum", "a colleague after a cancelled trip", "to see the upside of a cancellation",
         "A work trip was cancelled at the last minute.",
         "Comment on how it turned out.",
-        "The whole trip fell through. Bad luck, or actually not?", "philosophical"),
+        "Our trip fell through, and then a storm hit the island. How do you see it now?", "philosophical"),
       sc("Noor", "a traveller with a story of missed connections", "to compare travel luck",
         "Two travellers compare journeys that went strangely.",
         "Comment on a lucky escape.",
-        "I missed three connections and still got here first. Ever had a day like that?", "amused"),
+        "I missed three connections and still got here first. What's the strangest bit of luck you've had on a trip?", "amused"),
       sc("Mrs. Grant", "your teacher", "to practise fixed expressions",
         "The class is telling coincidence stories.",
         "Use a fixed expression about luck.",
-        "Tell us about a coincidence. How did it feel at the time?", "encouraging"),
+        "Tell us about a coincidence. How did it change your plans?", "encouraging"),
       sc("Mr. Haddad", "the examiner", "to check idiomatic reactions",
         "The examiner asks about luck and timing.",
         "React with an appropriate fixed expression.",
-        "Could you tell me about a coincidence that affected your plans?", "neutral"),
+        "Please describe a plan that failed but turned out well. How do you feel about it now?", "neutral"),
     ],
   },
 
@@ -1153,17 +1408,46 @@ export const B2_U1_4: Authored[] = [
         ex: ["I don't regret it at all.", "I don't regret it, even though it was hard."],
       },
     ],
-    ex: [
-      fill("___ it worth the money in the end? (be)", ["Was"]),
-      mcq("Which phrase signals a weighed conclusion?", ["On balance,", "By the way,", "In the meantime,"], 0),
-      say("I / not regret / it / even though it was hard", ["I don't regret it, even though it was hard.", "I do not regret it, even though it was hard."]),
+    ex: [],
+    drills: [
+      // p1 — was it worth
+      fc("p1", "The course was expensive, but it was worth ___.", ["doing", "to do", "do"]),
+      chat("p1", ["I spent all my savings on that trip to Japan.", null], [
+        "Was it worth the money?",
+        "Was it worth of the money?",
+        "Was it worthy the money?",
+      ]),
+      err("p1", "The film was worth watch.", "watch", "watching"),
+      // p2 — on balance
+      sit("p2", "Your new job pays less, but you are much happier. Someone asks if it was a good move. You weigh both sides and say yes. What do you say?", [
+        "On balance, I'd say yes.",
+        "In balance, I'd say yes.",
+        "On the balances, I'd say yes.",
+      ]),
+      lc("p2", "On balance, I'd do it again.", [
+        "On Monday, I'll do it again.",
+        "In the end, I didn't do it.",
+      ]),
+      spk("p2", "On balance, I'd say it was worth it."),
+      // p3 — I don't regret
+      fc("p3", "I don't regret ___, even though it cost a lot.", ["it", "to", "about"]),
+      chat("p3", ["Moving abroad was a huge risk. Any regrets?", null], [
+        "None. I don't regret it at all.",
+        "None. I don't regret at all it.",
+        "None. I don't regretting it at all.",
+      ]),
+      la("p3", "I don't regret it, even though it was tough.", ["regrets"]),
+      // karışık
+      sit("mix", "You paid a lot for a cooking course. It was hard work, but you learned a lot. A friend asks if it was worth it. You weigh both sides and answer. What do you say?", [
+        "On balance, it was worth it. I don't regret it.",
+        "On balance, it was worth it. I not regret it.",
+        "On balance, it was worthy it. I don't regret it.",
+      ]),
+      lc("mix", "Was it worth it? On balance, yes, and I don't regret it.", [
+        "Was it worth it? On Monday, yes, but I really regret it.",
+        "Is it worth it? I'm not sure, and I regret it.",
+      ]),
     ],
-    open: {
-      q: "Think of an expensive or difficult decision you made. Weigh both sides and say whether it was worth it.",
-      must: ["was it worth", "on balance", "I don't regret"],
-      criteria: "The answer weighs costs against benefits and reaches a clear judgement.",
-      example: "Was it worth the money? It cost far more than I planned. On balance, though, I don't regret it.",
-    },
     success: "The learner weighs both sides and states a clear judgement.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -1182,23 +1466,23 @@ export const B2_U1_4: Authored[] = [
       sc("Stefan", "a friend considering the same thing", "to hear an honest verdict before deciding",
         "A friend is about to make a decision you already made.",
         "Give an honest weighed judgement.",
-        "You did this two years ago. Honestly, was it worth it?", "serious"),
+        "I've just come back from a very expensive trip. What would you ask me to find out if the cost was justified?", "serious"),
       sc("Aditi", "a colleague reviewing an investment", "to judge whether a project paid off",
         "The team is reviewing whether a costly project was justified.",
         "Weigh the costs and benefits.",
-        "The numbers are in. What is your honest read on it?", "analytical"),
+        "The numbers for the new software are in. Weighing everything up, what's your view?", "analytical"),
       sc("Mateus", "a traveller who spent a lot", "to compare whether the expense was justified",
         "Two travellers compare an expensive experience.",
         "Judge whether it was worth it.",
-        "That excursion cost me a fortune. Did you think yours was worth it?", "unsure"),
+        "That excursion cost me a fortune. What would you ask to find out if it paid off?", "unsure"),
       sc("Ms. Kowalski", "your teacher", "to practise evaluative language",
         "The class is evaluating past decisions.",
         "Weigh both sides and conclude.",
-        "Think of something expensive you did. Was it worth it?", "encouraging"),
+        "Think of something expensive you did. Weighing up the good and the bad, how do you feel about it now?", "encouraging"),
       sc("Mr. Ozturk", "the examiner", "to check evaluative language",
         "The examiner asks for a judgement on a past decision.",
         "Weigh both sides clearly.",
-        "Could you tell me about a costly decision and whether it paid off?", "neutral"),
+        "Please describe a costly decision you made. Weighing it all up, how do you feel about it now?", "neutral"),
     ],
   },
 
@@ -1240,21 +1524,47 @@ export const B2_U1_4: Authored[] = [
         ex: ["Things would be very different now.", "Things would be much simpler."],
       },
     ],
-    ex: [
-      fill("I might have ___ up living abroad. (end)", ["ended"]),
-      mcq("Which sentence accepts that the answer is unknowable?", [
+    ex: [],
+    drills: [
+      // p1 — I might have ended up
+      fc("p1", "If I hadn't met her, I might have ___ up abroad.", ["ended", "end", "ending"]),
+      sit("p1", "Ten years ago you almost accepted a job in Canada. You imagine where that path could have led. What do you say?", [
+        "I might have ended up in Canada.",
+        "I might have end up in Canada.",
+        "I might ended up in Canada.",
+      ]),
+      spk("p1", "I might have ended up doing something completely different."),
+      // p2 — who knows where
+      chat("p2", ["What if you had studied music instead of law?", null], [
         "Who knows where I'd be now.",
-        "I know exactly where I'd be.",
-        "I will know where I am.",
-      ], 0),
-      say("things / would be / very different / now", ["Things would be very different now."]),
+        "Who knows where would I be now.",
+        "Who know where I'd be now.",
+      ]),
+      lc("p2", "Who knows where I'd be now.", [
+        "Who knows where I was then.",
+        "Nobody knew where I went.",
+      ]),
+      fc("p2", "Who knows where I ___ be now.", ["would", "will", "had"]),
+      // p3 — things would be
+      sit("p3", "You never moved to the big city. You imagine your life today if you had. What do you say?", [
+        "Things would be very different now.",
+        "Things will be very different now.",
+        "Things would have be very different now.",
+      ]),
+      err("p3", "Things would been much simpler now.", "been", "be"),
+      la("p3", "If I'd stayed, things would be very different.", ["been"]),
+      // karışık
+      chat("mix", ["Do you ever think about the job you turned down?", null], [
+        "Sometimes. I might have ended up rich. Who knows where I'd be now.",
+        "Sometimes. I might have end up rich. Who knows where I'd be now.",
+        "Sometimes. I might have ended up rich. Who knows where would I be now.",
+      ]),
+      sit("mix", "You almost studied medicine. You imagine where it could have led, and how today would look. What do you say?", [
+        "I might have ended up a doctor, and things would be very different now.",
+        "I might have ended up a doctor, and things would have be very different now.",
+        "I might ended up a doctor, and things would be very different now.",
+      ]),
     ],
-    open: {
-      q: "Imagine you had taken a completely different path. Describe the life you might have had.",
-      must: ["I might have ended", "who knows where", "things would be"],
-      criteria: "The answer speculates in detail about an alternative life and accepts its uncertainty.",
-      example: "I might have ended up teaching abroad. Things would be very different; who knows where I'd be now.",
-    },
     success: "The learner sustains a detailed speculation about an alternative life.",
     quiz: [
       qmcq("Which sentence describes an unplanned result?", [
@@ -1273,23 +1583,23 @@ export const B2_U1_4: Authored[] = [
       sc("Zofia", "a close friend late at night", "to imagine other lives together",
         "A long, honest conversation between old friends.",
         "Describe the life you might have had.",
-        "Do you ever wonder who you would have been?", "thoughtful"),
+        "Imagine you had never moved here. Where might you have ended up?", "thoughtful"),
       sc("Ravi", "a colleague at a career crossroads", "to hear how someone else thinks about paths not taken",
         "A colleague is weighing a major change.",
         "Describe your own alternative path.",
-        "Do you ever think about the version of you that stayed?", "searching"),
+        "Think of the job you didn't take. How would things be now if you had taken it?", "searching"),
       sc("Elif", "someone you meet on a long trip", "to trade stories about other possible lives",
         "Travellers often talk about the lives they left behind.",
         "Describe an alternative life.",
-        "Everyone out here is running from or towards something. Which are you?", "candid"),
+        "Everyone out here took a different road. What life might you have had with one different choice?", "candid"),
       sc("Mr. Delacroix", "your teacher", "to practise extended speculation",
         "The class is imagining alternative lives.",
         "Describe your alternative in detail.",
-        "If one big thing had gone differently, who would you be now?", "encouraging"),
+        "If one big thing had gone differently, where might you have ended up?", "encouraging"),
       sc("Ms. Bianchi", "the examiner", "to check sustained speculation",
         "The examiner asks for an extended imagined answer.",
         "Speculate in detail and accept the uncertainty.",
-        "Could you describe the life you might have had with one different choice?", "neutral"),
+        "Please describe the life you might have had with one different choice. How would things be now?", "neutral"),
     ],
   },
 
@@ -1332,22 +1642,46 @@ export const B2_U1_4: Authored[] = [
         ex: ["It's thought that the cause was electrical.", "It's thought that she left the country."],
       },
     ],
-    ex: [
-      fill("It ___ said that the building is over four hundred years old. (be)", ["is"]),
-      mcq("Which sentence reports without naming a source?", [
-        "It is believed that talks will continue.",
-        "I believe talks will continue.",
-        "They told me talks will continue.",
-      ], 0),
-      fill("It's ___ that the cause was electrical. (think)", ["thought"]),
-      say("it / be / report / that no one was hurt", ["It is reported that no one was hurt."]),
+    ex: [],
+    drills: [
+      // p1 — it is said that
+      fc("p1", "It is ___ that the building is haunted.", ["said", "say", "saying"]),
+      err("p1", "It is say that the lake has no bottom.", "say", "said"),
+      sit("p1", "Many people in your town tell a story about a hidden tunnel, but nobody knows who started it. You tell a visitor. What do you say?", [
+        "It is said that there is a hidden tunnel.",
+        "It is said to there is a hidden tunnel.",
+        "Is said that there is a hidden tunnel.",
+      ]),
+      // p2 — it is believed / reported
+      fc("p2", "It is ___ that no one was hurt.", ["reported", "report", "reporting"]),
+      lc("p2", "It is reported that the bridge is closed.", [
+        "They reported that the bridge is open.",
+        "It is important that the road is clear.",
+      ]),
+      chat("p2", ["Why are the police outside the bank?", null], [
+        "It is believed that someone broke in last night.",
+        "It believes that someone broke in last night.",
+        "It is believe that someone broke in last night.",
+      ]),
+      // p3 — it's thought that
+      spk("p3", "It's thought that the cause was electrical."),
+      fc("p3", "It's thought ___ the fire started in the kitchen.", ["that", "what", "which"]),
+      sit("p3", "You heard that a famous singer is moving to your town, but you are not sure it is true. You tell a friend without claiming it as a fact. What do you say?", [
+        "It's thought that she's moving here.",
+        "She's definitely moving here.",
+        "It's think that she's moving here.",
+      ]),
+      // karışık
+      chat("mix", ["What do people know about the old mill?", null], [
+        "It is said that it's haunted, and it is believed that a miller died there.",
+        "It is say that it's haunted, and it is believed that a miller died there.",
+        "It is said that it's haunted, and it believes that a miller died there.",
+      ]),
+      lc("mix", "It is said that he was rich. It's thought that he lost it all.", [
+        "He said that he was rich. He thought he lost it all.",
+        "It was clear that he was poor. Nobody lost anything.",
+      ]),
     ],
-    open: {
-      q: "Report three things people generally say about your city, without claiming them as your own view.",
-      must: ["it is said", "it is believed", "it's thought that"],
-      criteria: "The answer reports claims impersonally, without naming a source or endorsing them.",
-      example: "It is said that the old quarter is the oldest part. It is believed to be Roman; it's thought that it was rebuilt.",
-    },
     success: "The learner reports at least two claims impersonally.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -1366,15 +1700,15 @@ export const B2_U1_4: Authored[] = [
       sc("Rosalind", "a neighbour repeating local stories", "to pass on what people say about the area",
         "A neighbour is telling you the local legends.",
         "Report the claims without endorsing them.",
-        "There are all sorts of stories about this street. Have you heard any?", "chatty"),
+        "There are all sorts of stories about this street. What do people say about it?", "chatty"),
       sc("Anders", "a colleague briefing on a rumour", "to summarise unconfirmed information",
         "Unconfirmed news is circulating at work.",
         "Report it impersonally.",
-        "Nothing is official yet. What is being said?", "careful"),
+        "Nothing is official yet. What is being said about the merger?", "careful"),
       sc("Selin", "a guide telling local history", "to share stories whose truth is uncertain",
         "A guide is describing a site with uncertain history.",
         "Report the claims impersonally.",
-        "Not all of this is proven, of course. Shall I tell you what people say?", "engaging"),
+        "Not all of this is proven, of course. What have you heard about this castle?", "engaging"),
       sc("Mr. Achebe", "your teacher", "to practise impersonal reporting",
         "The class is reporting widely held beliefs.",
         "Report a claim impersonally.",
@@ -1382,7 +1716,7 @@ export const B2_U1_4: Authored[] = [
       sc("Ms. Berger", "the examiner", "to check impersonal reporting",
         "The examiner asks about local beliefs.",
         "Report them without endorsing them.",
-        "Could you tell me what people say about where you come from?", "neutral"),
+        "Please tell me what people believe about the place you come from. What is said about it?", "neutral"),
     ],
   },
 
@@ -1424,22 +1758,39 @@ export const B2_U1_4: Authored[] = [
         ex: ["They are believed to be safe.", "The company is believed to be expanding."],
       },
     ],
-    ex: [
-      fill("He is ___ to be in his sixties. (think)", ["thought"]),
-      mcq("Which sentence reports an earlier action?", [
-        "He is said to have left the country.",
-        "He is said to leave the country.",
-        "He is said that he leaves.",
-      ], 0),
-      fill("They ___ believed to be safe. (be)", ["are"]),
-      say("she / be said / to speak / five languages", ["She is said to speak five languages."]),
+    ex: [],
+    drills: [
+      // p1 — he is thought to be
+      fc("p1", "He is thought ___ in his sixties.", ["to be", "being", "that is"]),
+      arr("p1", "He is thought to be in Spain.", ["being"]),
+      err("p1", "He is think to be the owner.", "think", "thought"),
+      // p2 — is said to / to have + V3
+      fc("p2", "He is said to have ___ the country last year.", ["left", "leave", "leaving"]),
+      sit("p2", "People say a famous writer lived in your street long ago, but nobody is sure. You tell a visitor. What do you say?", [
+        "She is said to have lived here.",
+        "She is said to live here.",
+        "She is said to lived here.",
+      ]),
+      lc("p2", "She is said to speak five languages.", [
+        "She has visited five countries.",
+        "She is learning to speak two languages.",
+      ]),
+      // p3 — they are believed
+      fc("p3", "The climbers ___ believed to be safe.", ["are", "is", "be"]),
+      spk("p3", "They are believed to be safe."),
+      chat("p3", ["Is there any news about the missing sailors?", null], [
+        "Yes, they are believed to be alive.",
+        "Yes, they believe to be alive.",
+        "Yes, they are believed being alive.",
+      ]),
+      // karışık
+      sit("mix", "A news report says two things about a company boss: people think he is in France now, and people say he sold his shares last month. You repeat both. What do you say?", [
+        "He is thought to be in France, and he is said to have sold his shares.",
+        "He is thought to be in France, and he is said to sell his shares.",
+        "He is thought to being in France, and he is said to have sold his shares.",
+      ]),
+      la("mix", "They are said to have sold the house.", ["sell"]),
     ],
-    open: {
-      q: "Think of a well-known person or place. Report two things that are believed about them.",
-      must: ["he is thought", "she is said", "they are believed"],
-      criteria: "The answer uses the personal reporting pattern with the person as the subject.",
-      example: "She is said to have written it in a month. He is thought to be the real author; they are believed to disagree.",
-    },
     success: "The learner uses the personal reporting pattern correctly at least twice.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -1458,15 +1809,15 @@ export const B2_U1_4: Authored[] = [
       sc("Marguerite", "a friend who follows the news", "to discuss a story you both half-know",
         "A story is in the news and neither of you has the facts.",
         "Report what is believed.",
-        "Nobody seems to know the details of this. Have you been following it?", "curious"),
+        "Nobody knows where the missing director is. What do the reports say about him?", "curious"),
       sc("Hendrik", "a colleague preparing a briefing", "to summarise what is known about a person",
         "A briefing needs careful wording about an individual.",
         "Report the beliefs precisely.",
-        "We need to word this carefully. What can we actually say about him?", "precise"),
+        "We need to word this carefully. What can we say about where the director is now?", "precise"),
       sc("Ines", "a guide describing a historical figure", "to describe someone whose life is uncertain",
         "A guide is talking about a figure with a disputed biography.",
         "Report the claims with the person as subject.",
-        "Very little about him is certain. Shall I tell you what is believed?", "measured"),
+        "Very little about this old king is certain. What is believed about him?", "measured"),
       sc("Mrs. Osei", "your teacher", "to practise personal reporting",
         "The class is reporting on well-known figures.",
         "Use the personal pattern.",
@@ -1474,7 +1825,7 @@ export const B2_U1_4: Authored[] = [
       sc("Mr. Lindberg", "the examiner", "to check the personal pattern",
         "The examiner asks about a public figure.",
         "Report with the person as subject.",
-        "Could you tell me what is believed about a well-known person from your country?", "neutral"),
+        "Please describe a famous person from your country. What are they believed to have done?", "neutral"),
     ],
   },
 
@@ -1516,22 +1867,39 @@ export const B2_U1_4: Authored[] = [
         ex: ["He suggested waiting until Monday.", "She suggested that we wait."],
       },
     ],
-    ex: [
-      fill("She denied ___ the money. (take)", ["taking"]),
-      mcq("Which sentence is correct?", [
-        "He suggested waiting until Monday.",
-        "He suggested to wait until Monday.",
-        "He suggested wait until Monday.",
-      ], 0),
-      fill("He admitted ___ about the problem. (know)", ["knowing"]),
-      say("she / admit / make / a mistake", ["She admitted making a mistake.", "She admitted that she made a mistake."]),
+    ex: [],
+    drills: [
+      // p1 — deny + -ing
+      fc("p1", "She denied ___ the money.", ["taking", "to take", "take"]),
+      err("p1", "He denied know anything about it.", "know", "knowing"),
+      sit("p1", "A manager asked a worker if he broke the printer. He said, 'No, I didn't break it.' You report this. What do you say?", [
+        "He denied breaking it.",
+        "He denied to break it.",
+        "He denied break it.",
+      ]),
+      // p2 — admit + -ing / that
+      fc("p2", "He admitted ___ about the problem.", ["knowing", "to know", "know"]),
+      chat("p2", ["Did Tom say anything about the broken window?", null], [
+        "Yes, he admitted breaking it.",
+        "Yes, he admitted to break it.",
+        "Yes, he admitted break it.",
+      ]),
+      lc("p2", "He admitted that he knew.", [
+        "He said that he didn't know.",
+        "He asked if they knew.",
+      ]),
+      // p3 — suggest + -ing / that
+      fc("p3", "He suggested ___ until Monday.", ["waiting", "to wait", "wait"]),
+      err("p3", "She suggested leave before the rain.", "leave", "leaving"),
+      spk("p3", "He suggested waiting until Monday."),
+      // karışık
+      sit("mix", "In a meeting, Anna said, 'I didn't send the email.' Ben said, 'Yes, I forgot the deadline.' You report both. What do you say?", [
+        "Anna denied sending the email, and Ben admitted forgetting the deadline.",
+        "Anna denied to send the email, and Ben admitted forgetting the deadline.",
+        "Anna denied sending the email, and Ben admitted to forget the deadline.",
+      ]),
+      la("mix", "She denied taking it but suggested asking him.", ["take"]),
     ],
-    open: {
-      q: "Report a disagreement you witnessed. Say what one person denied, admitted or suggested.",
-      must: ["denied taking", "admitted knowing", "suggested waiting"],
-      criteria: "The answer reports speech using deny, admit or suggest with the correct form after them.",
-      example: "He denied taking the file. Later he admitted knowing where it was, and she suggested waiting a day.",
-    },
     success: "The learner reports speech with at least two of these verbs correctly.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -1550,23 +1918,23 @@ export const B2_U1_4: Authored[] = [
       sc("Konstantin", "a friend who heard a different version", "to piece together what was actually said",
         "Two friends heard different accounts of an argument.",
         "Report what each person said.",
-        "I heard a completely different version. What did they actually say?", "puzzled"),
+        "I heard a completely different version of the argument. What did each of them say?", "puzzled"),
       sc("Adaeze", "your manager investigating a problem", "to establish what people said",
         "A workplace problem needs a factual account.",
         "Report the statements precisely.",
-        "I need the account, not opinions. What did each person say?", "formal"),
+        "I need the account, not opinions. What did each person say about the missing money?", "formal"),
       sc("Lasse", "a fellow guest who witnessed a dispute", "to compare what you both heard",
         "A dispute at a hotel was overheard by several people.",
         "Report what was said.",
-        "You were closer than me. What did you hear them say?", "discreet"),
+        "You were closer to the argument than me. What did each of them say, and what did the manager suggest doing?", "discreet"),
       sc("Ms. Ekwueme", "your teacher", "to practise reporting verbs",
         "The class is reporting a disagreement.",
         "Use the correct form after each verb.",
-        "Someone denied something and someone admitted something. How do you report that?", "encouraging"),
+        "Someone denied something and someone admitted something. How would you report that?", "encouraging"),
       sc("Mr. Nyberg", "the examiner", "to check reporting verbs",
         "The examiner asks about a disagreement.",
         "Report it with precise verbs.",
-        "Could you tell me about a disagreement and what each person said?", "neutral"),
+        "Please describe a disagreement you saw. What did each person say, and what did someone suggest doing?", "neutral"),
     ],
   },
 
@@ -1608,22 +1976,46 @@ export const B2_U1_4: Authored[] = [
         ex: ["He promised to send it today.", "She offered to help."],
       },
     ],
-    ex: [
-      fill("He refused ___ comment on the report. (to)", ["to"]),
-      mcq("Which sentence is correct?", [
-        "They agreed to meet on Friday.",
-        "They agreed meeting on Friday.",
-        "They agreed meet on Friday.",
-      ], 0),
-      fill("She ___ to help us with the move. (offer)", ["offered"]),
-      say("he / promise / send / it today", ["He promised to send it today."]),
+    ex: [],
+    drills: [
+      // p1 — refuse to
+      fc("p1", "He refused ___ comment.", ["to", "for", "on"]),
+      sit("p1", "A reporter asked the minister a question. The minister said, 'No comment.' You report this. What do you say?", [
+        "He refused to comment.",
+        "He refused commenting.",
+        "He refused to commenting.",
+      ]),
+      err("p1", "She refused to signed the contract.", "signed", "sign"),
+      // p2 — agree to / agree that
+      fc("p2", "They agreed ___ meet on Friday.", ["to", "for", "with"]),
+      chat("p2", ["What happened in the meeting with the landlord?", null], [
+        "He agreed to fix the heating.",
+        "He agreed fixing the heating.",
+        "He agreed for fix the heating.",
+      ]),
+      lc("p2", "We agreed that the price was too high.", [
+        "We agreed to pay a higher price.",
+        "They said the plan was too slow.",
+      ]),
+      // p3 — promise / offer / threaten to
+      fc("p3", "She offered ___ me with the move.", ["to help", "helping", "help"]),
+      spk("p3", "He promised to send it today."),
+      sit("p3", "Your neighbour said, 'I'll call the police if you play loud music again.' You tell a friend. What do you say?", [
+        "He threatened to call the police.",
+        "He threatened calling the police.",
+        "He threatened to calling the police.",
+      ]),
+      // karışık
+      chat("mix", ["So what did the company say about your refund?", null], [
+        "They refused to pay, but they agreed to look at it again.",
+        "They refused paying, but they agreed to look at it again.",
+        "They refused to pay, but they agreed looking at it again.",
+      ]),
+      lc("mix", "He refused to comment but promised to call later.", [
+        "He refused to call but promised to comment.",
+        "He wanted to comment and called later.",
+      ]),
     ],
-    open: {
-      q: "Report a conversation in which someone made a commitment and someone else refused.",
-      must: ["refused to", "agreed to", "promised to send"],
-      criteria: "The answer reports commitments and refusals with 'to' plus a base verb.",
-      example: "She refused to change the date. In the end they agreed to meet later, and he promised to send the notes.",
-    },
     success: "The learner reports at least two commitments or refusals correctly.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -1642,23 +2034,23 @@ export const B2_U1_4: Authored[] = [
       sc("Bruna", "a friend waiting on an answer", "to find out what was decided",
         "A decision was made in a meeting your friend missed.",
         "Report who agreed and who refused.",
-        "So what came out of it? Did anyone actually commit to anything?", "impatient"),
+        "So what came out of the meeting? Who promised to do what?", "impatient"),
       sc("Owen", "a colleague writing up minutes", "to record commitments accurately",
         "Meeting notes must record who committed to what.",
         "Report the commitments precisely.",
-        "I need this exact for the minutes. Who agreed to what?", "precise"),
+        "I need the exact details for the minutes. Who agreed to what, and who refused?", "precise"),
       sc("Fatima", "a fellow traveller after a dispute with staff", "to explain how the complaint was resolved",
         "A complaint at a hotel ended in a partial agreement.",
         "Report the refusals and agreements.",
-        "Did they give you anything in the end?", "curious"),
+        "You argued with the hotel staff for ages. What did they say they would do?", "curious"),
       sc("Mr. Tremblay", "your teacher", "to practise reporting commitments",
         "The class is reporting negotiations.",
         "Report with the correct verbs.",
-        "Someone agreed and someone refused. How do you report both?", "encouraging"),
+        "Someone agreed to something and someone refused. How would you report both?", "encouraging"),
       sc("Ms. Petrenko", "the examiner", "to check reporting verbs",
         "The examiner asks about a negotiation.",
         "Report commitments and refusals precisely.",
-        "Could you tell me about a discussion where people disagreed?", "neutral"),
+        "Please describe a discussion where people disagreed. What did each person agree or refuse to do?", "neutral"),
     ],
   },
 
@@ -1700,21 +2092,43 @@ export const B2_U1_4: Authored[] = [
         ex: ["It has emerged that the deal collapsed.", "It has emerged that nobody was told."],
       },
     ],
-    ex: [
-      fill("___ to the report, sales are up this quarter. (accord)", ["According"]),
-      mcq("Which sentence attributes a claim to unnamed people?", [
+    ex: [],
+    drills: [
+      // p1 — according to
+      fc("p1", "___ to the report, sales are up.", ["According", "Accorded", "Accord"]),
+      sit("p1", "You want to give your own view about a new law. What do you say?", [
+        "In my opinion, it's a good law.",
+        "According to me, it's a good law.",
+        "According me, it's a good law.",
+      ]),
+      err("p1", "According for her, nothing was agreed.", "for", "to"),
+      // p2 — sources say
+      chat("p2", ["Is there any news about the merger?", null], [
         "Sources say a decision is close.",
-        "I say a decision is close.",
-        "The decision is close.",
-      ], 0),
-      say("it / have emerge / that the deal collapsed", ["It has emerged that the deal collapsed."]),
+        "Sources says a decision is close.",
+        "Source say a decision is close.",
+      ]),
+      lc("p2", "Sources say the meeting was tense.", [
+        "Sources say the meeting was cancelled.",
+        "Some people enjoyed the meeting.",
+      ]),
+      fc("p2", "Sources ___ the minister will resign.", ["say", "says", "saying"]),
+      // p3 — it has emerged that
+      fc("p3", "It has ___ that the deal collapsed.", ["emerged", "emerge", "emerging"]),
+      sit("p3", "A newspaper has just found out that the mayor knew about the problem months ago. You report this new information. What do you say?", [
+        "It has emerged that the mayor knew months ago.",
+        "It has emerged the mayor knows months ago.",
+        "It is emerged that the mayor knew months ago.",
+      ]),
+      spk("p3", "It has emerged that the plan was never approved."),
+      // karışık
+      sit("mix", "A news article names the police as one source, and also quotes people who will not give their names. You sum it up. What do you say?", [
+        "According to the police, nobody was hurt, but sources say it was close.",
+        "According the police, nobody was hurt, but sources say it was close.",
+        "According to the police, nobody was hurt, but sources says it was close.",
+      ]),
+      la("mix", "According to sources, it has emerged that nobody knew.", ["emerge"]),
     ],
-    open: {
-      q: "Pass on a piece of news you have heard, making clear where it came from and how sure you are.",
-      must: ["according to", "sources say", "it has emerged"],
-      criteria: "The answer names or hedges the source and does not present the claim as the speaker's own.",
-      example: "According to the paper, the factory is closing. Sources say it was decided months ago; it has emerged that nobody was told.",
-    },
     success: "The learner attributes at least two claims to a source.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -1733,23 +2147,23 @@ export const B2_U1_4: Authored[] = [
       sc("Gustavo", "a neighbour who heard something", "to compare what you have both heard",
         "Local news is circulating and neither of you is sure.",
         "Attribute what you have heard.",
-        "Nobody can tell me anything solid about the factory. What have you heard?", "uncertain"),
+        "Nobody can tell me anything solid about the factory. What have you heard, and from whom?", "uncertain"),
       sc("Priyanka", "a colleague preparing an update", "to word an update carefully",
         "An internal update must not overstate what is known.",
         "Attribute the claims carefully.",
-        "We cannot state this as fact. How should we word it?", "cautious"),
+        "We cannot state this as fact. How should we word it in the update?", "cautious"),
       sc("Bram", "a fellow traveller repeating local news", "to share news of a disruption",
         "Travellers are sharing unconfirmed news about a strike.",
         "Attribute what you have heard.",
-        "Someone said the trains stop tomorrow. Have you heard that too?", "concerned"),
+        "Everyone at the station is talking about a train strike. What have you heard?", "concerned"),
       sc("Mrs. Farrow", "your teacher", "to practise attribution",
         "The class is passing on news carefully.",
         "Attribute the claim clearly.",
-        "How do you pass on news you cannot confirm?", "encouraging"),
+        "How would you pass on news that you cannot confirm?", "encouraging"),
       sc("Mr. Ibrahim", "the examiner", "to check attribution language",
         "The examiner asks about a news story.",
         "Attribute and hedge appropriately.",
-        "Could you tell me about a story you have heard but cannot confirm?", "neutral"),
+        "Please tell me about a news story you have heard. Where did the information come from?", "neutral"),
     ],
   },
 
@@ -1791,17 +2205,47 @@ export const B2_U1_4: Authored[] = [
         ex: ["They are hiring again, so I'm told.", "It was her idea, so I'm told."],
       },
     ],
-    ex: [
-      fill("___ has it they are moving offices next year. (rumour)", ["Rumour"]),
-      mcq("Which phrase distances you from a claim?", ["so I'm told", "I promise you", "I saw it myself"], 0),
-      say("word / be / that nobody was consulted", ["Word is that nobody was consulted."]),
+    ex: [],
+    drills: [
+      // p1 — rumour has it
+      fc("p1", "Rumour ___ it they are moving offices.", ["has", "have", "gives"]),
+      sit("p1", "People at work say the boss is leaving, but nothing is official. You tell a colleague. What do you say?", [
+        "Rumour has it the boss is leaving.",
+        "Rumours has it the boss is leaving.",
+        "The rumour has it the boss is leaving.",
+      ]),
+      lc("p1", "Rumour has it they are hiring again.", [
+        "Rumour has it they are moving offices.",
+        "Remember, they open again at nine.",
+      ]),
+      // p2 — word is that / apparently
+      fc("p2", "Word is ___ the shop is closing.", ["that", "what", "it"]),
+      chat("p2", ["Why is the cafe so empty today?", null], [
+        "Apparently the owner sold it.",
+        "Apparent the owner sold it.",
+        "Apparently the owner sell it.",
+      ]),
+      spk("p2", "Word is that nobody was told."),
+      // p3 — so I'm told
+      sit("p3", "A friend asks if the new cafe is good. You have not been there, but people say it is. You answer without vouching for it. What do you say?", [
+        "It's very good, so I'm told.",
+        "It's very good, so I told.",
+        "It's very good, so I'm telling.",
+      ]),
+      fc("p3", "They are hiring again, so I'm ___.", ["told", "telling", "tell"]),
+      chat("p3", ["Is it true the manager is leaving?", null], [
+        "Don't quote me on this, but I think so.",
+        "Don't quote me in this, but I think so.",
+        "Don't quoting me on this, but I think so.",
+      ]),
+      // karışık
+      sit("mix", "You heard two rumours: the company is moving, and the boss is unhappy. You share both, but you keep your distance from them. What do you say?", [
+        "Rumour has it we're moving, and the boss is unhappy, so I'm told.",
+        "Rumour have it we're moving, and the boss is unhappy, so I'm told.",
+        "Rumour has it we're moving, and the boss is unhappy, so I told.",
+      ]),
+      la("mix", "Apparently they're hiring again, so I'm told.", ["telling"]),
     ],
-    open: {
-      q: "Pass on a rumour you have heard, and make clear you are not vouching for it.",
-      must: ["rumour has it", "word is that", "so I'm told"],
-      criteria: "The answer repeats a claim and clearly marks it as unverified.",
-      example: "Rumour has it the office is moving. Word is that nobody was consulted. The decision was made last week, so I'm told.",
-    },
     success: "The learner passes on a claim while clearly marking it as unconfirmed.",
     quiz: [
       qmcq("Which sentence flags a rumour?", [
@@ -1816,23 +2260,23 @@ export const B2_U1_4: Authored[] = [
       sc("Ottoline", "a neighbour with local gossip", "to trade unconfirmed news",
         "Local rumours are circulating about a new development.",
         "Pass one on while flagging it.",
-        "There is talk about the old site again. Have you heard anything?", "gossipy"),
+        "There's talk about the old factory site again. What have you heard?", "gossipy"),
       sc("Sebastian", "a colleague after a closed meeting", "to share what leaked from the meeting",
         "Something was discussed behind closed doors.",
         "Pass it on carefully.",
-        "Nothing official yet, but people are talking. What have you heard?", "guarded"),
+        "Nothing is official yet, but people are talking. What's the word in your team?", "guarded"),
       sc("Noemi", "another guest at a hostel", "to share news about a local event",
         "Travellers are trading unconfirmed news.",
         "Flag what you pass on.",
-        "Someone said the festival is cancelled. Any idea if that is real?", "doubtful"),
+        "Someone said the festival is cancelled. What have you heard about it?", "doubtful"),
       sc("Mr. Halvorsen", "your teacher", "to practise flagging rumours",
         "The class is practising careful repetition of claims.",
         "Flag the claim clearly.",
-        "How do you repeat something without vouching for it?", "encouraging"),
+        "How would you repeat something you heard without vouching for it?", "encouraging"),
       sc("Ms. Cardoso", "the examiner", "to check hedging language",
         "The examiner asks about unconfirmed news.",
         "Flag it clearly as a rumour.",
-        "Could you tell me something you have heard but cannot confirm?", "neutral"),
+        "Please tell me something you have heard but cannot confirm. How would you say it?", "neutral"),
     ],
   },
 
@@ -1874,21 +2318,51 @@ export const B2_U1_4: Authored[] = [
         ex: ["Who's saying this, though?", "Who's actually reporting it?"],
       },
     ],
-    ex: [
-      fill("___ actually happened is less dramatic than the headline suggests. (what is)", ["What's", "What is"]),
-      mcq("Which sentence questions the source?", [
-        "Who's saying this, though?",
-        "That is completely false.",
-        "I read it this morning.",
-      ], 0),
-      say("I / would take / that / with a pinch of salt", ["I'd take that with a pinch of salt.", "I would take that with a pinch of salt."]),
+    ex: [],
+    drills: [
+      // p1 — what's actually happened
+      chat("p1", ["The headline says the whole company is closing!", null], [
+        "What's actually happened is that one office is closing.",
+        "What's actually happen is that one office is closing.",
+        "What actually's happened is that one office is closing.",
+      ]),
+      fc("p1", "What's actually ___ is less dramatic than the headline.", ["happened", "happen", "happens"]),
+      spk("p1", "What's actually happened is less dramatic."),
+      // p2 — I'd take that with a pinch of salt
+      sit("p2", "A friend says a website claims coffee cures every illness. You doubt it, but you don't want to call anyone a liar. What do you say?", [
+        "I'd take that with a pinch of salt.",
+        "I'd take that with a pinch of sugar.",
+        "I'd take that for a pinch of salt.",
+      ]),
+      fc("p2", "I'd take those numbers with a pinch of ___.", ["salt", "pepper", "sugar"]),
+      lc("p2", "I'd take that with a pinch of salt.", [
+        "I'd take that with a cup of tea.",
+        "I'll make that with a bit of salt.",
+      ]),
+      // p3 — who's saying this
+      chat("p3", ["Apparently the bank will close all its branches.", null], [
+        "Really? Who's saying this, though?",
+        "Really? Who's say this, though?",
+        "Really? Whose saying this, though?",
+      ]),
+      sit("p3", "A colleague shares a shocking story from social media. You want to question the source, not the story. What do you ask?", [
+        "Who's saying this?",
+        "What's saying this?",
+        "Who's say this?",
+      ]),
+      la("p3", "Who's saying this, and where did it come from?", ["whose"]),
+      // karışık
+      chat("mix", ["Look! It says here the river is poisoned!", null], [
+        "Who's saying this? What's actually happened is a small leak.",
+        "Who's saying this? What's actually happen is a small leak.",
+        "Whose saying this? What's actually happened is a small leak.",
+      ]),
+      sit("mix", "A headline says a famous actor has lost all his money. You doubt it and want to know the source. What do you say?", [
+        "I'd take that with a pinch of salt. Who's saying this?",
+        "I'd take that with a pinch of salt. Who's says this?",
+        "I'd take that with a pinch of salts. Who's saying this?",
+      ]),
     ],
-    open: {
-      q: "Think of a news story you did not fully believe. Say what was established and what you doubted.",
-      must: ["what's actually happened", "I'd take that with", "who's saying this"],
-      criteria: "The answer separates established facts from claims and questions the source.",
-      example: "The headline was dramatic, but what's actually happened is less serious. I'd take that with a pinch of salt. Who's saying this?",
-    },
     success: "The learner separates fact from claim and questions the source.",
     quiz: [
       qmcq("Which sentence expresses doubt politely?", [
@@ -1907,23 +2381,23 @@ export const B2_U1_4: Authored[] = [
       sc("Teodor", "a friend who believes the headline", "to test how much of the story is solid",
         "A friend is repeating a dramatic headline as fact.",
         "Separate the facts from the framing.",
-        "Did you see this? It is unbelievable. Do you think it is true?", "excited"),
+        "This headline says the whole town will be under water in ten years! What do you make of it?", "excited"),
       sc("Amara", "a colleague preparing a summary", "to decide what can be stated as fact",
         "A summary must not repeat unverified claims.",
         "Judge what can be stated.",
-        "We cannot repeat this if it is not solid. What do you make of it?", "careful"),
+        "We cannot repeat this story if it isn't solid. What do you make of it?", "careful"),
       sc("Felipe", "a fellow traveller reading local news", "to work out what a local story really says",
         "A local story is being widely shared.",
         "Judge how far to trust it.",
-        "Everyone here is talking about this story. Do you buy it?", "sceptical"),
+        "Everyone here is talking about a shark in the harbour. What do you think really happened?", "sceptical"),
       sc("Ms. Sandoval", "your teacher", "to practise critical discussion",
         "The class is discussing how to read news critically.",
         "Separate fact from claim.",
-        "How do you decide whether a news story is reliable?", "encouraging"),
+        "A post says chocolate makes you live longer. How would you react to a claim like that?", "encouraging"),
       sc("Mr. Kaufmann", "the examiner", "to check critical discussion",
         "The examiner asks about media reliability.",
         "Discuss a story critically.",
-        "Could you tell me about a news story you were not sure you believed?", "neutral"),
+        "Please tell me about a news story you doubted. What made you doubt it?", "neutral"),
     ],
   },
 
@@ -1945,7 +2419,7 @@ export const B2_U1_4: Authored[] = [
         form: "I had my hair cut",
         claims: [
           "The order is: have + the thing + the past participle.",
-          "Saying 'I cut my hair' means you did it yourself, which is usually not what you mean.",
+          "Strictly, 'I cut my hair' says you did it yourself; 'I had my hair cut' makes it clear someone else did it.",
         ],
         ex: ["I had my hair cut yesterday.", "We had the kitchen painted last year."],
       },
@@ -1954,8 +2428,9 @@ export const B2_U1_4: Authored[] = [
         claims: [
           "The pattern works in every tense: I have it cleaned, I had it cleaned, I'll have it cleaned.",
           "The person doing the work is usually not mentioned.",
+          "In everyday speech 'get' can replace 'have': I got it done.",
         ],
-        ex: ["I'm having the car serviced on Friday.", "We'll have it cleaned before we leave."],
+        ex: ["I'm having the car serviced on Friday.", "We'll have it cleaned before we leave.", "I got it done last week."],
       },
       {
         form: "who did it",
@@ -1966,24 +2441,47 @@ export const B2_U1_4: Authored[] = [
         ex: ["I had it repaired by the shop that sold it.", "She had the photos framed."],
       },
     ],
-    ex: [
-      fill("I had my hair ___ yesterday afternoon. (cut)", ["cut"]),
-      mcq("Which sentence means someone else did the work?", [
-        "We had the kitchen painted last year.",
-        "We painted the kitchen last year.",
-        "We were painting the kitchen last year.",
-      ], 0),
-      fill("I'm ___ the car serviced on Friday. (have)", ["having"]),
-      say("we / will have / it / clean / before we leave", ["We'll have it cleaned before we leave.", "We will have it cleaned before we leave."]),
+    ex: [],
+    drills: [
+      // p1 — have + nesne + V3
+      fc("p1", "I had my hair ___ yesterday.", ["cut", "cutting", "to cut"]),
+      lc("p1", "We had the kitchen painted last year.", [
+        "We painted the kitchen ourselves last year.",
+        "We're having the kitchen painted next year.",
+      ]),
+      sit("p1", "Last week a painter painted your living room. You did not do it yourself. What do you say?", [
+        "I had my living room painted.",
+        "I painted my living room.",
+        "I had painted my living room.",
+      ]),
+      // p2 — her zamanda (+ get)
+      fc("p2", "I'm ___ the car serviced on Friday.", ["having", "have", "had"]),
+      err("p2", "We're having the windows wash tomorrow.", "wash", "washed"),
+      lc("p2", "I got it done last week.", [
+        "I did it all last week.",
+        "I'll get it done next week.",
+      ]),
+      spk("p2", "We'll have it cleaned before we leave."),
+      // p3 — by + kişi
+      fc("p3", "I had it repaired ___ the shop that sold it.", ["by", "from", "with"]),
+      chat("p3", ["Your photos look amazing. Did you frame them yourself?", null], [
+        "No, I had them framed by a friend.",
+        "No, I had them frame by a friend.",
+        "No, I had framed them by a friend.",
+      ]),
+      sit("p3", "A famous designer made your wedding dress, and you want to mention who made it. What do you say?", [
+        "I had it made by a famous designer.",
+        "I had it made from a famous designer.",
+        "I had a famous designer made it.",
+      ]),
+      // karışık
+      sit("mix", "Tomorrow a mechanic will repair your car, and yesterday a hairdresser cut your hair. You tell a friend. What do you say?", [
+        "I'm having my car repaired tomorrow, and I had my hair cut yesterday.",
+        "I'm having my car repair tomorrow, and I had my hair cut yesterday.",
+        "I'm repairing my car tomorrow, and I had my hair cut yesterday.",
+      ]),
+      la("mix", "We had the roof repaired by a local firm.", ["repair"]),
     ],
-    open: {
-      q: "Name two jobs you arranged for someone else to do recently, and one you are planning.",
-      // Katalog "I got it done"u da listeliyor ama `get something done` BİR SONRAKİ
-      // dersin konusu; açık uçlu ölçüt yalnız burada öğretilen kalıbı ister.
-      must: ["I had my hair", "have it cleaned"],
-      criteria: "The answer uses 'have' plus an object plus a past participle for arranged work.",
-      example: "I had my hair cut last week and I had the boiler serviced. I'll have it cleaned before the winter.",
-    },
     success: "The learner describes arranged work with the object before the past participle at least twice.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -2002,23 +2500,23 @@ export const B2_U1_4: Authored[] = [
       sc("Rosa", "a neighbour who noticed the work", "to find out who did the work and whether they were good",
         "Work has clearly been done on your home.",
         "Explain what you had done.",
-        "The place looks completely different! Who did all that?", "impressed"),
+        "Your flat looks completely different! What did you have done?", "impressed"),
       sc("Bastien", "a colleague moving into a new flat", "to get recommendations for work",
         "A colleague needs several jobs done.",
         "Describe what you had done and by whom.",
-        "I have a list of jobs and no idea where to start. What did you get done?", "overwhelmed"),
+        "I have a long list of jobs for my new flat. What did you get done in yours?", "overwhelmed"),
       sc("Aditi", "a hotel receptionist", "to arrange a service for you",
         "You need something cleaned or repaired while you stay.",
         "Ask to have the work done.",
-        "Good morning. Is there anything you need arranging today?", "helpful"),
+        "Good morning. We offer laundry, cleaning and car services. What would you like done today?", "helpful"),
       sc("Mr. Hassan", "your teacher", "to practise the causative",
         "The class is describing work they arranged.",
         "Describe arranged work correctly.",
-        "What is something you had done rather than did yourself?", "encouraging"),
+        "What is something you had done recently instead of doing it yourself?", "encouraging"),
       sc("Mrs. Clark", "the examiner", "to check the causative",
         "The examiner asks about services you use.",
         "Describe arranged work accurately.",
-        "Could you tell me about jobs you pay other people to do?", "neutral"),
+        "Please tell me about jobs you pay other people to do. What do you have done regularly?", "neutral"),
     ],
   },
 
@@ -2041,7 +2539,7 @@ export const B2_U1_4: Authored[] = [
           "'Get something done' follows the same order as 'have something done'.",
           "It is more informal and very common in speech.",
         ],
-        ex: ["We got the roof fixed in the end.", "I got my phone repaired for almost nothing."],
+        ex: ["We got the roof fixed in the end.", "I got my phone repaired for almost nothing.", "We got it fixed the same day."],
       },
       {
         form: "getting it repaired",
@@ -2060,22 +2558,42 @@ export const B2_U1_4: Authored[] = [
         ex: ["We had it replaced under guarantee.", "They had the whole system checked."],
       },
     ],
-    ex: [
-      fill("We finally got the roof ___ last month. (fix)", ["fixed"]),
-      mcq("Which sentence suggests it took effort?", [
-        "It took months to get it sorted.",
-        "We had it sorted immediately.",
-        "It is sorted now.",
-      ], 0),
-      fill("We're ___ it repaired next week. (get)", ["getting"]),
-      say("they / have / the whole system / check", ["They had the whole system checked."]),
+    ex: [],
+    drills: [
+      // p1 — get + nesne + V3
+      fc("p1", "We got the roof ___ in the end.", ["fixed", "fix", "fixing"]),
+      arr("p1", "I got my phone repaired.", ["repair"]),
+      err("p1", "We got the car wash before the trip.", "wash", "washed"),
+      // p2 — get = uğraş, rahatlama
+      sit("p2", "Your washing machine was broken for months. You called many times, and at last someone repaired it. You feel relieved. What do you say?", [
+        "We finally got it fixed!",
+        "We finally got fixed it!",
+        "We finally got it fix!",
+      ]),
+      fc("p2", "It took months to ___ it sorted.", ["get", "make", "do"]),
+      lc("p2", "We're getting it repaired next week.", [
+        "We repaired it ourselves last week.",
+        "We're getting a new one next week.",
+      ]),
+      // p3 — had it replaced (nötr)
+      chat("p3", ["What happened to your broken laptop screen?", null], [
+        "We had it replaced under guarantee.",
+        "We had it replace under guarantee.",
+        "We had it replacing under guarantee.",
+      ]),
+      fc("p3", "We had the boiler ___ by an engineer.", ["serviced", "service", "servicing"]),
+      spk("p3", "They had the whole system checked."),
+      // karışık
+      chat("mix", ["Is your kitchen finished yet?", null], [
+        "Yes, we finally got it done, and we're having the floor replaced next.",
+        "Yes, we finally got it done, and we're having the floor replace next.",
+        "Yes, we finally got done it, and we're having the floor replaced next.",
+      ]),
+      lc("mix", "We finally got it fixed, and we had the walls painted.", [
+        "We fixed it ourselves, and we painted the walls.",
+        "We'll get it fixed when the walls are painted.",
+      ]),
     ],
-    open: {
-      q: "Describe a job that was difficult to arrange. Say how long it took and how it ended.",
-      must: ["we got it fixed", "getting it repaired", "had it replaced"],
-      criteria: "The answer describes arranged work with get or have plus a past participle.",
-      example: "The boiler failed in winter. We got it fixed after three visits, spent weeks getting it repaired, then had it replaced.",
-    },
     success: "The learner describes arranged work using get or have correctly at least twice.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -2094,23 +2612,23 @@ export const B2_U1_4: Authored[] = [
       sc("Emeka", "a neighbour with the same problem", "to find out who you used and what it cost",
         "Both flats have the same recurring problem.",
         "Describe how you got it fixed.",
-        "Mine has done it twice this month. How did you sort yours?", "fed up"),
+        "My roof has leaked twice this month. How did you get yours fixed?", "fed up"),
       sc("Chiara", "a colleague dealing with office repairs", "to get the repair moving",
         "An office repair has dragged on for weeks.",
         "Describe how similar work was arranged.",
-        "Three weeks and still nothing. How did you get yours done?", "impatient"),
+        "Three weeks and the office heating still isn't fixed. How did you get yours done?", "impatient"),
       sc("Ferran", "your host during a stay", "to arrange a repair in the flat",
         "Something has broken in the flat where you are staying.",
         "Explain what needs doing.",
-        "You said something had broken. What needs looking at?", "responsive"),
+        "You said your bike broke last week. How did you get it repaired?", "responsive"),
       sc("Mrs. Iversen", "your teacher", "to practise get something done",
         "The class is describing repairs and services.",
         "Use get and have correctly.",
-        "What is something that was hard to get fixed?", "encouraging"),
+        "Tell us about something that was hard to get fixed. How did you get it done in the end?", "encouraging"),
       sc("Mr. Sasaki", "the examiner", "to check the causative with get",
         "The examiner asks about a difficult repair.",
         "Describe it accurately.",
-        "Could you tell me about something that was difficult to get repaired?", "neutral"),
+        "Please describe something you had repaired recently. How did you get it done?", "neutral"),
     ],
   },
 
@@ -2152,22 +2670,46 @@ export const B2_U1_4: Authored[] = [
         ex: ["We need it fixed by Monday.", "They need the figures checked first."],
       },
     ],
-    ex: [
-      fill("I need this ___ by Friday at the latest. (sort)", ["sorted"]),
-      mcq("Which sentence is the most polite?", [
-        "I'd like it done before the weekend.",
-        "I want it done before the weekend.",
-        "Get it done before the weekend.",
-      ], 0),
-      fill("They need the figures ___ first. (check)", ["checked"]),
-      say("we / need / it / fix / by Monday", ["We need it fixed by Monday."]),
+    ex: [],
+    drills: [
+      // p1 — need + nesne + V3
+      fc("p1", "I need this ___ by Friday.", ["sorted", "sort", "to sorted"]),
+      err("p1", "I need these letters send today.", "send", "sent"),
+      sit("p1", "Your boss has a meeting tomorrow, and the slides are not ready. You ask a colleague for help and focus on the result. What do you say?", [
+        "I need the slides finished by tomorrow.",
+        "I need finished the slides by tomorrow.",
+        "I need the slides finish by tomorrow.",
+      ]),
+      // p2 — want it done / I'd like it done
+      fc("p2", "I'd like it ___ before the weekend.", ["done", "do", "doing"]),
+      sit("p2", "You are speaking politely to a hotel receptionist. You want your room cleaned before lunch. What do you say?", [
+        "I'd like it cleaned before lunch, please.",
+        "I want it cleaned before lunch, now.",
+        "I'd like cleaned it before lunch, please.",
+      ]),
+      lc("p2", "I'd like it done by Friday.", [
+        "I'd like to do it by Friday.",
+        "I'll have a day off on Friday.",
+      ]),
+      // p3 — need it fixed + by
+      chat("p3", ["When do you need the website working again?", null], [
+        "We need it fixed by Monday.",
+        "We need it fix by Monday.",
+        "We need fixed it by Monday.",
+      ]),
+      spk("p3", "They need the figures checked first."),
+      fc("p3", "We need it fixed ___ Monday at the latest.", ["by", "until", "since"]),
+      // karışık
+      sit("mix", "You manage a project. You say politely what you would like, and then firmly what you need and by when. What do you say?", [
+        "I'd like it checked today, and we need it finished by Friday.",
+        "I'd like it check today, and we need it finished by Friday.",
+        "I'd like it checked today, and we need finished it by Friday.",
+      ]),
+      lc("mix", "I'd like it checked, but I need it finished by Friday.", [
+        "I'd like to check it, but I need to finish by Friday.",
+        "I liked it, but I finished it on Friday.",
+      ]),
     ],
-    open: {
-      q: "You are handing over three tasks. State what you need done and by when, without naming who will do it.",
-      must: ["I need this", "I want it done", "we need it fixed"],
-      criteria: "The answer states required results with a past participle and gives a deadline.",
-      example: "I need this checked by Friday. We need it fixed before the launch, and I want it done properly.",
-    },
     success: "The learner states at least two required results with a past participle.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -2186,19 +2728,19 @@ export const B2_U1_4: Authored[] = [
       sc("Viktor", "a contractor taking your instructions", "to understand exactly what you need",
         "You are briefing someone on several jobs.",
         "State the results you need.",
-        "Right, talk me through it. What needs doing?", "businesslike"),
+        "Right, talk me through it. What do you need done in the flat?", "businesslike"),
       sc("Halima", "your team leader delegating work", "to hand over three tasks clearly",
         "Work is being handed over before leave.",
         "State what needs finishing and when.",
-        "You are away from Thursday. What needs to be done before then?", "organised"),
+        "You're away from Thursday. What do you need finished before then?", "organised"),
       sc("Elodie", "a hotel manager handling your request", "to arrange what you need during your stay",
         "You need several things arranged at short notice.",
         "State your requirements clearly.",
-        "You said it was urgent. What exactly do you need?", "attentive"),
+        "You said it was urgent. What exactly do you need done, and by when?", "attentive"),
       sc("Mr. Boateng", "your teacher", "to practise result-focused requests",
         "The class is practising clear requests.",
         "State a required result.",
-        "How do you say what needs doing without saying who should do it?", "encouraging"),
+        "How do you say what you need done without saying who should do it?", "encouraging"),
       sc("Ms. Aaltonen", "the examiner", "to check result-focused language",
         "The examiner asks you to delegate.",
         "State requirements with a deadline.",
@@ -2244,22 +2786,46 @@ export const B2_U1_4: Authored[] = [
         ex: ["He helped me carry the boxes.", "She helped me to understand it."],
       },
     ],
-    ex: [
-      fill("They made me ___ an hour in the corridor. (wait)", ["wait"]),
-      mcq("Which sentence is correct?", [
-        "She let me leave early.",
-        "She let me to leave early.",
-        "She let me leaving early.",
-      ], 0),
-      fill("They allowed us ___ take photographs. (to)", ["to"]),
-      say("he / help / me / carry / the boxes", ["He helped me carry the boxes.", "He helped me to carry the boxes."]),
+    ex: [],
+    drills: [
+      // p1 — make + yalın fiil; edilgen made to
+      fc("p1", "They made me ___ an hour.", ["wait", "to wait", "waiting"]),
+      err("p1", "They made me waited outside.", "waited", "wait"),
+      sit("p1", "At the airport, the staff forced you to open your bag. You describe it in the passive. What do you say?", [
+        "I was made to open my bag.",
+        "I was made open my bag.",
+        "I was made opening my bag.",
+      ]),
+      // p2 — let + yalın fiil; allow + to
+      fc("p2", "She let me ___ early.", ["leave", "to leave", "leaving"]),
+      chat("p2", ["Did your parents let you go to the concert?", null], [
+        "Yes, they let me go.",
+        "Yes, they let me to go.",
+        "Yes, they let me going.",
+      ]),
+      sit("p2", "Your teacher gave you permission to use a dictionary. You describe it with 'allow'. What do you say?", [
+        "She allowed me to use a dictionary.",
+        "She allowed me use a dictionary.",
+        "She allowed me using a dictionary.",
+      ]),
+      // p3 — help (+ to)
+      arr("p3", "He helped me carry the boxes.", ["carrying"]),
+      lc("p3", "She helped me to understand it.", [
+        "She asked me to understand it.",
+        "She helped me find it.",
+      ]),
+      spk("p3", "She helped me fix my bike.", ["She helped me to fix my bike."]),
+      // karışık
+      chat("mix", ["How was your first week at the new job?", null], [
+        "They made me work late, but they let me leave early on Friday.",
+        "They made me to work late, but they let me leave early on Friday.",
+        "They made me work late, but they let me to leave early on Friday.",
+      ]),
+      lc("mix", "She let me stay and helped me cook dinner.", [
+        "She made me stay and cook dinner.",
+        "She asked me to stay for dinner.",
+      ]),
     ],
-    open: {
-      q: "Describe a situation where someone made you do something, someone allowed something, and someone helped.",
-      must: ["they made me", "she let me", "he helped me"],
-      criteria: "The answer uses make and let with a base verb and no 'to', and help correctly.",
-      example: "They made me redo the form. She let me use her office, and he helped me finish it before closing.",
-    },
     success: "The learner uses make, let and help with the correct verb forms at least twice.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -2278,23 +2844,23 @@ export const B2_U1_4: Authored[] = [
       sc("Kwabena", "a friend after a frustrating day", "to hear how badly the day went",
         "A day of bureaucracy has gone badly.",
         "Describe who obliged and who helped.",
-        "You look exhausted. What did they put you through?", "sympathetic"),
+        "You look exhausted. What did they make you do today?", "sympathetic"),
       sc("Simone", "a colleague comparing old workplaces", "to compare how strict past jobs were",
         "Two colleagues compare rules at previous jobs.",
         "Describe what you were made and allowed to do.",
-        "My last place was very strict. What was yours like?", "curious"),
+        "My last boss was very strict. What did your old managers make you do, and what did they let you do?", "curious"),
       sc("Emil", "a border official you dealt with", "to explain what happened at the checkpoint",
         "A long process at a checkpoint has just ended.",
         "Describe what you were made to do.",
-        "You were in there a long time. What did they ask of you?", "matter-of-fact"),
+        "You waited a long time today. What did my colleagues make you do in there?", "matter-of-fact"),
       sc("Mrs. Aguilar", "your teacher", "to practise make, let and help",
         "The class is describing rules and favours.",
         "Use the three verbs correctly.",
-        "When did someone last make you do something you did not want to?", "encouraging"),
+        "Think about when you were a child. What did your parents make you do, and what did they let you do?", "encouraging"),
       sc("Mr. Nakamura", "the examiner", "to check these verb patterns",
         "The examiner asks about rules and help.",
         "Use make, let and help accurately.",
-        "Could you tell me about a strict rule you had to follow?", "neutral"),
+        "Please describe a strict school or workplace. What did they make you do?", "neutral"),
     ],
   },
 
@@ -2332,25 +2898,48 @@ export const B2_U1_4: Authored[] = [
         claims: [
           "Ask about cost before agreeing, not after the work.",
           "'Roughly' makes the question easier to answer: roughly how much would that be?",
+          "A call-out charge is the fee a tradesperson charges just for coming to you.",
         ],
         ex: ["How much would that be, roughly?", "Is there a call-out charge?"],
       },
     ],
-    ex: [
-      fill("Could you ___ out and look at the boiler? (come)", ["come"]),
-      mcq("Which question asks about availability?", [
-        "When could you fit us in?",
-        "How much is it?",
-        "What is wrong with it?",
-      ], 0),
-      say("how much / would that be / roughly", ["How much would that be, roughly?", "Roughly how much would that be?"]),
+    ex: [],
+    drills: [
+      // p1 — could you come out
+      fc("p1", "Could you come ___ and look at the boiler?", ["out", "off", "away"]),
+      sit("p1", "Your heating is broken. You call a plumber and ask them to visit your home. What do you say?", [
+        "Could you come out and look at the heating?",
+        "Could you come out of the heating?",
+        "Could you come out to look the heating?",
+      ]),
+      lc("p1", "Could you come out tomorrow morning?", [
+        "Could you call me tomorrow morning?",
+        "Can you go out tomorrow evening?",
+      ]),
+      // p2 — when could you fit us in
+      chat("p2", ["We're very busy at the moment, I'm afraid.", null], [
+        "I understand. When could you fit us in?",
+        "I understand. When could you fit us on?",
+        "I understand. When could you fit in us?",
+      ]),
+      fc("p2", "When could you ___ us in?", ["fit", "fitting", "fitted"]),
+      spk("p2", "When could someone come round?"),
+      // p3 — how much would that be
+      sit("p3", "The electrician says the job will take two hours. You want an approximate price before you agree. What do you ask?", [
+        "Roughly how much would that be?",
+        "Roughly how much would be that?",
+        "Roughly how many would that be?",
+      ]),
+      fc("p3", "Roughly how ___ would that be?", ["much", "many", "more"]),
+      err("p3", "How much would that being, roughly?", "being", "be"),
+      // karışık
+      chat("mix", ["Hello, Ace Plumbing. How can I help?", "Hi, my boiler has stopped working.", "I'm sorry to hear that.", null], [
+        "Could you come out today? And roughly how much would that be?",
+        "Could you come out today? And roughly how many would that be?",
+        "Could you come off today? And roughly how much would that be?",
+      ]),
+      la("mix", "When could you come out to look at it?", ["off"]),
     ],
-    open: {
-      q: "Call someone to look at a problem in your home. Ask about timing and cost before you agree.",
-      must: ["could you come out", "when could you", "how much would that be"],
-      criteria: "The answer books a visit and asks about both timing and cost.",
-      example: "Could you come out and look at the boiler? When could you fit us in, and how much would that be?",
-    },
     success: "The learner books a visit and asks about timing and cost.",
     quiz: [
       qmcq("Which sentence books a visit?", [
@@ -2369,23 +2958,23 @@ export const B2_U1_4: Authored[] = [
       sc("Dilek", "a plumber taking the call", "to book a visit and quote a price",
         "You are calling about a problem at home.",
         "Book the visit and ask about cost.",
-        "Hello, you have reached the workshop. What is the problem?", "brisk"),
+        "Hello, you've reached the workshop. What's the problem, and what would you like us to do?", "brisk"),
       sc("Mr. Lowell", "a facilities contractor", "to schedule work at the office",
         "Office work needs booking and a quote.",
         "Arrange the visit and ask about cost.",
-        "You said it was urgent. When do you need us there?", "professional"),
+        "We're fully booked this week, I'm afraid. What would you like to do?", "professional"),
       sc("Anouk", "a hotel maintenance manager", "to arrange a repair during your stay",
         "Something needs fixing where you are staying.",
         "Arrange the repair and ask about timing.",
-        "Reception passed on your message. What needs looking at?", "efficient"),
+        "Our engineer is busy today, I'm afraid. What would you like to ask about his visit to your room?", "efficient"),
       sc("Ms. Kaur", "your teacher", "to practise booking services",
         "The class is role-playing service calls.",
         "Book a visit and ask about cost.",
-        "You need a repair at home. How do you start the call?", "encouraging"),
+        "Your boiler has stopped working. How would you start the call to a plumber?", "encouraging"),
       sc("Mr. Eriksen", "the examiner", "to check service booking language",
         "The examiner plays a tradesperson.",
         "Book the work and ask the right questions.",
-        "Good morning, how can I help you?", "neutral"),
+        "Let's role-play. I run a repair company, and you need something fixed at home. How do you start the call?", "neutral"),
     ],
   },
 
@@ -2427,21 +3016,46 @@ export const B2_U1_4: Authored[] = [
         ex: ["I'd like it redone at no extra cost.", "I'd like someone to come back and finish."],
       },
     ],
-    ex: [
-      fill("It ___ isn't working properly after two visits. (still)", ["still"]),
-      mcq("Which sentence refers to a promise?", [
-        "You said you'd replace the part.",
-        "You are replacing the part.",
-        "The part is replaced.",
-      ], 0),
-      say("I / would like / it / redo / at no extra cost", ["I'd like it redone at no extra cost.", "I would like it redone at no extra cost."]),
+    ex: [],
+    drills: [
+      // p1 — it still isn't
+      fc("p1", "I had it repaired, but it ___ isn't working properly.", ["still", "yet", "ever"]),
+      sit("p1", "A technician fixed your internet yesterday, but today it is not working again. You call them. What do you say?", [
+        "It still isn't working.",
+        "It still isn't work.",
+        "It yet isn't working.",
+      ]),
+      lc("p1", "The pipe is still leaking.", [
+        "The pipe isn't leaking now.",
+        "The sink was blocked a bit.",
+      ]),
+      // p2 — you said you'd
+      chat("p2", ["Sorry, I couldn't come yesterday.", null], [
+        "You said you'd come on Monday.",
+        "You said you'll came on Monday.",
+        "You said you'd came on Monday.",
+      ]),
+      fc("p2", "You said you'd ___ the part.", ["replace", "replaced", "replacing"]),
+      spk("p2", "You said you'd finish it this week."),
+      // p3 — I'd like it redone
+      sit("p3", "The painter did a bad job on your kitchen. You want the work done again for free. What do you say?", [
+        "I'd like it redone at no extra cost.",
+        "I'd like it redo at no extra cost.",
+        "I'd like redone it at no extra cost.",
+      ]),
+      fc("p3", "The new phone is broken. I'd like it ___.", ["replaced", "replace", "replacing"]),
+      err("p3", "I'd like my money refund.", "refund", "refunded"),
+      // karışık
+      chat("mix", ["Hello, how can I help you?", null], [
+        "The heating still isn't working. You said you'd fix it last week.",
+        "The heating still isn't working. You said you'll fix it last week.",
+        "The heating still not working. You said you'd fix it last week.",
+      ]),
+      lc("mix", "It still isn't right, so I'd like it redone.", [
+        "It's all right now, so I'm happy with it.",
+        "It isn't ready, so I'll come back later.",
+      ]),
     ],
-    open: {
-      q: "Work you paid for was done badly. Say what is still wrong, what was promised and what you want.",
-      must: ["it still isn't", "you said you'd", "I'd like it redone"],
-      criteria: "The answer states the remaining problem, refers to the promise and requests a specific outcome.",
-      example: "It still isn't draining properly. You said you'd replace the pipe, so I'd like it redone this week.",
-    },
     success: "The learner states the problem, the promise and a specific request.",
     quiz: [
       qmcq("Which sentence states a specific request?", [
@@ -2460,23 +3074,23 @@ export const B2_U1_4: Authored[] = [
       sc("Priscilla", "the contractor who did the work", "to defend the work that was done",
         "Work was completed but the problem remains.",
         "Complain and request a specific outcome.",
-        "My colleague says the job was signed off. What is the issue?", "defensive"),
+        "My colleague says the job was signed off. What's the issue?", "defensive"),
       sc("Mr. Osei", "a supplier's manager", "to resolve a badly completed job",
         "A supplier's work has failed twice.",
         "State the problem and the request.",
-        "This is the second complaint on this job. What went wrong?", "serious"),
+        "This is the second complaint on this job. What exactly went wrong, and what do you want us to do?", "serious"),
       sc("Lucia", "a hotel manager", "to fix a repair that did not work",
         "A repair in your room was not successful.",
         "Complain politely and ask for a solution.",
-        "I understand the repair did not solve it. What is happening now?", "apologetic"),
+        "I understand the repair didn't solve the problem. What's happening now?", "apologetic"),
       sc("Mr. Wickham", "your teacher", "to practise effective complaints",
         "The class is practising complaints about services.",
         "Complain with a specific request.",
-        "Work you paid for was done badly. What do you say?", "encouraging"),
+        "Work you paid for was done badly. What would you say to the company?", "encouraging"),
       sc("Ms. Roux", "the examiner", "to check complaint language",
         "The examiner plays a service provider.",
         "Complain clearly and request an outcome.",
-        "You asked to speak to me about the work. What is the problem?", "neutral"),
+        "You asked to speak to me about the work. What's the problem, and what would you like us to do?", "neutral"),
     ],
   },
 
@@ -2518,21 +3132,47 @@ export const B2_U1_4: Authored[] = [
         ex: ["When can you start?", "What sort of timescale are we looking at?"],
       },
     ],
-    ex: [
-      fill("I'm ___ about some work on the flat. (call)", ["calling"]),
-      mcq("Which sentence lists work as a result?", [
+    ex: [],
+    drills: [
+      // p1 — I'm calling about
+      chat("p1", ["Good morning, Hill Builders.", null], [
+        "Hi, I'm calling about some work on our flat.",
+        "Hi, I'm calling for some work about our flat.",
+        "Hi, I calling about some work on our flat.",
+      ]),
+      fc("p1", "Hello, I'm ___ about the job on Elm Street.", ["calling", "call", "called"]),
+      spk("p1", "I'm calling about some work on the flat."),
+      // p2 — we'd like to get ... done
+      sit("p2", "You want a builder to replace your old windows. You say what you want done. What do you say?", [
         "We'd like to get the windows replaced.",
-        "We'd like to replace the windows ourselves.",
-        "We replaced the windows.",
-      ], 0),
-      say("when / can / you / start", ["When can you start?"]),
+        "We'd like to get replaced the windows.",
+        "We'd like to get the windows replace.",
+      ]),
+      lc("p2", "We'd like to get the kitchen painted.", [
+        "We'd like to paint the kitchen ourselves.",
+        "We need a new kitchen table.",
+      ]),
+      fc("p2", "We'd like to get the roof ___.", ["repaired", "repair", "repairing"]),
+      // p3 — when can you start
+      chat("p3", ["So, that's the price for all three jobs.", null], [
+        "That sounds fine. When can you start?",
+        "That sounds fine. When can you starting?",
+        "That sounds fine. When you can start?",
+      ]),
+      la("p3", "When can you start on the bathroom?", ["starting"]),
+      fc("p3", "When can you ___?", ["start", "starting", "to start"]),
+      // karışık
+      sit("mix", "You call a builder. You give the reason for the call, say you want the kitchen redone, and ask about the start date. What do you say?", [
+        "I'm calling about our kitchen. We'd like to get it redone. When can you start?",
+        "I'm calling about our kitchen. We'd like to get it redo. When can you start?",
+        "I'm calling about our kitchen. We'd like to get it redone. When you can start?",
+      ]),
+      chat("mix", ["Hello, Park Renovations.", null], [
+        "Hi, I'm calling about the flat. We'd like to get the floors replaced.",
+        "Hi, I'm calling about the flat. We'd like to get replace the floors.",
+        "Hi, I'm call about the flat. We'd like to get the floors replaced.",
+      ]),
     ],
-    open: {
-      q: "Call a builder about three jobs in your home. Open the call, list the work and agree a start date.",
-      must: ["I'm calling about", "we'd like to get", "when can you start"],
-      criteria: "The answer opens the call, lists the work as results and agrees timing.",
-      example: "I'm calling about the flat. We'd like to get the bathroom redone and the windows replaced. When can you start?",
-    },
     success: "The learner opens the call, lists the work and agrees a start date.",
     quiz: [
       qmcq("Which sentence opens the call?", [
@@ -2551,15 +3191,15 @@ export const B2_U1_4: Authored[] = [
       sc("Sinead", "a builder taking the call", "to understand the scope and quote for it",
         "Several jobs need doing in one property.",
         "List the work and agree a start.",
-        "Thanks for calling back. What are we looking at?", "practical"),
+        "Hello, Sinead speaking. How can I help?", "practical"),
       sc("Omar", "an office manager coordinating refurbishment", "to plan the order of the work",
         "Several trades must be scheduled in the right order.",
         "Explain the work and agree the sequence.",
-        "We have three trades and one week. How do you want to sequence this?", "organised"),
+        "We have three trades and one week. Which jobs do you want done first?", "organised"),
       sc("Lena", "a landlord abroad", "to agree work on a property you rent",
         "Work is needed on a property in another country.",
         "Explain the work and agree timing.",
-        "You mentioned several problems in your message. Shall we go through them?", "cooperative"),
+        "You mentioned several problems in your message. Which ones do you want fixed?", "cooperative"),
       sc("Mrs. Dube", "your teacher", "to practise coordinating jobs",
         "The class is role-playing a longer service call.",
         "Coordinate several jobs in one call.",
@@ -2567,7 +3207,7 @@ export const B2_U1_4: Authored[] = [
       sc("Mr. Ellery", "the examiner", "to check extended transactional language",
         "The examiner plays a contractor.",
         "Open, list and agree timing.",
-        "Good afternoon, you wanted to discuss some work?", "neutral"),
+        "Let's role-play. I'm a builder, and you need three jobs done at home. What do you say when I answer?", "neutral"),
     ],
   },
 ];

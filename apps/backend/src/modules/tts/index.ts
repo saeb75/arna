@@ -5,6 +5,7 @@ import type {
   TtsCapabilities,
   TtsProvider as TtsProviderName,
   TtsSettings,
+  TutorVoice,
 } from "@glotmate/contracts";
 import { normalizeNativeLanguage } from "../../lib/language.js";
 import { azureProvider } from "./azure.js";
@@ -18,7 +19,7 @@ import { TtsError, type SynthesizeResult, type TtsProvider, type TtsRun } from "
 export { TtsError } from "./types.js";
 export type { CharAlignment, SynthesizeResult, TtsProvider, TtsRun } from "./types.js";
 export { getTtsSettings } from "./settings.js";
-export { getStreamTicket, openStream, pipeStreamTicket } from "./stream.js";
+export { getStreamTicket, mouthTrack, openStream, pipeStreamTicket } from "./stream.js";
 
 /**
  * TTS GATEWAY — `modules/llm/index.ts` ile aynı rol: sağlayıcı seçimi tek
@@ -59,6 +60,31 @@ export function capabilitiesOf(provider: TtsProvider): TtsCapabilities {
 export async function resolveActiveTts(): Promise<ActiveTts> {
   const { settings } = await getTtsSettings();
   return resolveFromSettings(settings);
+}
+
+/**
+ * ÖĞRETMENİN SESİ: öğretmen kaydı kendi sağlayıcı + ses + modelini taşır; `null` (öğretmen
+ * kaydı yok) global ayara düşer. Öğretmenin sağlayıcısının anahtarı yoksa OTOMATİK GEÇİŞ
+ * YOK — `tts_unavailable` (sesin kimliği sessizce kaymasın; panel kaydederken zaten denetler).
+ */
+export async function resolveTutorTts(voice: TutorVoice | null): Promise<ActiveTts> {
+  if (!voice) return resolveActiveTts();
+  const provider = PROVIDERS[voice.provider];
+  if (!provider.configured()) {
+    throw new TtsError("tts_unavailable", `TTS yapılandırılmamış: öğretmenin sağlayıcısı ${provider.name} anahtarı yok`);
+  }
+  return { provider, voiceId: voice.voiceId, modelId: voice.modelId };
+}
+
+/** Panelin kaydetmeden önceki denetimi: anahtar var mı, model tanınıyor mu */
+export function validateTutorVoice(voice: TutorVoice): void {
+  const provider = PROVIDERS[voice.provider];
+  if (!provider.configured()) {
+    throw new TtsError("provider_not_configured", `${provider.name} anahtarı .env'de yok`);
+  }
+  if (!provider.models.includes(voice.modelId)) {
+    throw new TtsError("provider_not_configured", `${voice.provider} için bilinmeyen model: ${voice.modelId}`);
+  }
 }
 
 function resolveFromSettings(settings: TtsSettings): ActiveTts {

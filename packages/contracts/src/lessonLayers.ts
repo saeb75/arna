@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ACK_EN } from "./lessonFlow.js";
+import { coreDrillsBeatSchema, viewDrillsBeatSchema } from "./drills.js";
 
 // ============================================================================
 // KATMANLI DERS İÇERİĞİ — v7 mimarisi
@@ -301,6 +302,8 @@ export const coreBeatSchema = z.discriminatedUnion("kind", [
   coreTeachBeatSchema,
   coreExerciseBeatSchema,
   coreOpenResponseBeatSchema,
+  /** Oyunlaştırılmış alıştırma bloğu — varsa exercise/open_response OLAMAZ (lint) */
+  coreDrillsBeatSchema,
 ]);
 export type CoreBeat = z.infer<typeof coreBeatSchema>;
 
@@ -499,6 +502,7 @@ export const viewBeatSchema = z.discriminatedUnion("kind", [
     hint: richTextSchema,
     maxAttempts: z.number().int(),
   }),
+  viewDrillsBeatSchema,
 ]);
 export type ViewBeat = z.infer<typeof viewBeatSchema>;
 
@@ -685,6 +689,10 @@ export function assembleLesson(input: AssembleInput): LessonContentV7 {
           hint: [native ? l1(chrome.labels.hint) : en(chrome.labels.hint), en(b.exampleAnswer, true)],
           maxAttempts: b.maxAttempts,
         };
+      case "drills":
+        // Maddeler aynen geçer (İngilizce, yönergesiz — yönerge istemcide sabit metin);
+        // şık karıştırma servis anında backend permuteExerciseChoices'ta yapılır.
+        return { id: b.id, kind: "drills", items: b.items };
     }
   });
 

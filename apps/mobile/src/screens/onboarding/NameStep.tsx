@@ -7,7 +7,7 @@ import { tr } from "../../i18n/tr";
 import { useOnboardingStore } from "../../stores/useOnboardingStore";
 import { QuestionShell, rise, type ShellProps } from "./QuestionShell";
 
-/** Ad — Emma derslerde seni adınla selamlar. */
+/** Ad — öğretmen derslerde seni adınla selamlar. */
 export function NameStep({ shell }: { shell: ShellProps }) {
   const name = useOnboardingStore((s) => s.displayName);
   const ok = name.trim().length > 0;

@@ -6,6 +6,8 @@ import { userProfiles } from "../../db/schema.js";
 import { eq } from "drizzle-orm";
 import { getPublishedRoleplay, listPublishedRoleplays } from "./queries.js";
 import { openRoleplaySession, RoleplayError } from "./service.js";
+import { castNameFor, castPersona } from "../tutor/cast.js";
+import { resolveTutorById } from "../tutor/registry.js";
 import { lastAttemptsByRoleplay } from "./queries.js";
 
 const slugParams = z.object({ slug: z.string().regex(/^[a-z0-9][a-z0-9-]{1,63}$/) });
@@ -33,6 +35,8 @@ export default async function roleplayRoutes(app: FastifyInstance) {
       .limit(1);
     if (!profile) return reply.code(404).send({ error: "no_profile" });
     const userLevel = profile.cefrLevel as CefrLevel;
+    // Karakteri öğretmen oynar — listede de brief'te de öğretmenin adı görünür
+    const castAs = castNameFor(await resolveTutorById(profile.tutorId));
 
     const [rows, last] = await Promise.all([listPublishedRoleplays(), lastAttemptsByRoleplay(request.userId)]);
     return {
@@ -42,8 +46,8 @@ export default async function roleplayRoutes(app: FastifyInstance) {
           slug: r.slug,
           title: r.spec.title,
           category: r.category,
-          scene: r.spec.scene,
-          personaName: r.spec.persona.name,
+          scene: castPersona(r.spec, castAs).scene,
+          personaName: castAs ?? r.spec.persona.name,
           recommendedFrom: r.recommendedFrom,
           objectiveCount: decision.objectives.length,
           willPlayAt: decision.level,
@@ -70,8 +74,9 @@ export default async function roleplayRoutes(app: FastifyInstance) {
       .limit(1);
     if (!profile) return reply.code(404).send({ error: "no_profile" });
 
-    const rp = await getPublishedRoleplay(params.data.slug);
-    if (!rp) return reply.code(404).send({ error: "not_found" });
+    const published = await getPublishedRoleplay(params.data.slug);
+    if (!published) return reply.code(404).send({ error: "not_found" });
+    const rp = { ...published, spec: castPersona(published.spec, castNameFor(await resolveTutorById(profile.tutorId))) };
 
     const decision = resolvePlayedLevel(rp.spec, profile.cefrLevel as CefrLevel);
     return {

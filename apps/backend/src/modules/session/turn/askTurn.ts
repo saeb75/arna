@@ -79,7 +79,7 @@ export async function runAskTurn(input: LectureTurnInput, beat: AskBeat, llm: Tu
   ].join("\n");
 
   const opening = asked
-    ? `DIALOGUE SO FAR:\n  Emma: ${JSON.stringify(asked)}`
+    ? `DIALOGUE SO FAR:\n  ${input.learner.tutorName}: ${JSON.stringify(asked)}`
     : `DIALOGUE SO FAR:\n  (You just asked the student a short question.)`;
   const user = renderDialogue(opening, input.history, input.learner, input.studentText);
 

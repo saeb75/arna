@@ -39,6 +39,11 @@ const envSchema = z.object({
   GEMINI_API_KEY: z.string().optional(),
   /** Gemini hazır ses adı ("Kore", "Puck" …); boşsa "Kore" — panel boş bırakırsa bu */
   GEMINI_TTS_VOICE: z.string().optional(),
+  /**
+   * Google Cloud Translation (v2) anahtarı — dokun-çevir. Yoksa çeviri bugünkü LLM
+   * yoluyla yapılır. Sonuç her (metin, dil) için bir kez DB'ye yazılır.
+   */
+  GOOGLE_TRANSLATE_API_KEY: z.string().optional(),
 
   // Abonelik (RevenueCat). Anahtar yoksa mağaza doğrulaması KAPALI: Pro yalnız
   // admin tanımasından ya da webhook'tan gelir, kota yine zorlanır.

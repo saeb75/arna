@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { ServerResponse } from "node:http";
 import type { ActiveTts } from "./index.js";
+import { MOUTH_FPS } from "./levels.js";
 import { speakableText } from "./speakable.js";
 import { TtsError, type TtsRun } from "./types.js";
 
@@ -22,6 +23,8 @@ import { TtsError, type TtsRun } from "./types.js";
 
 interface Ticket {
   chunks: Buffer[];
+  /** Ağız izi: MOUTH_FPS hızında RMS kareleri (sağlayıcı ham PCM veriyorsa) — `mouthTrack` */
+  levels: number[];
   done: boolean;
   failed: boolean;
   /** Akış yeni parça ya da bitiş haber verince çağrılan dinleyiciler */
@@ -64,14 +67,15 @@ export function openStream(active: ActiveTts, rawRuns: TtsRun[]): string {
   if (runs.length === 0) throw new TtsError("tts_unavailable", "Seslendirilecek metin yok");
 
   const id = randomBytes(24).toString("base64url");
-  const t: Ticket = { chunks: [], done: false, failed: false, listeners: new Set(), abort: new AbortController(), createdAt: Date.now(), claimed: false };
+  const t: Ticket = { chunks: [], levels: [], done: false, failed: false, listeners: new Set(), abort: new AbortController(), createdAt: Date.now(), claimed: false };
   tickets.set(id, t);
   const source = active.provider.stream({ runs, voiceId: active.voiceId, modelId: active.modelId }, t.abort.signal);
   void (async () => {
     try {
-      for await (const chunk of source) {
-        if (!chunk.length) continue;
-        t.chunks.push(chunk);
+      for await (const piece of source) {
+        if (piece.levels?.length) t.levels.push(...piece.levels);
+        if (!piece.mp3.length) continue;
+        t.chunks.push(piece.mp3);
         notify(t);
       }
     } catch (err) {
@@ -87,6 +91,20 @@ export function openStream(active: ActiveTts, rawRuns: TtsRun[]): string {
 
 export function getStreamTicket(id: string): Ticket | null {
   return tickets.get(id) ?? null;
+}
+
+/**
+ * Ağız izinin `from` karesinden sonrası. İstemci akış çalarken birkaç yüz ms'de bir
+ * yoklar; üretim gerçek zamandan hızlı olduğu için iz oynatmanın önünde gider.
+ */
+export function mouthTrack(t: Ticket, from: number) {
+  const start = Math.max(0, Math.min(from, t.levels.length));
+  return {
+    fps: MOUTH_FPS,
+    from: start,
+    levels: t.levels.slice(start).map((v) => Math.round(v * 10000) / 10000),
+    done: t.done,
+  };
 }
 
 /**

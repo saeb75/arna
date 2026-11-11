@@ -31,13 +31,21 @@ api.interceptors.response.use(
   },
 );
 
+/**
+ * Contracts'ta şeması OLMAYAN küçük bir cevabın yerinde denetimi tutmadığında servis bunu
+ * fırlatır — `errorCode` onu Zod hatası gibi `invalid_response`a çevirir.
+ */
+export class InvalidResponseError extends Error {
+  override name = "InvalidResponseError";
+}
+
 /** Backend'in `{ error: "kod" }` zarfından kodu çıkarır; yoksa genel kod döner. */
 export function errorCode(err: unknown): string {
   if (axios.isAxiosError(err)) {
     const data = err.response?.data as { error?: string } | undefined;
     return data?.error ?? `http_${err.response?.status ?? "network"}`;
   }
-  if (err instanceof Error && err.name === "ZodError") return "invalid_response";
+  if (err instanceof Error && (err.name === "ZodError" || err instanceof InvalidResponseError)) return "invalid_response";
   return "unknown";
 }
 

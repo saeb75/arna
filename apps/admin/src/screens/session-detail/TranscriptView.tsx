@@ -1,7 +1,7 @@
 import type { AdminSessionRoleplay, AdminTranscriptTurn } from "@glotmate/contracts";
 import { Fragment, useMemo } from "react";
 import { PHASE_LABEL } from "@/lib/labels";
-import { annotateTranscript } from "@/lib/transcript";
+import { annotateTranscript, drillSummary } from "@/lib/transcript";
 import { TranscriptTurnBubble } from "@/screens/session-detail/TranscriptTurnBubble";
 
 /**
@@ -20,6 +20,7 @@ export function TranscriptView({
   roleplay: AdminSessionRoleplay | null;
 }) {
   const items = useMemo(() => annotateTranscript(turns, hitTurns, roleplay), [turns, hitTurns, roleplay]);
+  const drills = useMemo(() => drillSummary(turns), [turns]);
 
   if (turns.length === 0) {
     return (
@@ -35,6 +36,7 @@ export function TranscriptView({
         <h2 className="text-sm font-semibold">Transcript</h2>
         <span className="text-xs text-muted-foreground">
           {turns.length} turns · {turns.filter((t) => t.source === "chat").length} via LLM
+          {drills && ` · ${drills.answers} practice answers, ${drills.correct} correct`}
           {turns.some((t) => t.source === "failed") && (
             <span className="text-destructive"> · {turns.filter((t) => t.source === "failed").length} unanswered</span>
           )}

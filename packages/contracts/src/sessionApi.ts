@@ -57,3 +57,17 @@ export const ttsStreamTicketSchema = z.object({
   path: z.string().min(1),
 });
 export type TtsStreamTicket = z.infer<typeof ttsStreamTicketSchema>;
+
+/**
+ * `GET {path}/mouth?from=N` — akışlı sesin ağız izi: sunucunun ham PCM'den hesapladığı
+ * kare seviyeleri (RMS 0..1, `fps` kare/sn, `from` karesinden itibaren). Mobil oynatıcı
+ * uzak adresten çalarken ses örneği vermediği için 2.5D avatarın ağzını bu sürer.
+ * `done`: üretim bitti — iz tamam, toplam süre = (from + levels.length) / fps.
+ */
+export const ttsMouthTrackSchema = z.object({
+  fps: z.number().positive(),
+  from: z.number().int().nonnegative(),
+  levels: z.array(z.number()),
+  done: z.boolean(),
+});
+export type TtsMouthTrack = z.infer<typeof ttsMouthTrackSchema>;

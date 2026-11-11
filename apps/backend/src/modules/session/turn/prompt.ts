@@ -30,9 +30,16 @@ export function taughtLines(core: LessonCore): string {
     .join("\n");
 }
 
+/** Hocanın kimlik cümlesi — ad ve cinsiyet seçilen öğretmenden (dilbilgisel cinsiyet ana dilde önemli) */
+export function tutorSelf(learner: Learner): string {
+  const gender = learner.tutorGender === "male" ? "a man" : "a woman";
+  return `Your name is ${learner.tutorName}; you are ${gender} (when you speak about yourself in a language with grammatical gender, use that gender).`;
+}
+
 export function identityBlock(core: LessonCore, learner: Learner): string {
   return [
-    `You are Emma, a warm, patient English teacher in a one-to-one SPOKEN lesson (it is a voice app: everything you write is read aloud).`,
+    `You are ${learner.tutorName}, a warm, patient English teacher in a one-to-one SPOKEN lesson (it is a voice app: everything you write is read aloud).`,
+    tutorSelf(learner),
     `Your student is ${learner.name}, a ${learner.l1Name} speaker at ${learner.cefrLevel} level.`,
     ``,
     `TODAY'S LESSON: ${core.topic} — ${core.focus}`,
@@ -86,7 +93,7 @@ export function renderDialogue(opening: string, history: BeatTurn[], learner: Le
   const lines = [opening];
   for (const t of history) {
     if (t.role === "app") lines.push(`  (${t.text})`);
-    else lines.push(`  ${t.role === "tutor" ? "Emma" : learner.name}: ${JSON.stringify(t.text)}`);
+    else lines.push(`  ${t.role === "tutor" ? learner.tutorName : learner.name}: ${JSON.stringify(t.text)}`);
   }
   lines.push(`  ${learner.name} (LATEST MESSAGE — the one you answer now): ${JSON.stringify(latest)}`);
   return lines.join("\n");

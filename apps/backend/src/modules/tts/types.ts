@@ -81,7 +81,14 @@ export interface TtsProvider {
    * sürdükçe. `signal` iptal eder (dinleyen kalmayınca üretim ücreti durur). Yoksa
    * istemci tam klip yoluna (`/tts`) düşer.
    */
-  stream?(req: SynthesizeRunsRequest, signal: AbortSignal): AsyncIterable<Buffer>;
+  stream?(req: SynthesizeRunsRequest, signal: AbortSignal): AsyncIterable<StreamPiece>;
+}
+
+/** Akış parçası: mp3 baytları + (sağlayıcı ham PCM veriyorsa) o PCM'in ağız izi kareleri */
+export interface StreamPiece {
+  mp3: Buffer;
+  /** levels.ts MOUTH_FPS hızında RMS kareleri — zaman damgası vermeyen sesin ağzını sürer */
+  levels?: number[];
 }
 
 export class TtsError extends Error {

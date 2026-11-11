@@ -7,14 +7,39 @@
 import {
   CHECKPOINT_ITEM_COUNT,
   CHECKPOINT_LIVES,
-  ORDER_MAX_WORDS,
-  ORDER_MIN_WORDS,
+  checkpointDrillOf,
   checkpointPassed,
   checkpointSchema,
   gradeCheckpointItem,
   livesLeft,
   type CheckpointItem,
+  type DrillItem,
 } from "@glotmate/contracts";
+
+/**
+ * Bir oyun maddesinin test için sorunları (boş = sağlam). Test artık YALNIZ oyun
+ * maddesi taşır (10 Kas 2026) — tek doğru cevap sözü madde türüne göre denetlenir.
+ */
+function drillProblems(d: DrillItem): string[] {
+  const out: string[] = [];
+  const norm = (x: string) => x.trim().toLowerCase();
+  if (d.type === "speak") out.push("konuşma kartı testte olmamalı (STT riski)");
+  if ("options" in d) {
+    if (d.correctIndex < 0 || d.correctIndex >= d.options.length) out.push(`${d.type}: correctIndex aralık dışı`);
+    if (new Set(d.options.map(norm)).size !== d.options.length) out.push(`${d.type}: tekrar eden şık`);
+  }
+  if (d.type === "fill_choice") {
+    if ((d.sentence.match(/___/g) ?? []).length !== 1) out.push("fill_choice: tam bir ___ değil");
+    const caps = d.options.map((o) => /^[A-Z]/.test(o));
+    if (!caps.every((c) => c === caps[0])) out.push(`fill_choice: büyük harf ipucu (${d.options.join(" | ")})`);
+  }
+  if (d.type === "arrange") {
+    const n = d.answer.trim().split(/\s+/).length;
+    if (n < 3 || n > 10) out.push(`arrange: ${n} kelime`);
+    if (/[.!?]["']?\s+\S/.test(d.answer.trim())) out.push("arrange: iki cümle");
+  }
+  return out;
+}
 import { and, eq, inArray, like, not } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
 import { catalogLessons, lessonCores, lessonLocales, lessonSceneSets } from "../src/db/schema.js";
@@ -35,10 +60,12 @@ const parsed = checkpointSchema.safeParse(cp);
 check("şemadan geçiyor", parsed.success, parsed.success ? "" : JSON.stringify(parsed.error.issues[0]));
 check(`${CHECKPOINT_ITEM_COUNT} madde geliyor`, cp.items.length === CHECKPOINT_ITEM_COUNT, `${cp.items.length}`);
 check("ünite başlığı ve hedefi dolu", cp.unitTitle.length > 0 && cp.unitGoal.length > 0, cp.unitTitle);
-check("yönergeler ana dilde", cp.labels.order === "Kelimeleri sırala", cp.labels.order);
 
-const kinds = new Set(cp.items.map((i) => i.kind));
-check("en az iki madde tipi temsil ediliyor", kinds.size >= 2, [...kinds].join(","));
+check("bütün maddeler oyun maddesi (drill)", cp.items.every((i) => i.kind === "drill"), [...new Set(cp.items.map((i) => i.kind))].join(","));
+const types = new Set(cp.items.map((i) => checkpointDrillOf(i).type));
+check("en az dört farklı oyun türü (ünitenin karması)", types.size >= 4, [...types].join(","));
+const lessonsCovered = new Set(cp.items.map((i) => i.lessonId));
+check("en az dört farklı dersten madde", lessonsCovered.size >= 4, `${lessonsCovered.size}`);
 
 // Maddeler YALNIZCA bu ünitenin derslerinden gelmeli (yayınsız ders sızmamalı)
 const unitLessons = await db
@@ -49,31 +76,11 @@ const allowed = new Set(unitLessons.map((l) => l.id));
 check("tüm maddeler bu ünitenin derslerinden", cp.items.every((i) => allowed.has(i.lessonId)),
   cp.items.map((i) => i.lessonId).join(", "));
 
-// Tek doğru cevap sözü: her maddenin tam olarak bir doğrusu olmalı
+// Tek doğru cevap sözü — madde türüne göre
 for (const item of cp.items) {
-  if (item.kind === "order") {
-    check(`order maddesi ${ORDER_MIN_WORDS}-${ORDER_MAX_WORDS} kelime`,
-      item.answer.length >= ORDER_MIN_WORDS && item.answer.length <= ORDER_MAX_WORDS, `${item.answer.length}`);
-    check("order: karıştırılmış dizi özgün sırayla AYNI değil",
-      item.tokens.some((t, i) => t !== item.answer[i]), item.tokens.join(" "));
-    check("order: kutucuklar cevabın kelimeleriyle aynı çokluk",
-      [...item.tokens].sort().join("|") === [...item.answer].sort().join("|"));
-    // İki cümlelik örnek kutucuklara bölününce tek doğru cevap kalmaz
-    check("order: TEK cümle (araya cümle sonu noktalaması girmiyor)",
-      !/[.!?]["']?$/.test(item.answer.slice(0, -1).join(" ")), item.answer.join(" "));
-  } else {
-    check(`${item.kind}: correctIndex şık aralığında`,
-      item.correctIndex >= 0 && item.correctIndex < item.options.length, `${item.correctIndex}/${item.options.length}`);
-    const norm = (s: string) => s.trim().toLowerCase();
-    check(`${item.kind}: şıklar benzersiz (çeldirici doğruyla çakışmıyor)`,
-      new Set(item.options.map(norm)).size === item.options.length, item.options.join(" | "));
-    if (item.kind === "gap") {
-      // Harf deseni ipucu vermemeli: hepsi büyük ya da hepsi küçük başlamalı
-      const caps = item.options.map((o) => /^[A-Z]/.test(o));
-      check("gap: şıkların harf deseni aynı (büyük harf ipucu yok)",
-        caps.every((c) => c === caps[0]), item.options.join(" | "));
-    }
-  }
+  const d = checkpointDrillOf(item);
+  const probs = drillProblems(d);
+  check(`${d.type}: sağlam`, probs.length === 0, probs.join("; ") || ("options" in d ? d.options.join(" | ") : ""));
 }
 
 // --- Değerlendirme doğruluk tablosu ----------------------------------------
@@ -85,6 +92,15 @@ const mcq: CheckpointItem = {
 check("mcq doğru şık → true", gradeCheckpointItem(mcq, { kind: "choice", index: 0 }));
 check("mcq yanlış şık → false", !gradeCheckpointItem(mcq, { kind: "choice", index: 1 }));
 check("mcq'ya order cevabı → false", !gradeCheckpointItem(mcq, { kind: "order", tokens: ["I", "am"] }));
+
+const drillItem: CheckpointItem = {
+  kind: "drill", id: "t3", lessonId: "x",
+  drill: { id: "d", pointRef: "p1", type: "find_error", sentence: "We love ours teacher.", wrongIndex: 2, fix: "our" },
+};
+check("drill doğru dokunuş → true", gradeCheckpointItem(drillItem, { kind: "drill", answer: { kind: "tap", index: 2 } }));
+check("drill yanlış dokunuş → false", !gradeCheckpointItem(drillItem, { kind: "drill", answer: { kind: "tap", index: 0 } }));
+check("drill'e eski cevap türü → false", !gradeCheckpointItem(drillItem, { kind: "choice", index: 2 }));
+check("eski mcq oyun maddesine dönüşür", checkpointDrillOf(mcq).type === "situation");
 
 const order: CheckpointItem = {
   kind: "order", id: "t2", lessonId: "x",
@@ -139,14 +155,7 @@ for (const { level } of levels) {
     for (const it of built.items) {
       seen++;
       if (!own.has(it.lessonId)) problems.push(`Ü${u} başka ünitenin dersi: ${it.lessonId}`);
-      if (it.kind === "order") {
-        if (it.answer.length < ORDER_MIN_WORDS || it.answer.length > ORDER_MAX_WORDS) {
-          problems.push(`Ü${u} order ${it.answer.length} kelime`);
-        }
-        if (/[.!?]["']?$/.test(it.answer.slice(0, -1).join(" "))) problems.push(`Ü${u} order iki cümle`);
-      } else if (new Set(it.options.map((o) => o.trim().toLowerCase())).size !== it.options.length) {
-        problems.push(`Ü${u} ${it.kind} tekrar eden şık`);
-      }
+      for (const pr of drillProblems(checkpointDrillOf(it))) problems.push(`Ü${u} ${pr}`);
     }
   }
   check(`${level}: ${units.length} ünitenin hepsi geçerli test derliyor`, problems.length === 0,
@@ -169,14 +178,15 @@ let mcqSeen = 0;
 for (let i = 0; i < 12; i++) {
   const c = await buildCheckpoint({ level: "A1", unitIndex: (i % 8) + 1, nativeLanguage: "tr", tutorLanguage: "native" });
   for (const it of c.items) {
-    if (it.kind === "order") continue;
+    const d = checkpointDrillOf(it);
+    if (!("options" in d)) continue;
     mcqSeen++;
-    dist[it.correctIndex] = (dist[it.correctIndex] ?? 0) + 1;
+    dist[d.correctIndex] = (dist[d.correctIndex] ?? 0) + 1;
     // Şık geri bildirimi ŞIK HİZASINDA taşınmalı — kayarsa yanlış şıkkın
     // açıklaması gösterilir ve öğrenci doğru cevabı yanlış öğrenir.
-    if (it.kind === "mcq" && it.optionFeedback) {
-      check("mcq: optionFeedback şıklarla aynı uzunlukta",
-        it.optionFeedback.length === it.options.length, `${it.optionFeedback.length}/${it.options.length}`);
+    if (it.kind === "drill" && it.optionFeedback) {
+      check("optionFeedback şıklarla aynı uzunlukta",
+        it.optionFeedback.length === d.options.length, `${it.optionFeedback.length}/${d.options.length}`);
     }
   }
 }

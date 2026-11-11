@@ -39,6 +39,10 @@ export interface Learner {
   /** `languageName(nativeLanguage)` — prompt'a parametre olarak girer */
   l1Name: string;
   tutorLanguage: "native" | "english";
+  /** Hocanın adı — seçilen öğretmen (öğretmen kaydı yoksa "Emma"); oturuma pinlidir */
+  tutorName: string;
+  /** Hocanın cinsiyeti — ana dilde kendinden söz ederken dilbilgisel cinsiyet için */
+  tutorGender: "female" | "male";
 }
 
 /**

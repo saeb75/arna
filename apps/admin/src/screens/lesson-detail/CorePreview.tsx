@@ -1,4 +1,5 @@
 import type { LessonCore } from "@glotmate/contracts";
+import { DrillsPreview } from "./DrillsPreview";
 
 /**
  * İnceleme dökümü düzeni (review-dump.ts): iddialar + örnekler + alıştırmalar +
@@ -77,6 +78,7 @@ export function CorePreview({ core }: { core: LessonCore }) {
                 </p>
               </div>
             )}
+            {b.kind === "drills" && <DrillsPreview items={b.items} />}
             {b.kind === "open_response" && (
               <div>
                 <p>{b.question}</p>

@@ -30,6 +30,17 @@ export function SessionPositionCard({ position: p, hitTurns }: { position: Sessi
           <dd className="tabular-nums">{p.invites}</dd>
           <dt className="text-muted-foreground">Practice turn</dt>
           <dd className="tabular-nums">{p.practiceTurn}</dd>
+          {p.drill && (
+            <>
+              <dt className="text-muted-foreground">Practice block</dt>
+              <dd className="tabular-nums">
+                item #{p.drill.cursor + 1} · {p.drill.firstTry.length} right first try
+                {p.drill.skipSpeak && " · speaking skipped"}
+              </dd>
+              <dt className="text-muted-foreground">Retry queue</dt>
+              <dd className="font-mono">{p.drill.retry.length ? p.drill.retry.join(", ") : "—"}</dd>
+            </>
+          )}
           <dt className="text-muted-foreground">Target hits</dt>
           <dd className="tabular-nums">{hitTurns.length ? `${hitTurns.length} (turns ${hitTurns.join(", ")})` : "0"}</dd>
         </dl>

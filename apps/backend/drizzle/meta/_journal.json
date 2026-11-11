@@ -78,6 +78,20 @@
       "when": 1791810805108,
       "tag": "0010_entitlements",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794298912586,
+      "tag": "0011_text_translations",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794320361661,
+      "tag": "0012_tutors",
+      "breakpoints": true
     }
   ]
 }

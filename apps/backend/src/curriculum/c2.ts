@@ -134,7 +134,7 @@ export const C2: LevelSpec = {
       unitIndex: 2,
       kind: "phrases",
       title: "Appeals That Work",
-      focus: "appealing to reason, to feeling and to your own credibility",
+      focus: "appealing to consequences, to shared knowledge and to evidence",
       themeHint: "making the same case three different ways",
       targetPhrases: ["think about what happens", "you know as well", "evidence points to"],
     },

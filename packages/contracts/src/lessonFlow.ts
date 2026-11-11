@@ -8,7 +8,9 @@ export type FlowBeat =
   | { kind: "ask"; purpose: "readiness" | "questions" }
   | { kind: "teach" }
   | { kind: "exercise" }
-  | { kind: "open_response"; maxAttempts: number };
+  | { kind: "open_response"; maxAttempts: number }
+  /** Oyun bloğu — sohbet akışına GİRMEZ: istemci blok bitince ilerletir (drillGrade) */
+  | { kind: "drills" };
 
 /**
  * DERS AKIŞ MAKİNESİ — saf, deterministik, test edilebilir.

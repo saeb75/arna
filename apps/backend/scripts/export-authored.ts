@@ -79,11 +79,12 @@ function toAuthored(core: LessonCore, scenes: SceneSet, id: string): Authored {
   }
 
   // Derse özel intent metinleri kanoniğe indirgenmemeli
+  const asks = beats.filter((b): b is Extract<typeof b, { kind: "ask" }> => b.kind === "ask");
   const chrome = {
-    readiness: beats.find((b) => b.kind === "ask" && b.purpose === "readiness")?.intent,
+    readiness: asks.find((b) => b.purpose === "readiness")?.intent,
     teach: teach.introIntent,
-    questions: beats.find((b) => b.kind === "ask" && b.purpose === "questions")?.intent,
-    say: beats.find((b) => b.kind === "say")?.intent,
+    questions: asks.find((b) => b.purpose === "questions")?.intent,
+    say: beats.find((b): b is Extract<typeof b, { kind: "say" }> => b.kind === "say")?.intent,
   };
   const CANON = {
     readiness: "greet, name today's topic, ask if ready",
@@ -105,6 +106,11 @@ function toAuthored(core: LessonCore, scenes: SceneSet, id: string): Authored {
           example: openBeat.exampleAnswer,
         }
       : undefined;
+
+  // Oyun bloğu: maddeler HAM nesne olarak taşınır (dsl yardımcıları yazarlık kolaylığı;
+  // buildCore ikisini de kabul eder). id d1, d2… ise atılır (buildCore yeniden üretir).
+  const drillBeat = beats.find((b): b is Extract<typeof b, { kind: "drills" }> => b.kind === "drills");
+  const drills = drillBeat?.items.map((d, i) => (d.id === `d${i + 1}` ? { ...d, id: undefined } : d));
 
   const quiz: Q[] | undefined = core.quiz?.map((q) =>
     q.type === "mcq"
@@ -139,6 +145,7 @@ function toAuthored(core: LessonCore, scenes: SceneSet, id: string): Authored {
     points: teach.points.map((p) => ({ form: p.formEn, claims: [...p.claimsEn], ex: p.examples.map((e) => e.textEn) })),
     ex,
     ...(open ? { open } : {}),
+    ...(drills ? { drills } : {}),
     success: core.practice.successCriteria,
     ...(core.practice.minTargetUses !== 2 ? { minUses: core.practice.minTargetUses } : {}),
     ...(core.practice.maxTurns !== 8 ? { maxTurns: core.practice.maxTurns } : {}),
@@ -220,6 +227,11 @@ ${points}
     ex: [
 ${exs}
     ],${
+      a.drills
+        ? `
+    drills: ${JSON.stringify(a.drills.map((d) => JSON.parse(JSON.stringify(d))), null, 2).replace(/\n/g, "\n    ")},`
+        : ""
+    }${
       a.open
         ? `
     open: {

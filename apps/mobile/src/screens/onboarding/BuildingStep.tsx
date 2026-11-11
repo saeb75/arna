@@ -8,11 +8,12 @@ import { CtaButton } from "../../components/ui/CtaButton";
 import { ProgressRing } from "../../components/ui/ProgressRing";
 import { ScreenGlow } from "../../components/ui/ScreenGlow";
 import { OnboardingController } from "../../controllers/OnboardingController";
+import { useDraftTutorName } from "../../hooks/useTutorName";
 import { tr } from "../../i18n/tr";
 import { HapticsService } from "../../services/HapticsService";
 import { useThemeColors } from "../../theme/useThemeColors";
 
-const ITEMS = tr.onboarding.building.items;
+const ITEM_COUNT = tr.onboarding.building.items("").length;
 const STEP_MS = 650;
 
 /**
@@ -24,6 +25,7 @@ const STEP_MS = 650;
 export function BuildingStep() {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
+  const items = tr.onboarding.building.items(useDraftTutorName());
   const [done, setDone] = useState(0);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -33,7 +35,7 @@ export function BuildingStep() {
     setFailed(false);
     setDone(0);
     submitted.current = OnboardingController.submit();
-    const timers = ITEMS.map((_, i) =>
+    const timers = Array.from({ length: ITEM_COUNT }, (_, i) =>
       setTimeout(() => {
         HapticsService.tap();
         setDone(i + 1);
@@ -44,12 +46,12 @@ export function BuildingStep() {
         const ok = await submitted.current;
         if (ok) OnboardingController.next();
         else setFailed(true);
-      }, 500 + ITEMS.length * STEP_MS + 900),
+      }, 500 + ITEM_COUNT * STEP_MS + 900),
     );
     return () => timers.forEach(clearTimeout);
   }, [attempt]);
 
-  const total = 500 + ITEMS.length * STEP_MS;
+  const total = 500 + ITEM_COUNT * STEP_MS;
   return (
     // Güvenli alan ÇALIŞMA ZAMANI değeri — gerekçeli inline stil
     <View className="flex-1 items-center justify-center bg-canvas px-8" style={{ paddingTop: insets.top, paddingBottom: insets.bottom + 12 }}>
@@ -58,10 +60,10 @@ export function BuildingStep() {
         <CountUp key={attempt} to={100} duration={total} delay={150} format={(v) => `${Math.round(v)}%`} className="text-4xl font-extrabold text-foreground" />
       </ProgressRing>
       <Animated.Text entering={FadeInDown.delay(200).duration(420)} className="mt-8 text-center text-2xl font-extrabold tracking-tight text-foreground">
-        {failed ? tr.onboarding.building.failed : done >= ITEMS.length ? tr.onboarding.building.done : tr.onboarding.building.title}
+        {failed ? tr.onboarding.building.failed : done >= ITEM_COUNT ? tr.onboarding.building.done : tr.onboarding.building.title}
       </Animated.Text>
       <View className="mt-6 w-full gap-3">
-        {ITEMS.map((item, i) => {
+        {items.map((item, i) => {
           const ok = done > i;
           return (
             <Animated.View

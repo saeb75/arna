@@ -79,6 +79,7 @@ export function RoleplayPlayScreen({ slug }: { slug: string }) {
       <AvatarStage
         speaking={s.speaking}
         avatarId={s.avatarId}
+        tutorName={s.tutorName}
         activity={s.recording ? "listening" : s.busy && !s.speaking ? "thinking" : "idle"}
       />
 
@@ -97,7 +98,7 @@ export function RoleplayPlayScreen({ slug }: { slug: string }) {
       <InputDock
         locked={locked}
         recording={s.recording}
-        placeholder={s.busy ? tr.lesson.thinking : tr.roleplay.play.placeholder}
+        placeholder={s.busy ? tr.lesson.thinking(s.tutorName) : tr.roleplay.play.placeholder}
         onSend={(t) => void RoleplaySessionController.say(t)}
         onPressMic={() => void RoleplaySessionController.pressMic()}
         onReleaseMic={() => void RoleplaySessionController.releaseMic()}

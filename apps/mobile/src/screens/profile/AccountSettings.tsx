@@ -3,6 +3,7 @@ import { LogOut, Trash } from "lucide-react-native";
 import { SettingsGroup } from "../../components/shared/SettingsGroup";
 import { SettingsRow } from "../../components/shared/SettingsRow";
 import { AuthController } from "../../controllers/AuthController";
+import { useTutorName } from "../../hooks/useTutorName";
 import { tr } from "../../i18n/tr";
 import { useAuthStore } from "../../stores/useAuthStore";
 
@@ -13,6 +14,7 @@ import { useAuthStore } from "../../stores/useAuthStore";
 export function AccountSettings() {
   const anonymous = useAuthStore((s) => s.isAnonymous);
   const busy = useAuthStore((s) => s.busy);
+  const tutorName = useTutorName();
   return (
     <SettingsGroup title={tr.profile.groups.account}>
       {!anonymous ? (
@@ -35,7 +37,7 @@ export function AccountSettings() {
         destructive
         busy={busy}
         onPress={() =>
-          Alert.alert(tr.profile.deleteTitle, tr.profile.deleteBody, [
+          Alert.alert(tr.profile.deleteTitle, tr.profile.deleteBody(tutorName), [
             { text: tr.common.cancel, style: "cancel" },
             { text: tr.profile.deleteConfirm, style: "destructive", onPress: () => void AuthController.deleteAccount() },
           ])

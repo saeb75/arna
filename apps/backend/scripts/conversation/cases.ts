@@ -1,6 +1,6 @@
 import type { LessonCore, TurnKind } from "@glotmate/contracts";
 import type { BeatTurn, TurnCounters } from "../../src/modules/session/turn/types.js";
-import { A1_INTRO, A1_SCENE, A2_DOES } from "./fixtures.js";
+import { A1_HELLO, A1_INTRO, A1_SCENE, A1_SCENE_TRAVEL, A2_DOES } from "./fixtures.js";
 import type { SceneVariant } from "@glotmate/contracts";
 
 /**
@@ -49,6 +49,8 @@ export interface ConvMoment {
   turnCap?: number;
   closesNow?: boolean;
   goalMet?: boolean;
+  /** Dersin CEFR seviyesi (katalog) — rol yapmanın dil düzeyi buna bağlı */
+  lessonLevel?: string;
 }
 
 export interface ConvCase {
@@ -392,6 +394,41 @@ const CONV = {
     closesNow: true,
     goalMet: true,
   },
+  // CANLI (10 Kas 2026): A1 "Hello, I'm…" seyahat sahnesi — Marta öğretilmemiş konulara
+  // saptı ("first time at this airport?", "excited about your trip?") ve dersin kalıpları
+  // hiç söylenecek yere gelmedi. (Fikstür: gerçek a1-hello-im çekirdeği.)
+  practiceA1Drift: {
+    id: "practice-a1-drift",
+    label: "A1 · Rol yapma — karakter dersin diline bağlı kalmalı",
+    phase: "practice",
+    core: A1_HELLO,
+    scene: A1_SCENE_TRAVEL,
+    lessonLevel: "A1",
+    history: [
+      { role: "assistant", text: "Şimdi kısa bir canlandırma yapalım: Havalimanında kapıda başka bir yolcunun yanında bekliyorsun." },
+      { role: "assistant", text: A1_SCENE_TRAVEL.avatarOpening },
+      { role: "user", text: "Yes, it's free." },
+      { role: "assistant", text: "Thank you. I'm Marta. What's your name?" },
+    ],
+    turnIndex: 1,
+    turnCap: 8,
+    closesNow: false,
+  },
+  practiceA1Start: {
+    id: "practice-a1-start",
+    label: "A1 · Rol yapma — ilk tur",
+    phase: "practice",
+    core: A1_HELLO,
+    scene: A1_SCENE_TRAVEL,
+    lessonLevel: "A1",
+    history: [
+      { role: "assistant", text: "Şimdi kısa bir canlandırma yapalım: Havalimanında kapıda başka bir yolcunun yanında bekliyorsun." },
+      { role: "assistant", text: A1_SCENE_TRAVEL.avatarOpening },
+    ],
+    turnIndex: 0,
+    turnCap: 8,
+    closesNow: false,
+  },
   wrapup: {
     id: "wrapup",
     label: "Kapanış sohbeti",
@@ -429,6 +466,14 @@ export function buildConvCases(): ConvCase[] {
       ["what is the correct answer?", { usesTarget: false, focus: "Alıştırmalardan söz edilmemeli; sahnede kalınmalı." }],
       ["you are stupid", { usesTarget: false }],
       ["bye", { usesTarget: false, focus: "Sahne SÜRÜYOR (kod kapatmıyor): Mia veda edip sahneyi bitirmemeli." }],
+    ]),
+    ...c(CONV.practiceA1Drift, [
+      ["My name is Saeed.", { usesTarget: true, focus: "A1: karakter dersin henüz söylenmemiş kalıbına (nice to meet you / how are you) kapı açmalı; havalimanı/yolculuk/duygu gibi öğretilmemiş konulara SAPMAMALI." }],
+      ["Hi Marta, I'm Saeed.", { usesTarget: true, focus: "A1: tek kısa cümle + dersin kalıbına kapı açan tek basit soru." }],
+    ]),
+    ...c(CONV.practiceA1Start, [
+      ["Yes, it's free.", { usesTarget: false, focus: "A1: karakter kendini kısaca tanıtıp öğrencinin adını sormalı ya da dersin başka bir kalıbına kapı açmalı; konu dışı soru yok." }],
+      ["yes", { usesTarget: false, focus: "A1: çok kısa cevaba basit, dersin kalıbına yönelten bir soru." }],
     ]),
     ...c(CONV.practiceClose, [
       ["no thanks, nice to meet you", { focus: "Kod bu cevapla sahneyi KAPATIYOR: sıcak kapanış, SORU YOK." }],

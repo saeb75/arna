@@ -1,7 +1,8 @@
 import { env } from "../../config/env.js";
+import { createLevelMeter } from "./levels.js";
 import { createMp3Stream, pcmToMp3, wavToPcm } from "./mp3.js";
 import { joinForSpeech } from "./speakable.js";
-import { TtsError, type SynthesizeResult, type SynthesizeRunsRequest, type TtsProvider } from "./types.js";
+import { TtsError, type StreamPiece, type SynthesizeResult, type SynthesizeRunsRequest, type TtsProvider } from "./types.js";
 
 /**
  * GOOGLE GEMINI TTS (5 Kas 2026, kullanıcı kararı — kulak testinde Türkçe+İngilizce
@@ -128,7 +129,7 @@ async function generate(text: string, voiceId: string, modelId: string): Promise
  * Akış: SSE (`streamGenerateContent?alt=sse`) — her olay bir PCM parçası taşır; mp3'e
  * çevrilip anında verilir. `signal` iptali Gemini isteğini de keser (üretim ücreti durur).
  */
-async function* generateStream(text: string, voiceId: string, modelId: string, signal: AbortSignal): AsyncGenerator<Buffer> {
+async function* generateStream(text: string, voiceId: string, modelId: string, signal: AbortSignal): AsyncGenerator<StreamPiece> {
   const res = await fetch(`${API}/${encodeURIComponent(modelId)}:streamGenerateContent?alt=sse`, {
     method: "POST",
     headers: headers(),
@@ -140,6 +141,8 @@ async function* generateStream(text: string, voiceId: string, modelId: string, s
   if (!res.ok || !res.body) throw await failure(res);
 
   let encoder: ReturnType<typeof createMp3Stream> | null = null;
+  // ağız izi: aynı PCM'den kare seviyeleri (oynatıcı uzak adreste ses örneği vermiyor)
+  let meter: ReturnType<typeof createLevelMeter> | null = null;
   let produced = false;
   const decoder = new TextDecoder();
   let pending = "";
@@ -160,19 +163,22 @@ async function* generateStream(text: string, voiceId: string, modelId: string, s
       for (const part of chunk.candidates?.[0]?.content?.parts ?? []) {
         const b64 = part.inlineData?.data;
         if (!b64) continue;
-        encoder ??= createMp3Stream(rateOf(part.inlineData?.mimeType));
-        const mp3 = encoder.push(Buffer.from(b64, "base64"));
-        if (mp3.length) {
-          produced = true;
-          yield mp3;
-        }
+        const rate = rateOf(part.inlineData?.mimeType);
+        encoder ??= createMp3Stream(rate);
+        meter ??= createLevelMeter(rate);
+        const pcm = Buffer.from(b64, "base64");
+        const mp3 = encoder.push(pcm);
+        const levels = meter.push(pcm);
+        if (mp3.length) produced = true;
+        if (mp3.length || levels.length) yield { mp3, levels };
       }
     }
   }
   if (!encoder) throw new TtsError("tts_unavailable", "Gemini akışı ses döndürmedi");
   const tail = encoder.end();
-  if (tail.length) yield tail;
-  else if (!produced) throw new TtsError("tts_unavailable", "Gemini akışı boş");
+  const lastLevels = meter?.end() ?? [];
+  if (tail.length || lastLevels.length) yield { mp3: tail, levels: lastLevels };
+  if (!tail.length && !produced) throw new TtsError("tts_unavailable", "Gemini akışı boş");
 }
 
 export const geminiProvider: TtsProvider = {

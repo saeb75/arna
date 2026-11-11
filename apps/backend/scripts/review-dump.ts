@@ -12,7 +12,34 @@ import { writeFileSync } from "node:fs";
 import { and, asc, eq, like, not } from "drizzle-orm";
 import { db, sql } from "../src/db/client.js";
 import { catalogLessons, lessonCores, lessonSceneSets } from "../src/db/schema.js";
-import type { LessonCore, SceneVariant } from "@glotmate/contracts";
+import { correctedSentence, type DrillItem, type LessonCore, type SceneVariant } from "@glotmate/contracts";
+
+function choices(options: string[], correct: number): string {
+  return options.map((o, i) => (i === correct ? `✔ ${o}` : o)).join(" | ");
+}
+
+function describeDrill(d: DrillItem): string {
+  switch (d.type) {
+    case "fill_choice":
+      return `[boşluk] ${d.sentence} (${choices(d.options, d.correctIndex)})`;
+    case "situation":
+      return `[durum] ${d.context} (${choices(d.options, d.correctIndex)})`;
+    case "arrange":
+      return `[sırala] ${d.answer}${d.extraTiles.length ? ` + çeldirici: ${d.extraTiles.join(", ")}` : ""}`;
+    case "find_error":
+      return `[hata] ${d.sentence} → ${correctedSentence(d)}`;
+    case "complete_chat":
+      return `[sohbet] ${d.lines.map((l) => `${l.who}: ${l.text ?? "___"}`).join(" / ")} (${choices(d.options, d.correctIndex)})`;
+    case "match":
+      return `[eşleştir] ${d.pairs.map((p) => `${p.left} ↔ ${p.right}`).join(" · ")}`;
+    case "listen_choose":
+      return `[dinle-seç] 🔊 ${d.audio} (${choices(d.options, d.correctIndex)})`;
+    case "listen_arrange":
+      return `[dinle-diz] 🔊 ${d.audio}${d.extraTiles.length ? ` + çeldirici: ${d.extraTiles.join(", ")}` : ""}`;
+    case "speak":
+      return `[söyle] 🎤 ${d.sentence}${d.accepted.length ? ` (kabul: ${d.accepted.join(" / ")})` : ""}`;
+  }
+}
 
 const level = process.argv[process.argv.indexOf("--level") + 1];
 if (!level || level.startsWith("--")) {
@@ -62,6 +89,12 @@ for (const { cat, core: coreRow } of rows) {
     }
     if (b.kind === "open_response") {
       lines.push(`- [open] ${b.question} → örnek: ${b.exampleAnswer}`);
+    }
+    if (b.kind === "drills") {
+      // Her madde tek satır; doğru şık ✔ ile. İncelemede sorulacak: başka şık da olur mu?
+      lines.push(`**Oyun bloğu (${b.items.length} madde)**`);
+      for (const d of b.items) lines.push(`- \`${d.pointRef}\` ${describeDrill(d)}`);
+      lines.push(``);
     }
   }
 

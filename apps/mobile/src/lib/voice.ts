@@ -1,6 +1,6 @@
 import { AudioModule, createAudioPlayer, setAudioModeAsync, RecordingPresets, type AudioPlayer } from "expo-audio";
 import * as FileSystem from "expo-file-system/legacy";
-import { hasWordContent, ttsStreamTicketSchema, type AvatarClip, type RichText } from "@glotmate/contracts";
+import { hasWordContent, ttsMouthTrackSchema, ttsStreamTicketSchema, type AvatarClip, type RichText } from "@glotmate/contracts";
 import { api } from "../api";
 import { AvatarBridge } from "./avatarBridge";
 import { SpeechClock } from "./speechClock";
@@ -87,13 +87,42 @@ type StreamTimer = ReturnType<typeof setTimeout> | ReturnType<typeof setInterval
 /** 409 (`stream_unsupported`) sonrası bu süre akış denenmez — her konuşmada boş istek atılmasın */
 const STREAM_OFF_MS = 5 * 60_000;
 let streamOffUntil = 0;
+
+/**
+ * KAYITTAN ÇALMAYA GEÇİŞ (10 Kas 2026, oyun bloğu): kayıt bitince mod `allowsRecording:
+ * false`a döner ama iOS çıkış yönlendirmesi bir an geride kalır — bu aralıkta çalan
+ * ses oynatıcı "çalıyor" görünürken (saat ilerler, avatarın ağzı oynar) duyulmuyordu.
+ * Sohbette görünmüyordu (hocanın cevabı ağdan ≥1 sn sonra gelir); oyun bloğunda
+ * "Tekrar dinle" ve sonraki maddenin sesi kayıttan hemen sonra çalabiliyor.
+ * Çare: mod kirliyse çalmadan önce yeniden kurulur ve yönlendirmenin oturması beklenir.
+ */
+const ROUTE_SETTLE_MS = 700;
+let recordingEndedAt = 0;
+let playbackModeDirty = false;
+
+async function ensurePlaybackRoute(): Promise<void> {
+  if (playbackModeDirty) {
+    await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false }).catch(() => undefined);
+    playbackModeDirty = false;
+  }
+  const wait = recordingEndedAt + ROUTE_SETTLE_MS - Date.now();
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+}
 /** Akış adresi bu sürede ses vermezse tam klip yoluna düşülür */
 const STREAM_START_MS = 6_000;
 
 /** Akış bileti: başarılıysa API köküne göreli yol, değilse null (çağıran tam klibe düşer) */
-async function requestStream(sessionId: string, runs: RichText): Promise<string | null> {
+/**
+ * TTS uçlarının kökü: ders oturumunda oturuma bağlı uçlar, oturumsuz (ünite testinin
+ * dinleme maddeleri) `null` → yalnız İngilizce okuyan `/v1/tts` uçları.
+ */
+function ttsBase(sessionId: string | null): string {
+  return sessionId ? `/v1/sessions/${sessionId}` : "/v1";
+}
+
+async function requestStream(sessionId: string | null, runs: RichText): Promise<string | null> {
   try {
-    const res = await api.post(`/v1/sessions/${sessionId}/tts/stream`, {
+    const res = await api.post(`${ttsBase(sessionId)}/tts/stream`, {
       runs: runs.map((r) => ({ lang: r.lang, text: r.text })),
     });
     return ttsStreamTicketSchema.parse(res.data).path;
@@ -102,6 +131,35 @@ async function requestStream(sessionId: string, runs: RichText): Promise<string 
     if (status === 409 || status === 404) streamOffUntil = Date.now() + STREAM_OFF_MS;
     return null;
   }
+}
+
+/** Ağız izi yoklama aralığı — üretim gerçek zamandan hızlı, iz oynatmanın önünde kalır */
+const MOUTH_POLL_MS = 250;
+
+/**
+ * Akışın AĞIZ İZİNİ sunucudan çek ve SpeechClock'a ver (oynatıcı uzak adresten çalarken
+ * ses örneği vermiyor → Gemini akışında avatarın ağzı gerçek sesi ancak böyle duyar).
+ * İz bitince ya da oynatıcı bırakılınca durur; hata akışı ASLA etkilemez (ağız metin
+ * tahminine düşer).
+ */
+function followMouthTrack(path: string, player: AudioPlayer, alive: () => boolean): void {
+  let from = 0;
+  let failures = 0;
+  const tick = async (): Promise<void> => {
+    if (!alive()) return;
+    try {
+      const res = await api.get(`${path}/mouth`, { params: { from } });
+      const track = ttsMouthTrackSchema.parse(res.data);
+      if (!alive()) return;
+      SpeechClock.appendTrack(player, track.fps, track.levels, track.done);
+      from = track.from + track.levels.length;
+      if (track.done) return;
+    } catch {
+      if (++failures >= 3) return; // eski sunucu (uç yok) ya da bilet süresi doldu
+    }
+    setTimeout(() => void tick(), MOUTH_POLL_MS);
+  };
+  void tick();
 }
 
 /**
@@ -124,6 +182,7 @@ function streamPlayback(
   SpeechClock.begin(player, null, speechTextOf(runs)); // zaman damgası yok — şekil metinden tahmin, açıklık enerjiden
   let started = false;
   let done = false;
+  followMouthTrack(path, player, () => !done && gen === generation);
   let stalledSince = 0;
   let lastT = -1;
   let lastAdvance = Date.now();
@@ -207,6 +266,11 @@ function streamPlayback(
 }
 
 export const VoiceService = {
+  /** Kayıttan hemen sonra çalacak kısa sesler (oyun bloğu efektleri) için aynı koruma */
+  async playbackReady(): Promise<void> {
+    await ensurePlaybackRoute();
+  },
+
   async init(): Promise<void> {
     // allowsRecording BURADA AÇILMAZ: iOS kayıt modunu görünce ÇIKIŞI hoparlör
     // yerine kulaklık alıcısına yönlendirir (kısık/duyulmaz ses — klasik tuzak).
@@ -224,7 +288,7 @@ export const VoiceService = {
    * `onFail`: TTS isteği düştü (akış yine ilerler) — çağıran öğrenciye "ses şu an
    * çalınamıyor" der; eskiden Emma sebepsizce susuyordu.
    */
-  async speak(sessionId: string, runs: RichText, onEnd: () => void, onFail?: () => void): Promise<void> {
+  async speak(sessionId: string | null, runs: RichText, onEnd: () => void, onFail?: () => void): Promise<void> {
     // SIRA KRİTİK: önce eskiyi sustur (generation++ yapar), SONRA bu konuşmanın
     // neslini al. İlk sürüm tersini yapıyordu ve kendi neslini anında geçersiz
     // kılıyordu — TTS cevabı gelir gelmez `gen !== generation` tutuyor, klipler
@@ -253,11 +317,20 @@ export const VoiceService = {
     };
     current = { settle, abandon }; // söz kesilirse skipSpeaking bunu HEMEN çalıştırır
 
+    // Kayıttan hemen sonraysa çıkış yönlendirmesi otursun (bkz. ensurePlaybackRoute).
+    // `current` BEKLEMEDEN ÖNCE kurulur: bu arada söz kesilirse skipSpeaking onEnd'i
+    // yine çalıştırabilsin (zincir kopmasın); stopPlayback gelirse abandon no-op yapar.
+    await ensurePlaybackRoute();
+    if (gen !== generation || settled) {
+      settle();
+      return;
+    }
+
     /** TAM KLİP YOLU: `/tts` → mp3 klipler (3D avatar köprüsü ya da expo-audio) */
     const viaClips = async (): Promise<void> => {
       let clips: AvatarClip[] = [];
       try {
-        const res = await api.post(`/v1/sessions/${sessionId}/tts`, {
+        const res = await api.post(`${ttsBase(sessionId)}/tts`, {
           runs: runs.map((r) => ({ lang: r.lang, text: r.text })),
         });
         clips = (res.data as { clips: AvatarClip[] }).clips ?? [];
@@ -404,6 +477,65 @@ export const VoiceService = {
     await viaClips();
   },
 
+  /**
+   * Hazır klipleri (base64 mp3) sırayla çal — öğretmen seçimindeki ses örneği
+   * (`POST /v1/tutors/:id/sample` zaten klip döndürür). Avatar yok, köprü yok: düz
+   * expo-audio. `onEnd` TAM BİR KEZ (bitiş, hata, watchdog ya da yeni bir konuşma/
+   * stopPlayback'te ÇAĞRILMAZ — abandon). Oynatma modu derslerle aynı (sessiz anahtarda da çalar).
+   */
+  async playClips(clips: AvatarClip[], onEnd: () => void): Promise<void> {
+    this.stopPlayback();
+    const gen = generation;
+    let settled = false;
+    let watchdog: ReturnType<typeof setTimeout> | null = null;
+    const abandon = () => {
+      settled = true;
+      if (watchdog) clearTimeout(watchdog);
+    };
+    const settle = () => {
+      if (settled) return;
+      abandon();
+      if (current?.settle === settle) current = null;
+      onEnd();
+    };
+    current = { settle, abandon };
+    await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false }).catch(() => undefined);
+    await ensurePlaybackRoute();
+    if (gen !== generation || settled || clips.length === 0) {
+      settle();
+      return;
+    }
+    watchdog = setTimeout(settle, clips.reduce((sum, c) => sum + clipMaxSeconds(c) * 1000 + 3_000, 5_000));
+    const playClip = async (index: number): Promise<void> => {
+      const clip = clips[index];
+      if (!clip || gen !== generation) return settle();
+      try {
+        const path = `${FileSystem.cacheDirectory}sample-${gen}-${index}.mp3`;
+        await FileSystem.writeAsStringAsync(path, clip.audioBase64, { encoding: FileSystem.EncodingType.Base64 });
+        if (gen !== generation) return settle();
+        const player = createAudioPlayer({ uri: path });
+        currentPlayer = player;
+        let clipDone = false;
+        player.addListener("playbackStatusUpdate", (status) => {
+          if (gen !== generation || !status.didJustFinish || clipDone) return;
+          clipDone = true;
+          try {
+            player.remove();
+          } catch {
+            /* zaten kaldırılmış */
+          }
+          if (currentPlayer === player) currentPlayer = null;
+          if (index + 1 < clips.length) void playClip(index + 1);
+          else settle();
+        });
+        player.play();
+      } catch {
+        settle();
+      }
+    };
+    void playClip(0);
+  },
+
   stopPlayback(): void {
     generation++; // yoldaki TTS yanıtlarını ve dinleyicileri geçersiz kıl
     const pending = current;
@@ -451,6 +583,7 @@ export const VoiceService = {
             return false;
           }
         }
+        playbackModeDirty = true;
         await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
         const recorder = new AudioModule.AudioRecorder(STT_RECORDING);
         // Seçenekler prepare'A DA verilmek ZORUNDA: yalnız constructor'a verilince
@@ -496,6 +629,8 @@ export const VoiceService = {
       await recorder.stop();
       // Kayıt modundan HEMEN çık — açık kalırsa sonraki TTS alıcıdan kısık çalar
       await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: false });
+      playbackModeDirty = false;
+      recordingEndedAt = Date.now();
       const uri = recorder.uri;
       if (!uri) {
         console.warn("[voice] kayıt durdu ama dosya URI'si yok");

@@ -31,6 +31,7 @@ export function RootStack() {
       <Stack.Screen name="auth/save-progress" options={{ ...sheet([0.8, 0.95]), contentStyle: { backgroundColor: colors.canvas } }} />
       <Stack.Screen name="settings/level" options={{ ...sheet([0.85]), contentStyle: { backgroundColor: colors.canvas } }} />
       <Stack.Screen name="settings/track" options={{ ...sheet([0.75]), contentStyle: { backgroundColor: colors.canvas } }} />
+      <Stack.Screen name="settings/teacher" options={{ ...sheet([0.85]), contentStyle: { backgroundColor: colors.canvas } }} />
       <Stack.Screen name="settings/tutor" options={{ ...sheet(), contentStyle: { backgroundColor: colors.canvas } }} />
       <Stack.Screen name="settings/goal" options={{ ...sheet(), contentStyle: { backgroundColor: colors.canvas } }} />
       <Stack.Screen name="settings/name" options={{ ...sheet(), contentStyle: { backgroundColor: colors.canvas } }} />

@@ -12,6 +12,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import {
   gradeCheckpointItem,
+  legacyCheckpointItemOf,
   type Checkpoint,
   type CheckpointAnswer,
   type CheckpointItem,
@@ -48,7 +49,13 @@ export default function CheckpointPage({
   /** Testi derle. Her çağrıda farklı örneklem gelir — tekrar denemede yeni sorular. */
   const load = useCallback(async () => {
     try {
-      setCheckpoint(await api<Checkpoint>(`/v1/checkpoints/${level}/${unit}`));
+      // Test artık oyun maddesi taşır (mobil); web dev yüzeyi eski üç türe indirger,
+      // karşılığı olmayanları (eşleştir, hatalı kelime, dinleme) atlar.
+      const raw = await api<Checkpoint>(`/v1/checkpoints/${level}/${unit}`);
+      setCheckpoint({
+        ...raw,
+        items: raw.items.map(legacyCheckpointItemOf).filter((i): i is NonNullable<typeof i> => i !== null),
+      });
     } catch (err) {
       const code = err instanceof ApiError ? err.code : "unknown";
       setLoadError(
@@ -65,7 +72,8 @@ export default function CheckpointPage({
     void load();
   }, [load]);
 
-  const item = checkpoint?.items[index];
+  // Yükleme anında eski türlere indirgendi (legacyCheckpointItemOf) — oyun maddesi kalmaz
+  const item = checkpoint?.items[index] as Exclude<CheckpointItem, { kind: "drill" }> | undefined;
 
   const answer = useMemo<CheckpointAnswer | null>(() => {
     if (!item) return null;

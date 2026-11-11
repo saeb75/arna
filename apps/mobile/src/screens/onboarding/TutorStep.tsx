@@ -4,21 +4,23 @@ import { Globe, Languages } from "lucide-react-native";
 import { OptionCard } from "../../components/ui/OptionCard";
 import { OnboardingController } from "../../controllers/OnboardingController";
 import { DEFAULT_NATIVE_LANGUAGE, languageName } from "../../domain/language";
+import { useDraftTutorName } from "../../hooks/useTutorName";
 import { tr } from "../../i18n/tr";
 import { useOnboardingStore } from "../../stores/useOnboardingStore";
 import { useThemeColors } from "../../theme/useThemeColors";
 import { QuestionShell, rise, type ShellProps } from "./QuestionShell";
 
-/** Açıklama dili — native: Emma kuralları ana dilde anlatır; english: tam daldırma. */
+/** Açıklama dili (öğretmen SEÇİMİ değil — o TeacherStep) — native: hoca kuralları ana dilde anlatır; english: tam daldırma. */
 export function TutorStep({ shell }: { shell: ShellProps }) {
   const colors = useThemeColors();
   const tutor = useOnboardingStore((s) => s.tutorLanguage);
+  const tutorName = useDraftTutorName();
   const pick = (tutorLanguage: "native" | "english") => {
     OnboardingController.answer({ tutorLanguage });
     setTimeout(() => OnboardingController.next(), 320);
   };
   return (
-    <QuestionShell {...shell} title={tr.onboarding.tutor.title} body={tr.onboarding.tutor.body}>
+    <QuestionShell {...shell} title={tr.onboarding.tutor.title(tutorName)} body={tr.onboarding.tutor.body}>
       <View className="gap-3 px-6">
         <Animated.View entering={rise(2)}>
           <OptionCard

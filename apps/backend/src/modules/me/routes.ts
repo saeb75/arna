@@ -8,6 +8,7 @@ import { getEntitlement } from "../billing/entitlements.js";
 import { safeTimezone } from "../../lib/timezone.js";
 import { getCurriculumForUser } from "../curriculum/queries.js";
 import { deleteAccount, getProfile, getStats } from "./service.js";
+import { isSelectableTutor, resolveTutorById, toPublicTutor } from "../tutor/registry.js";
 
 const byUser = (req: FastifyRequest) => (req as { userId?: string }).userId ?? req.ip;
 
@@ -21,12 +22,15 @@ export default async function meRoutes(app: FastifyInstance) {
       getProfile(request.userId),
       getEntitlement(request.userId),
     ]);
+    // Çözümlenmiş öğretmen (seçim gizlendiyse varsayılan); kayıt yoksa null → istemci eski avatar yolu
+    const tutor = await resolveTutorById(profile?.tutorId ?? null);
     return {
       userId: request.userId,
       email: request.userEmail,
       isAnonymous: request.isAnonymous,
       profile,
       entitlement,
+      tutor: tutor.id ? toPublicTutor({ ...tutor, id: tutor.id }) : null,
     };
   });
 
@@ -41,6 +45,9 @@ export default async function meRoutes(app: FastifyInstance) {
       return reply.code(400).send({ error: "invalid_input", issues: parsed.error.issues });
     }
     const p = parsed.data;
+    if (p.tutorId !== undefined && !(await isSelectableTutor(p.tutorId))) {
+      return reply.code(400).send({ error: "invalid_tutor" });
+    }
     const updated = await db
       .update(userProfiles)
       .set({
@@ -48,6 +55,7 @@ export default async function meRoutes(app: FastifyInstance) {
         ...(p.cefrLevel !== undefined ? { cefrLevel: p.cefrLevel } : {}),
         ...(p.track !== undefined ? { track: p.track } : {}),
         ...(p.tutorLanguage !== undefined ? { tutorLanguage: p.tutorLanguage } : {}),
+        ...(p.tutorId !== undefined ? { tutorId: p.tutorId } : {}),
         ...(p.dailyGoalMinutes !== undefined ? { dailyGoalMinutes: p.dailyGoalMinutes } : {}),
         ...(p.interests !== undefined ? { interests: p.interests } : {}),
         ...(p.occupation !== undefined ? { occupation: p.occupation } : {}),

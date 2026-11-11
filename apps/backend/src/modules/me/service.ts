@@ -32,6 +32,7 @@ export async function getProfile(userId: string): Promise<MeProfile | null> {
     interests: (p.interests as string[]) ?? [],
     occupation: p.occupation,
     timezone: p.timezone,
+    tutorId: p.tutorId,
   };
 }
 

@@ -118,7 +118,9 @@ paths:
       summary: Hesabım — profil, abonelik, bugünkü kota
       description: |
         İstemci kapısı buna bakar: `profile: null` → onboarding. Misafir (Supabase
-        anonim) oturumda `isAnonymous: true`. Şema: contracts `meResponseSchema`.
+        anonim) oturumda `isAnonymous: true`. `tutor` = çözümlenmiş öğretmen (seçim
+        gizlendiyse varsayılan; hiç öğretmen kaydı yoksa null), `profile.tutorId` = ham
+        seçim. Şema: contracts `meResponseSchema`.
       responses:
         "200": { description: "MeResponse (contracts `meResponseSchema`)" }
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -152,6 +154,7 @@ paths:
                 cefrLevel: { $ref: "#/components/schemas/CefrLevel" }
                 track: { $ref: "#/components/schemas/Track" }
                 tutorLanguage: { type: string, enum: [native, english] }
+                tutorId: { type: string, description: "Aktif öğretmen kimliği (değilse 400 invalid_tutor)" }
                 dailyGoalMinutes: { type: integer, enum: [5, 10, 15] }
                 interests: { type: array, items: { type: string } }
                 occupation: { type: string, nullable: true, maxLength: 120 }
@@ -238,9 +241,31 @@ paths:
   /v1/avatar:
     get:
       tags: [Ders]
-      summary: Aktif avatar (admin ayarı)
+      summary: Kullanıcının avatarı (öğretmeninden; öğretmen kaydı yoksa global ayar)
       responses:
-        "200": { description: "{ activeId }" }
+        "200": { description: "{ activeId, tutorName }" }
+
+  /v1/tutors:
+    get:
+      tags: [Hesap]
+      summary: Seçilebilir öğretmenler (onboarding + ayarlar)
+      description: |
+        Yalnız aktif öğretmenler, panel sırasıyla. Ses ayrıntısı istemciye gitmez.
+        Seçim `PATCH /v1/me/profile` (`tutorId`) ya da onboarding gövdesiyle yazılır.
+      responses:
+        "200": { description: "{ tutors: [{id, name, avatarId, gender}], defaultId } (contracts `tutorsResponseSchema`)" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/tutors/{id}/sample:
+    post:
+      tags: [Hesap]
+      summary: Öğretmenin sesini dinle (kısa İngilizce tanıtım, tam klip)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: "{ clips } — `/v1/tts` ile aynı şekil" }
+        "404": { description: not_found }
+        "502": { description: tts_unavailable }
 
   /v1/lessons/{catalogLessonId}/resume:
     get:
@@ -401,6 +426,38 @@ paths:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
         "200": { description: "Güncel kullanıcı detayı" }
+
+  /v1/admin/tutors:
+    get:
+      tags: [Admin]
+      summary: Öğretmenler + bağlanabilir 2.5D rig'ler
+      responses:
+        "200": { description: "AdminTutorsResponse (contracts `adminTutorsResponseSchema`)" }
+    post:
+      tags: [Admin]
+      summary: Öğretmen ekle (ses kaydetmeden önce denetlenir; ilk öğretmen varsayılan olur)
+      responses:
+        "200": { description: AdminTutorsResponse }
+        "400": { description: "invalid_input | voice_invalid | default_hidden" }
+        "409": { description: exists }
+
+  /v1/admin/tutors/{id}:
+    put:
+      tags: [Admin]
+      summary: Öğretmeni güncelle (silme yok — gizle)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: AdminTutorsResponse }
+        "400": { description: "invalid_input | voice_invalid | default_required | default_hidden" }
+        "404": { description: not_found }
+
+  /v1/admin/tutors/sample-line:
+    get:
+      tags: [Admin]
+      summary: Kullanıcının duyacağı tanıtım cümlesi (`?name=`)
+      responses:
+        "200": { description: "{ text }" }
 
   /v1/admin/settings/avatar:
     get:

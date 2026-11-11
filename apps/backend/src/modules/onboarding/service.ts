@@ -5,6 +5,7 @@ import { programs, userProfiles } from "../../db/schema.js";
 import { normalizeNativeLanguage } from "../../lib/language.js";
 import { getCurriculumForUser } from "../curriculum/queries.js";
 import { safeTimezone } from "../../lib/timezone.js";
+import { isSelectableTutor } from "../tutor/registry.js";
 
 /**
  * Profili yazar ve kullanıcının seviyesini işaretler, sonra SABİT katalog
@@ -20,6 +21,9 @@ export async function createProgramForUser(
 ): Promise<CurriculumResponse> {
   const nativeLanguage = normalizeNativeLanguage(input.nativeLanguage);
   const timezone = safeTimezone(input.timezone);
+  // Öğretmen seçimi: yalnız aktif öğretmen; geçersizse yazılmaz (varsayılan öğretmen) —
+  // onboarding bir öğretmen kimliği yüzünden asla düşmez
+  const tutorId = input.tutorId && (await isSelectableTutor(input.tutorId)) ? input.tutorId : undefined;
 
   await db
     .insert(userProfiles)
@@ -34,6 +38,7 @@ export async function createProgramForUser(
       occupation: input.occupation,
       interests: input.interests,
       timezone,
+      tutorId: tutorId ?? null,
     })
     .onConflictDoUpdate({
       target: userProfiles.userId,
@@ -49,6 +54,7 @@ export async function createProgramForUser(
         occupation: input.occupation,
         interests: input.interests,
         timezone,
+        ...(tutorId ? { tutorId } : {}),
         updatedAt: new Date(),
       },
     });

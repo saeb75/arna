@@ -13,10 +13,10 @@ import { tr } from "../../i18n/tr";
 import { useThemeColors } from "../../theme/useThemeColors";
 
 /**
- * Avatar yokken (URL boş ya da sayfa yüklenemedi) konuşma göstergesi: Emma
+ * Avatar yokken (URL boş ya da sayfa yüklenemedi) konuşma göstergesi: öğretmen
  * konuşurken nefes alan bir hâle. Avatar bir süs — ders onsuz da aynen çalışır.
  */
-export function SpeakingIndicator({ speaking, name = "Emma" }: { speaking: boolean; name?: string }) {
+export function SpeakingIndicator({ speaking, name }: { speaking: boolean; /** öğretmenin adı */ name: string }) {
   const colors = useThemeColors();
   const reduceMotion = useReducedMotion();
   const pulse = useSharedValue(0);
@@ -36,7 +36,7 @@ export function SpeakingIndicator({ speaking, name = "Emma" }: { speaking: boole
           <AudioLines color={speaking ? colors["on-brand"] : colors["muted-foreground"]} size={28} />
         </View>
       </View>
-      <Text className="text-xs font-semibold text-muted-foreground">{speaking ? tr.lesson.speaking : name}</Text>
+      <Text className="text-xs font-semibold text-muted-foreground">{speaking ? tr.lesson.speaking(name) : name}</Text>
     </View>
   );
 }

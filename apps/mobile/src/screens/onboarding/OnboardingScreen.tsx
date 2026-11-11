@@ -1,7 +1,10 @@
+import { useEffect } from "react";
 import { View } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut, SlideInRight, SlideOutLeft, useReducedMotion } from "react-native-reanimated";
-import { OnboardingController, QUESTION_STEPS } from "../../controllers/OnboardingController";
+import { OnboardingController, questionSteps } from "../../controllers/OnboardingController";
+import { TutorController } from "../../controllers/TutorController";
 import { useOnboardingStore } from "../../stores/useOnboardingStore";
+import { useTutorsStore } from "../../stores/useTutorsStore";
 import { BuildingStep } from "./BuildingStep";
 import { GoalStep } from "./GoalStep";
 import { InterestsStep } from "./InterestsStep";
@@ -11,6 +14,7 @@ import { NameStep } from "./NameStep";
 import { NotifyStep } from "./NotifyStep";
 import { OccupationStep } from "./OccupationStep";
 import { PlanStep } from "./PlanStep";
+import { TeacherStep } from "./TeacherStep";
 import { TrackStep } from "./TrackStep";
 import { TutorStep } from "./TutorStep";
 
@@ -24,6 +28,11 @@ export function OnboardingScreen() {
   const step = useOnboardingStore((s) => s.step);
   // Geri giderken kayma yerine yumuşak geçiş
   const backwards = useOnboardingStore((s) => s.backwards);
+  // Öğretmen listesi tanıtım sürerken yüklenir — boş gelirse seçim adımı hiç görünmez
+  const hasTutors = useTutorsStore((s) => (s.tutors?.length ?? 0) > 0);
+  useEffect(() => {
+    void TutorController.load();
+  }, []);
 
   if (step === "intro") {
     return (
@@ -34,11 +43,13 @@ export function OnboardingScreen() {
     );
   }
 
-  const q = QUESTION_STEPS.indexOf(step);
+  // Liste yüklenmeden öğretmen adımına gelindiyse sayaç yine o adımı saysın
+  const steps = questionSteps(hasTutors || step === "teacher");
+  const q = steps.indexOf(step);
   const shell = {
-    progress: q >= 0 ? (q + 1) / QUESTION_STEPS.length : 1,
+    progress: q >= 0 ? (q + 1) / steps.length : 1,
     index: q + 1,
-    total: QUESTION_STEPS.length,
+    total: steps.length,
     onBack: () => OnboardingController.back(),
   };
   const enterAnim =
@@ -55,6 +66,8 @@ export function OnboardingScreen() {
           <TrackStep shell={shell} />
         ) : step === "level" ? (
           <LevelStep shell={shell} />
+        ) : step === "teacher" ? (
+          <TeacherStep shell={shell} />
         ) : step === "tutor" ? (
           <TutorStep shell={shell} />
         ) : step === "interests" ? (

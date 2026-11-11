@@ -13,6 +13,7 @@
  *    npx tsx scripts/test-conversation-matrix.ts                 # canlı chat modeli
  *    npx tsx scripts/test-conversation-matrix.ts --model=gpt-5.5 --only=say
  *    seçenekler: --model --grader --only=<an/vaka alt dizesi> --lang=tr|es --concurrency=6 --no-grade --out=<dizin>
+ *              --tutor=Kai:male  (seçilen öğretmen: ad + cinsiyet; rol yapma karakterini o oynar — tutor/cast.ts)
  *
  *  Maliyet: ~150 vaka × (1 motor + 1 değerlendirici) çağrısı. */
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -31,6 +32,7 @@ import { buildCases, buildConvCases, buildInterjectCases, type Case, type ConvCa
 import { runConversationTurn } from "../src/modules/session/turn/conversation.js";
 import { runInterjectionTurn } from "../src/modules/session/turn/interjection.js";
 import { normalizeUtterance } from "@glotmate/contracts";
+import { castPersona, swapName } from "../src/modules/tutor/cast.js";
 
 const args = Object.fromEntries(
   process.argv.slice(2).map((a) => {
@@ -44,11 +46,15 @@ const GRADER = args.grader ?? "gpt-6.1-sol";
 const CONCURRENCY = Number(args.concurrency ?? 6);
 const GRADE = args["no-grade"] !== "true";
 const OUT = args.out ?? join(tmpdir(), "glotmate-conversation-reports");
+/** Öğretmen kaydı varmış gibi: hoca adı/cinsiyeti + karakteri öğretmen oynar. Yoksa eski hoca (Emma). */
+const [TUTOR_NAME, TUTOR_GENDER] = (args.tutor ?? "").split(":") as [string | undefined, string | undefined];
+const TUTOR = TUTOR_NAME ? { name: TUTOR_NAME, gender: (TUTOR_GENDER === "male" ? "male" : "female") as Learner["tutorGender"] } : null;
 
 const LEARNERS: Record<Case["lang"], Learner> = {
-  tr: { name: "Saeb", cefrLevel: "A1", nativeLanguage: "tr", l1Name: languageName("tr"), tutorLanguage: "native" },
-  es: { name: "Lucía", cefrLevel: "A1", nativeLanguage: "es", l1Name: languageName("es"), tutorLanguage: "native" },
+  tr: { name: "Saeb", cefrLevel: "A1", nativeLanguage: "tr", l1Name: languageName("tr"), tutorLanguage: "native", tutorName: "Emma", tutorGender: "female" },
+  es: { name: "Lucía", cefrLevel: "A1", nativeLanguage: "es", l1Name: languageName("es"), tutorLanguage: "native", tutorName: "Emma", tutorGender: "female" },
 };
+if (TUTOR) for (const l of Object.values(LEARNERS)) Object.assign(l, { tutorName: TUTOR.name, tutorGender: TUTOR.gender });
 /** İspanyolca vakalarda hocanın açılış cümlesi de İspanyolca olmalı */
 const ES_LINES: Record<string, string> = {
   b1: "¡Hola Lucía! Hoy vamos a aprender Introducing yourself. ¿Lista para empezar?",
@@ -101,9 +107,10 @@ function gradeSystem(): string {
     `R5 LANGUAGE — in native-tutor mode Emma speaks the student's native language ("l1" runs) and English words/sentences appear as separate "en" runs. A whole reply in English (except English material) is major; an English word left inside an l1 run is minor.`,
     `R6 CORRECT TEACHING — anything Emma says about English is correct and matches the lesson.`,
     `R7 NATURAL & SHORT (minor) — 1-2 short spoken sentences (up to 3 in a question window), sounds like a real, warm teacher; no robotic or odd phrasing; no question when the moment forbids one (readiness: Emma must NOT ask a question — that is major).`,
+    `R9 LEVEL & LESSON (role play only) — at A1–A2 the character speaks very simple English built from today's lesson (short sentences, everyday words) and each turn opens a natural chance for one of today's target phrases the student has not said yet (a question, or — when the phrase is itself a question the student should ask — a short friendly statement that leaves them room to ask it). Asking about unrelated topics the lesson did not teach (travel plans, feelings, jobs, hobbies…) or using clearly harder language is major. At B1+ only clearly too-hard language is flagged.`,
     `R8 DECISION (major) — the system's classification of the student's message ("kind") and the correctness judgment are reasonable. Kinds: answer (a try at the task, incl. nonsense letters or an answer in the native language), give_up, ask_help, repeat, other (greeting, small talk, feelings, unrelated, unclear). Flag only CLEARLY wrong decisions; when the test lists several acceptable kinds, any of them is fine.`,
     ``,
-    `Return STRICT JSON: {"issues":[{"rule":"R1".."R8","severity":"major"|"minor","why":"<one sentence, quote the problem>"}]} — an empty list if the reply is fine.`,
+    `Return STRICT JSON: {"issues":[{"rule":"R1".."R9","severity":"major"|"minor","why":"<one sentence, quote the problem>"}]} — an empty list if the reply is fine.`,
   ].join("\n");
 }
 
@@ -244,6 +251,7 @@ function convStory(c: ConvCase): string {
   const m = c.moment;
   const lines = [
     `LESSON: ${m.core.topic} — ${m.core.focus}`,
+    `LESSON LEVEL: ${m.lessonLevel ?? "A1"} · today's target phrases: ${m.core.practice.mustUse.join(" / ")}`,
     `STUDENT: ${learner.name}, native language ${learner.l1Name}, native-tutor mode.`,
     m.phase === "practice"
       ? `MOMENT: the role play inside the lesson. Emma plays ${m.scene.persona.name} (${m.scene.persona.role}); the role play is ENGLISH ONLY and Emma stays in character. Scene: ${m.scene.scene}. The scene already started with the character's opening line (which was the greeting). ${m.closesNow ? "THE APP ENDS THE SCENE RIGHT AFTER THIS REPLY — the character must wrap up warmly and ask NO question." : "The scene CONTINUES after this reply — the character must NOT wrap up or say goodbye."}`
@@ -273,6 +281,7 @@ async function runConvCase(c: ConvCase, llm: TurnLlm, graderLlm: TurnLlm): Promi
         turnCap: c.moment.turnCap,
         closesNow: c.moment.closesNow,
         goalMet: c.moment.goalMet,
+        lessonLevel: c.moment.lessonLevel ?? "A1",
       },
       llm,
     );
@@ -384,6 +393,21 @@ async function main() {
   if (args.only) cases = cases.filter((c) => c.id.includes(args.only!) || c.moment.label.includes(args.only!));
   if (args.lang) cases = cases.filter((c) => c.lang === args.lang);
   let convCases = buildConvCases();
+  // Canlıdaki gibi: öğretmen kaydı varsa rol yapma karakterini öğretmen KENDİ adıyla oynar
+  // (geçmişteki karakter sözleri de: canlıda transkript zaten öğretmenin adıyla açılan sahneden gelir)
+  if (TUTOR) {
+    convCases = convCases.map((c) => {
+      const from = c.moment.scene.persona.name;
+      return {
+        ...c,
+        moment: {
+          ...c.moment,
+          scene: castPersona(c.moment.scene, TUTOR.name),
+          history: c.moment.history.map((t) => ({ ...t, text: swapName(t.text, from, TUTOR.name) })),
+        },
+      };
+    });
+  }
   if (args.only) convCases = convCases.filter((c) => c.id.includes(args.only!) || c.moment.label.includes(args.only!));
   if (args.lang) convCases = convCases.filter((c) => c.lang === args.lang);
   let interjectCases = buildInterjectCases();
@@ -392,7 +416,10 @@ async function main() {
 
   const timing: Timed = { latencies: [] };
   const llm = makeLlm(MODEL, timing);
-  const graderLlm = makeLlm(GRADER, { latencies: [] });
+  const graderRaw = makeLlm(GRADER, { latencies: [] });
+  // Değerlendirici metni "Emma" der; öğretmen verildiyse hocanın adı o
+  const asTutor = (t: string) => (TUTOR ? t.replaceAll("Emma", TUTOR.name).replaceAll("EMMA", TUTOR.name.toUpperCase()) : t);
+  const graderLlm: TurnLlm = (req) => graderRaw({ ...req, system: asTutor(req.system), user: asTutor(req.user) });
 
   console.log(`Konuşma taraması — model=${MODEL} değerlendirici=${GRADE ? GRADER : "kapalı"} vaka=${cases.length + convCases.length + interjectCases.length}`);
   const results = [

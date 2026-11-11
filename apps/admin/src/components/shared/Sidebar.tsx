@@ -1,6 +1,6 @@
 "use client";
 
-import { AudioLines, BookOpen, Drama, LayoutDashboard, MessagesSquare, PersonStanding, Users } from "lucide-react";
+import { AudioLines, BookOpen, Drama, GraduationCap, LayoutDashboard, MessagesSquare, PersonStanding, Users } from "lucide-react";
 import { BrandMark } from "@/components/shared/BrandMark";
 import { SidebarNavItem } from "@/components/shared/SidebarNavItem";
 import { ThemeSwitcher } from "@/components/shared/ThemeSwitcher";
@@ -11,6 +11,7 @@ const NAV = [
   { href: "/", label: "Overview", icon: LayoutDashboard, exact: true },
   { href: "/lessons", label: "Lessons", icon: BookOpen },
   { href: "/roleplays", label: "Roleplays", icon: Drama },
+  { href: "/tutors", label: "Tutors", icon: GraduationCap },
   { href: "/users", label: "Users", icon: Users },
   { href: "/sessions", label: "Sessions", icon: MessagesSquare },
 ];

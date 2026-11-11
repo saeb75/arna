@@ -37,6 +37,7 @@ export {
   type Interest,
 } from "./profile.js";
 import { interestSchema, trackSchema, tutorLanguageSchema } from "./profile.js";
+import { tutorIdSchema } from "./tutors.js";
 
 // ---------------------------------------------------------------------------
 // Onboarding
@@ -57,6 +58,8 @@ export const onboardingInputSchema = z.object({
   nativeLanguage: z.string().trim().min(2).max(10).default("tr"),
   /** Öğretim dili — onboarding'de sorulur, ayarlardan değiştirilebilir */
   tutorLanguage: tutorLanguageSchema.default("native"),
+  /** Seçilen öğretmen (ops.) — yoksa varsayılan öğretmen; yalnız aktif öğretmen kabul edilir */
+  tutorId: tutorIdSchema.optional(),
   /** IANA saat dilimi — günlük kota ve seri bu güne göre sayılır */
   timezone: z.string().trim().min(1).max(64).optional(),
 });
@@ -396,11 +399,16 @@ export type CurriculumResponse = z.infer<typeof curriculumResponseSchema>;
 
 export * from "./lessonFlow.js";
 export * from "./lessonLayers.js";
+export * from "./drills.js";
+export * from "./drillGrade.js";
+export * from "./targetPhrases.js";
+export * from "./drillTurn.js";
 export * from "./checkpoint.js";
 export * from "./answerReview.js";
 export * from "./roleplay.js";
 export * from "./avatarProtocol.js";
 export * from "./avatars.js";
+export * from "./tutors.js";
 export * from "./sessionResume.js";
 export * from "./admin.js";
 export * from "./billing.js";

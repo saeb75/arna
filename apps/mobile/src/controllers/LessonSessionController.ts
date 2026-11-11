@@ -1,5 +1,4 @@
 import {
-  DEFAULT_AVATAR_ID,
   classifyAck,
   decideAfterTutorReply,
   decideInWrapup,
@@ -8,16 +7,20 @@ import {
   isLastExchange,
   matchesAnswerSpec,
   normalizeUtterance,
+  usedTargetPhrases,
   type LessonContentV7,
   type RichText,
-  type SessionPosition,
   type SessionScript,
 } from "@glotmate/contracts";
 import { Alert } from "react-native";
 import { router } from "expo-router";
 import { api, errorCode } from "../api";
+import { tutorOfAvatarResponse } from "../domain/tutors";
 import { tr } from "../i18n/tr";
+import { useMeStore } from "../stores/useMeStore";
 import { VoiceService } from "../lib/voice";
+import { LessonDrillController } from "./LessonDrillController";
+import { LessonSync } from "./LessonSync";
 import {
   useLessonSessionStore,
   type Awaiting,
@@ -43,11 +46,6 @@ type ViewBeat = LessonContentV7["lecture"]["beats"][number];
 let msgSeq = 0;
 const nextId = () => `m${++msgSeq}`;
 
-/**
- * Devam yeniden-girişinde aktif beat yeniden sorulur; satır İLK oynatımda
- * zaten transkripte log'landığı için yeniden-soruş LOG'LANMAZ (çift kayıt olmasın).
- */
-let suppressTurnLog = false;
 
 const enRuns = (text: string): RichText => [{ lang: "en", text }];
 const runsText = (runs: RichText | undefined | null): string =>
@@ -59,9 +57,6 @@ const OPTION_LETTERS = ["a", "b", "c", "d"];
 const INPUT_GRACE_MS = 500;
 let graceTimer: ReturnType<typeof setTimeout> | null = null;
 
-/** Sistem uyarısı (NoticeBar) ekranda bu kadar kalır; yeni girdi onu hemen siler */
-const NOTICE_MS = 7_000;
-let noticeTimer: ReturnType<typeof setTimeout> | null = null;
 
 /**
  * YÜRÜYEN ADIM — o an çalan konuşma ya da iki söz arasındaki kısa bekleme ve onun
@@ -138,7 +133,6 @@ interface ChatResult {
   windowDone?: boolean;
 }
 
-type LogTurn = { role: "user" | "assistant"; text: string; runs?: RichText };
 
 export class LessonSessionController {
   // --- yardımcılar -----------------------------------------------------------
@@ -176,70 +170,6 @@ export class LessonSessionController {
   }
 
   /**
-   * Kısa sistem uyarısı (NoticeBar). Eskiden STT/sohbet/ses hataları SESSİZDİ:
-   * öğrenci konuşuyor, hiçbir şey olmuyordu — "hoca cevap vermiyor" şikâyetinin bir kökü.
-   */
-  private static notify(text: string): void {
-    this.store().set({ notice: text });
-    if (noticeTimer) clearTimeout(noticeTimer);
-    noticeTimer = setTimeout(() => this.store().set({ notice: null }), NOTICE_MS);
-  }
-
-  private static clearNotice(): void {
-    if (noticeTimer) clearTimeout(noticeTimer);
-    noticeTimer = null;
-    if (this.store().notice) this.store().set({ notice: null });
-  }
-
-  // --- sunucu senkronu (fire-and-forget — ders ASLA bloke olmaz) --------------
-
-  /**
-   * Sunucuya ULAŞMAYAN transkript satırlarını logla: script replikleri +
-   * istemcide çözülen öğrenci girdileri. Sunucu chat/judge çiftlerini zaten
-   * yazıyor — onlar burada ASLA loglanmaz (çift kayıt olur).
-   *
-   * Bir söz + cevabı TEK istekte gider: iki ayrı fire-and-forget isteği yarışıyor,
-   * transkriptte "Tam isabet!" öğrencinin cevabından ÖNCE görünüyordu.
-   */
-  private static logTurns(turns: LogTurn[]): void {
-    if (suppressTurnLog) return;
-    const { sessionId, phase } = this.store();
-    if (!sessionId || phase === "done") return;
-    const rows = turns
-      .filter((t) => t.text.trim())
-      .map((t) => ({ role: t.role, text: t.text.slice(0, 2000), runs: t.runs, phase }));
-    if (!rows.length) return;
-    void api.post(`/v1/sessions/${sessionId}/sync`, { turns: rows }).catch(() => undefined);
-  }
-
-  private static logTurn(role: "user" | "assistant", text: string, runs?: RichText): void {
-    this.logTurns([{ role, text, runs }]);
-  }
-
-  /**
-   * Pozisyon imleci. `awaiting` çağırandan gelir (store'daki değer konuşma
-   * bitene dek null kalır — imleç beklenen HEDEFİ yazmalı). Kaybolan sync
-   * devam noktasını en fazla bir-iki adım geri alır, asla ileri almaz.
-   */
-  private static syncPosition(awaiting: SessionPosition["awaiting"]): void {
-    const s = this.store();
-    if (!s.sessionId || s.phase === "done") return;
-    const beat = s.lesson?.lecture.beats[s.beatIndex];
-    const position: SessionPosition = {
-      phase: s.phase as SessionPosition["phase"],
-      beatId: beat?.id ?? null,
-      beatIndex: s.beatIndex,
-      awaiting,
-      beatExchanges: s.beatExchanges,
-      invites: s.invites,
-      attempt: s.attempt,
-      practiceTurn: s.practiceTurn,
-      praiseIndex: s.praiseIndex,
-    };
-    void api.post(`/v1/sessions/${s.sessionId}/sync`, { position }).catch(() => undefined);
-  }
-
-  /**
    * Seslendir, bitince `onEnd`. `leadsToAwait`: `onEnd` doğrudan AYNI adımın cevap
    * bekleme noktasına mı varıyor — söz kesmede yol buna göre seçilir (interrupt).
    */
@@ -266,7 +196,7 @@ export class LessonSessionController {
         this.store().set({ speaking: false });
         onEnd();
       },
-      () => this.notify(tr.notice.audioFailed),
+      () => LessonSync.notify(tr.notice.audioFailed),
     );
   }
 
@@ -347,7 +277,7 @@ export class LessonSessionController {
     const res = await this.chat(text, { phase: "lecture", beatId: beat?.id, interjection: true, interruptedText });
     if (this.store().stopped) return;
     if (!res) {
-      this.notify(tr.notice.replyFailed);
+      LessonSync.notify(tr.notice.replyFailed);
       resume();
       return;
     }
@@ -432,7 +362,7 @@ export class LessonSessionController {
   static async open(catalogLessonId: string): Promise<void> {
     const store = this.store();
     this.dropPending();
-    this.clearNotice();
+    LessonSync.clearNotice();
     store.reset();
     store.set({ catalogLessonId });
     await VoiceService.init();
@@ -441,13 +371,13 @@ export class LessonSessionController {
         api.get(`/v1/lessons/${catalogLessonId}`),
         // Devam sorgusu düşerse ders yine açılır — sadece "Devam et" sunulmaz
         api.get(`/v1/lessons/${catalogLessonId}/resume`).catch(() => null),
-        // Aktif avatar (admin ayarı) — düşerse varsayılan (contracts DEFAULT_AVATAR_ID) kalır
+        // Öğrencinin öğretmeni (yüz + ad) — düşerse /me'deki öğretmen, o da yoksa varsayılan avatar
         api.get(`/v1/avatar`).catch(() => null),
       ]);
       const { lesson } = lessonRes.data as { lesson: LessonContentV7 };
       const resume = (resumeRes?.data as { resume: LessonResume | null } | undefined)?.resume ?? null;
-      const avatarId = (avatarRes?.data as { activeId?: string } | undefined)?.activeId ?? DEFAULT_AVATAR_ID;
-      this.store().set({ lesson, resume, avatarId });
+      const { avatarId, tutorName } = tutorOfAvatarResponse(avatarRes?.data, useMeStore.getState().me?.tutor);
+      this.store().set({ lesson, resume, avatarId, tutorName });
     } catch (err) {
       this.store().set({ loadError: errorCode(err) });
     }
@@ -506,6 +436,8 @@ export class LessonSessionController {
       sessionId: resume.sessionId,
       script: resume.script,
       lesson: resume.lesson,
+      // Öğretmen ders ortasında değiştiyse oturumun hocası (ses + ad sunucuda pinli) çizilir
+      ...(resume.tutor ? { avatarId: resume.tutor.avatarId, tutorName: resume.tutor.name } : {}),
       resume: null,
       started: true,
       messages,
@@ -513,6 +445,12 @@ export class LessonSessionController {
       beatIndex: p.beatIndex,
       practiceTurn: p.practiceTurn,
       praiseIndex: p.praiseIndex,
+      drill: p.drill ?? null,
+      // Devamda çiplerin tiki rol yapma transkriptinden yeniden kurulur
+      practiceUsed: usedTargetPhrases(
+        resume.lesson.practice.mustUse,
+        resume.transcript.filter((t) => t.role === "user" && t.phase === "practice").map((t) => t.text),
+      ),
     });
 
     if (p.phase === "lecture") {
@@ -529,12 +467,7 @@ export class LessonSessionController {
       // oynatımda log'landı — yeniden-soruş log'lanmaz. enterBeat sayaçları
       // sıfırladığı için beat-içi sayaçlar ondan SONRA geri yüklenir: "yanlış +
       // çık + devam + yanlış" üçüncü hak DOĞURMAZ.
-      suppressTurnLog = true;
-      try {
-        this.enterBeat();
-      } finally {
-        suppressTurnLog = false;
-      }
+      LessonSync.withoutLogging(() => this.enterBeat());
       this.store().set({ attempt: p.attempt, beatExchanges: p.beatExchanges, invites: p.invites });
       return;
     }
@@ -599,16 +532,16 @@ export class LessonSessionController {
       case "say": {
         const line = spokenLine(beat, script);
         this.pushTeacher(line);
-        this.logTurn("assistant", runsText(line), line);
-        this.syncPosition(null);
+        LessonSync.logTurn("assistant", runsText(line), line);
+        LessonSync.syncPosition(null);
         this.speak(line, () => this.later(300, () => this.advance()));
         break;
       }
       case "ask": {
         const line = spokenLine(beat, script);
         this.pushTeacher(line);
-        this.logTurn("assistant", runsText(line), line);
-        this.syncPosition("ask");
+        LessonSync.logTurn("assistant", runsText(line), line);
+        LessonSync.syncPosition("ask");
         this.speak(line, () => this.arrive("ask"), true);
         break;
       }
@@ -616,11 +549,11 @@ export class LessonSessionController {
         const line = spokenLine(beat, script);
         const pointRuns = beat.points.map((p) => p.runs);
         this.pushTeacher(line);
-        this.logTurn("assistant", runsText(line), line);
-        this.syncPosition(null);
+        LessonSync.logTurn("assistant", runsText(line), line);
+        LessonSync.syncPosition(null);
         this.speak(line, () => {
           this.pushTeacher([], pointRuns);
-          this.logTurn("assistant", runsText(pointRuns.flat()), pointRuns.flat());
+          LessonSync.logTurn("assistant", runsText(pointRuns.flat()), pointRuns.flat());
           // Maddeler tek konuşmada: parçalar dil etiketli, TTS doğru okur
           this.speak(pointRuns.flat(), () => this.later(400, () => this.advance()));
         });
@@ -629,19 +562,34 @@ export class LessonSessionController {
       case "exercise": {
         const asked = exerciseRuns(beat);
         this.store().set({ promptMessageId: this.pushTeacher(asked) });
-        this.logTurn("assistant", runsText(asked), asked);
-        this.syncPosition("exercise");
+        LessonSync.logTurn("assistant", runsText(asked), asked);
+        LessonSync.syncPosition("exercise");
         this.speak(asked, () => this.arrive("exercise"), true);
         break;
       }
       case "open_response": {
         this.store().set({ promptMessageId: this.pushTeacher(beat.runs) });
-        this.logTurn("assistant", runsText(beat.runs), beat.runs);
-        this.syncPosition("open_response");
+        LessonSync.logTurn("assistant", runsText(beat.runs), beat.runs);
+        LessonSync.syncPosition("open_response");
         this.speak(beat.runs, () => this.arrive("open_response"), true);
         break;
       }
+      case "drills": {
+        // OYUN BLOĞU: sohbet girişi kapanır, ekran oyun düzenine geçer; blok kendi
+        // controller'ında yürür ve bitince afterDrills() ile buraya döner.
+        this.store().set({ promptMessageId: null, pendingInput: null });
+        this.arrive("drills");
+        LessonDrillController.begin();
+        break;
+      }
     }
+  }
+
+  /** Oyun bloğu bitti (özet kartındaki "Rol yapmaya geç") — ders rol yapmayla sürer */
+  static afterDrills(): void {
+    LessonDrillController.close();
+    this.store().set({ awaiting: null });
+    this.later(300, () => this.advance());
   }
 
   private static advance(): void {
@@ -662,15 +610,15 @@ export class LessonSessionController {
     this.store().set({ phase: "practice", practiceTurn: 0 });
     const intro = script?.practiceIntro?.length ? script.practiceIntro : FALLBACK_PRACTICE_INTRO;
     this.pushTeacher(intro);
-    this.logTurn("assistant", runsText(intro), intro);
-    this.syncPosition("practice");
+    LessonSync.logTurn("assistant", runsText(intro), intro);
+    LessonSync.syncPosition("practice");
     this.speak(
       intro,
       () => {
         // Rol yapma TAMAMEN İngilizce — sahnenin ilk repliği içerikten
         const opening = enRuns(lesson.practice.avatarOpening);
         this.pushTeacher(opening);
-        this.logTurn("assistant", lesson.practice.avatarOpening, opening);
+        LessonSync.logTurn("assistant", lesson.practice.avatarOpening, opening);
         this.speak(opening, () => this.arrive("practice"), true);
       },
       true,
@@ -684,8 +632,8 @@ export class LessonSessionController {
     this.store().set({ phase: "wrapup", invites: 0, farewells: 0 });
     const line = script?.wrapup?.length ? script.wrapup : FALLBACK_WRAPUP;
     this.pushTeacher(line);
-    this.logTurn("assistant", runsText(line), line);
-    this.syncPosition("wrapup");
+    LessonSync.logTurn("assistant", runsText(line), line);
+    LessonSync.syncPosition("wrapup");
     this.speak(line, () => this.arrive("wrapup"), true);
   }
 
@@ -703,7 +651,9 @@ export class LessonSessionController {
     // Yalnız noktalama (",,", "?!") boş girdidir: balon yok, hak yemez, hocaya
     // gitmez, söz kesmez. Canlıda ",," judge'a gitti, hoca "Merhaba!" dedi.
     if (!hasWordContent(text)) return;
-    this.clearNotice();
+    // Oyun bloğunda serbest giriş YOK (rıhtım gizli) — kuyrukta kalmış söz de düşer
+    if (awaiting === "drills") return;
+    LessonSync.clearNotice();
     // Mikrofonla araya girilmişti (hold): söz, bekletilen devamı olan anda geldi
     if (held && !awaiting) return void this.interject(text);
     // SÖZ KESME: hoca hâlâ konuşuyor (`awaiting === null`) — bkz. interrupt
@@ -715,20 +665,25 @@ export class LessonSessionController {
 
     // --- PRACTICE: turlar sunucuda ölçülür, segmentDone kapanışı başlatır -----
     if (awaiting === "practice") {
-      s.set({ awaiting: null });
+      // Hedef çipleri: söylenen kalıp anında işaretlenir (gösterim; ölçüm sunucuda)
+      const hit = usedTargetPhrases(lesson.practice.mustUse, [text]);
+      s.set({
+        awaiting: null,
+        ...(hit.length ? { practiceUsed: [...new Set([...s.practiceUsed, ...hit])] } : {}),
+      });
       const turnIndex = s.practiceTurn;
       this.store().set({ practiceTurn: turnIndex + 1 });
       const res = await this.chat(text, { phase: "practice", turnIndex });
       if (this.store().stopped) return;
       if (!res) {
         this.store().set({ practiceTurn: turnIndex }); // hata tur yemez
-        this.notify(tr.notice.replyFailed);
+        LessonSync.notify(tr.notice.replyFailed);
         this.arrive("practice");
         return;
       }
       const replyRuns = res.runs?.length ? res.runs : enRuns(res.text);
       this.pushTeacher(replyRuns);
-      this.syncPosition("practice"); // tur ilerledi — imleç güncel (çift server'da)
+      LessonSync.syncPosition("practice"); // tur ilerledi — imleç güncel (çift server'da)
       this.speak(
         replyRuns,
         () => {
@@ -749,7 +704,7 @@ export class LessonSessionController {
         const bye = script?.farewell?.length ? script.farewell : FALLBACK_FAREWELL;
         this.pushTeacher(bye);
         // istemcide çözüldü — sunucuya hiç gitmedi; söz + cevap TEK istekte (sıra korunur)
-        this.logTurns([{ role: "user", text }, { role: "assistant", text: runsText(bye), runs: bye }]);
+        LessonSync.logTurns([{ role: "user", text }, { role: "assistant", text: runsText(bye), runs: bye }]);
         this.speak(bye, () => this.arrive("wrapup"), true);
         return;
       }
@@ -757,7 +712,7 @@ export class LessonSessionController {
         s.set({ awaiting: null, invites: s.invites + 1 });
         const invite = script?.inviteQuestion?.length ? script.inviteQuestion : FALLBACK_INVITE;
         this.pushTeacher(invite);
-        this.logTurns([{ role: "user", text }, { role: "assistant", text: runsText(invite), runs: invite }]);
+        LessonSync.logTurns([{ role: "user", text }, { role: "assistant", text: runsText(invite), runs: invite }]);
         this.speak(invite, () => this.arrive("wrapup"), true);
         return;
       }
@@ -765,7 +720,7 @@ export class LessonSessionController {
       const res = await this.chat(text, { phase: "wrapup" });
       if (this.store().stopped) return;
       if (!res) {
-        this.notify(tr.notice.replyFailed);
+        LessonSync.notify(tr.notice.replyFailed);
         return this.arrive("wrapup");
       }
       const replyRuns = res.runs?.length ? res.runs : enRuns(res.text);
@@ -787,7 +742,7 @@ export class LessonSessionController {
 
     if (before.kind === "advance") {
       s.set({ awaiting: null });
-      this.logTurn("user", text); // ack istemcide çözüldü — transkriptte de dursun
+      LessonSync.logTurn("user", text); // ack istemcide çözüldü — transkriptte de dursun
       this.later(250, () => this.advance());
       return;
     }
@@ -797,8 +752,8 @@ export class LessonSessionController {
       this.store().set({ invites: s.invites + 1, awaiting: null });
       const invite = script?.inviteQuestion?.length ? script.inviteQuestion : FALLBACK_INVITE;
       this.pushTeacher(invite);
-      this.logTurns([{ role: "user", text }, { role: "assistant", text: runsText(invite), runs: invite }]);
-      this.syncPosition("ask");
+      LessonSync.logTurns([{ role: "user", text }, { role: "assistant", text: runsText(invite), runs: invite }]);
+      LessonSync.syncPosition("ask");
       this.speak(invite, () => this.arrive("ask"), true);
       return;
     }
@@ -810,7 +765,7 @@ export class LessonSessionController {
       this.store().set({ praiseIndex: s.praiseIndex + 1 });
       this.pushTeacher(praise);
       // Birebir doğru cevap sunucuya HİÇ gitmiyor — transkriptteki tek izi bu (sıralı, tek istek)
-      this.logTurns([{ role: "user", text }, { role: "assistant", text: runsText(praise), runs: praise }]);
+      LessonSync.logTurns([{ role: "user", text }, { role: "assistant", text: runsText(praise), runs: praise }]);
       this.speak(praise, () => this.later(300, () => this.advance()));
       return;
     }
@@ -835,7 +790,7 @@ export class LessonSessionController {
     if (!res) {
       // Aktarım hatası deneme hakkı YEMEZ — sayaçlar geri alınır ve öğrenciye söylenir
       this.store().set({ beatExchanges: s.beatExchanges, attempt });
-      this.notify(tr.notice.replyFailed);
+      LessonSync.notify(tr.notice.replyFailed);
       this.arrive(waitingKind);
       return;
     }
@@ -852,7 +807,7 @@ export class LessonSessionController {
       // Soru penceresi: öğrencinin sorusu kalmadı (yapısal) → pencere kapanır
       windowDone: res.windowDone ?? false,
     });
-    if (after.kind === "wait") this.syncPosition(after.awaiting); // sayaçlar güncel — imleç de
+    if (after.kind === "wait") LessonSync.syncPosition(after.awaiting); // sayaçlar güncel — imleç de
 
     // DETERMİNİSTİK YENİDEN-SORMA: girdi cevap değildi (yardım/rica/selam —
     // yapısal isAttempt=false) ve beklemeye dönülüyorsa SORUNUN KENDİSİ
@@ -880,12 +835,7 @@ export class LessonSessionController {
           this.arrive(after.awaiting);
           return;
         }
-        suppressTurnLog = true;
-        try {
-          this.pushTeacher(reAsk);
-        } finally {
-          suppressTurnLog = false;
-        }
+        LessonSync.withoutLogging(() => this.pushTeacher(reAsk));
         this.speak(reAsk, () => this.arrive(after.awaiting), true);
       },
       after.kind === "wait",
@@ -897,7 +847,8 @@ export class LessonSessionController {
   static async pressMic(): Promise<void> {
     const { awaiting, busy, stopped } = this.store();
     if (busy || stopped) return; // sunucu düşünüyor: cevabın gideceği yer belli değil
-    this.clearNotice();
+    if (awaiting === "drills") return; // oyun bloğunun mikrofonu konuşma kartındadır
+    LessonSync.clearNotice();
     // SÖZ KESME: hoca konuşurken mikrofona basmak onu susturur — ya akışı aynı
     // adımın sorusuna sarar ya da (anlatım/geçiş/övgüde) devamı araya girme için
     // bekletir. Kaydın sonucu bırakışta işlenir.
@@ -909,7 +860,7 @@ export class LessonSessionController {
     const ok = await VoiceService.startRecording();
     if (!ok) {
       this.store().set({ recording: false });
-      this.notify(tr.notice.sttFailed);
+      LessonSync.notify(tr.notice.sttFailed);
       if (held) this.resumeHeld(); // kayıt açılamadı: ders kaldığı yerden sürsün
     }
   }
@@ -922,7 +873,7 @@ export class LessonSessionController {
     if (this.store().stopped) return;
     if (result.kind === "text") return void this.handleUserText(result.text);
     // Boş ya da başarısız kayıt hak yemez — ama artık SESSİZ değil
-    this.notify(result.kind === "failed" ? tr.notice.sttFailed : tr.notice.didntHear);
+    LessonSync.notify(result.kind === "failed" ? tr.notice.sttFailed : tr.notice.didntHear);
     if (held) {
       this.resumeHeld(); // araya girme sözü gelmedi: ders kaldığı yerden sürer
       return;
@@ -938,6 +889,7 @@ export class LessonSessionController {
     const { lesson, awaiting, beatIndex } = this.store();
     if (!lesson) return;
     const beat = lesson.lecture.beats[beatIndex];
+    if (awaiting === "drills") return LessonDrillController.recall();
     if (awaiting === "exercise" && beat?.kind === "exercise") this.store().set({ hint: beat.hint });
     else if (awaiting === "open_response" && beat?.kind === "open_response") this.store().set({ hint: beat.hint });
     else if (awaiting === "practice") {

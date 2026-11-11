@@ -1,7 +1,8 @@
-import type { AdminTranscriptTurn } from "@glotmate/contracts";
+import { parseDrillTurn, type AdminTranscriptTurn } from "@glotmate/contracts";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatDateTime, formatMs } from "@/lib/labels";
 import { cn } from "@/lib/utils";
+import { DrillTurnRow } from "@/screens/session-detail/DrillTurnRow";
 
 /**
  * Tek tur. Öğrenci sağda (ember dolgu — tek vurgu), hoca solda (gri). Script
@@ -10,8 +11,11 @@ import { cn } from "@/lib/utils";
  * (`hit`) practice'te "target used", roleplay'de tiklenen hedefin adı.
  * `failed`: sunucuya ulaşıp CEVAPLANAMAYAN öğrenci sözü (LLM hatası) — kırmızı kesik
  * çerçeve; eskiden bu anlar kayda hiç girmiyordu ("hoca cevap vermedi" görünmezdi).
+ * `drill`: oyun bloğu cevabı → `DrillTurnRow` (soru + cevap + doğrusu).
  */
 export function TranscriptTurnBubble({ turn: t, hit }: { turn: AdminTranscriptTurn; hit: string | null }) {
+  const drill = t.source === "drill" ? parseDrillTurn(t.text) : null;
+  if (drill) return <DrillTurnRow turn={t} drill={drill} />;
   const student = t.role === "user";
   const failed = t.source === "failed";
   return (

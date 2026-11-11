@@ -1,5 +1,5 @@
 /** A1 · Ünite 1-2 — Hello and Introductions · People Around Me (12 ders, elle yazıldı). */
-import { fill, mcq, qfill, qmcq, say, sc, type Authored } from "./dsl.js";
+import { arr, chat, err, fc, fill, la, lc, mcq, pairs, qfill, qmcq, say, sc, sit, spk, type Authored } from "./dsl.js";
 
 export const A1_U1_2: Authored[] = [
   // --- Ünite 1 ---------------------------------------------------------------
@@ -11,7 +11,7 @@ export const A1_U1_2: Authored[] = [
     target: "my name is / nice to meet you / how are you",
     correction: "Model the whole phrase and invite the learner to say it again.",
     summary: "You learned how to say hello, give your name and ask someone how they are.",
-    minutes: 5,
+    minutes: 7,
     points: [
       {
         form: "my name is",
@@ -32,27 +32,40 @@ export const A1_U1_2: Authored[] = [
       {
         form: "how are you",
         claims: [
-          "Ask 'how are you' after hello, when you already know the person.",
+          "Ask 'How are you?' after hello, with someone you know or someone you have just met.",
           "Short answers are 'I'm fine, thanks' or 'Not bad, thanks.'",
         ],
         ex: ["Hello Sara, how are you?", "I'm fine, thanks. And you?"],
       },
     ],
-    ex: [
-      fill("Hi, ___ name is Omar.", ["my", "My"]),
-      mcq("You are meeting this person for the very first time. What do you say?", [
-        "Nice to meet you.",
+    ex: [],
+    // Oyun bloğu (10 Kas 2026) — kalıp dersi: sohbet/eşleştirme/dinleme/konuşma ağırlıklı
+    drills: [
+      // p1 — my name is
+      fc("p1", "Hello, my ___ is Leo.", ["name", "names", "am"]),
+      arr("p1", "Hi, my name is Maria.", ["I"]),
+      lc("p1", "Hi, I'm Tom.", ["Hi, my name is Tom.", "Hello, I'm Leo."]),
+      // p2 — nice to meet you
+      chat("p2", ["Hi, I'm Sara. Nice to meet you.", null], [
+        "Nice to meet you too.",
         "Nice to meet you again.",
-        "See you tomorrow.",
-      ], 0),
-      say("hello / my name is / Ana", ["Hello, my name is Ana.", "Hi, my name is Ana."]),
+        "How old are you?",
+      ]),
+      arr("p2", "Nice to meet you too.", ["two"]),
+      spk("p2", "Nice to meet you."),
+      // p3 — how are you
+      fc("p3", "Hello! How ___ you?", ["are", "is", "am"]),
+      chat("p3", ["Good morning! How are you?", null], ["Not bad, thanks.", "I'm from Spain.", "Yes, I am."]),
+      lc("p3", "How are you?", ["How old are you?", "Who are you?"]),
+      spk("p3", "Hello, how are you?"),
+      // karışık
+      pairs("mix", [
+        ["How are you?", "I'm fine, thanks."],
+        ["What's your name?", "My name is Leo."],
+        ["Nice to meet you.", "Nice to meet you too."],
+      ]),
+      la("mix", "Hello, I'm Leo, nice to meet you."),
     ],
-    open: {
-      q: "Someone new says hello to you. Introduce yourself and ask how they are.",
-      must: ["my name is", "how are you"],
-      criteria: "The answer gives a name and asks a question back to the other person.",
-      example: "Hello, my name is Ana. How are you?",
-    },
     success: "The learner gives their name, greets the other person and asks a question back.",
     quiz: [
       qmcq("Which one do you say when you meet someone for the first time?", [
@@ -71,23 +84,23 @@ export const A1_U1_2: Authored[] = [
       sc("Lucy", "a neighbour you have never met", "to find out who the new person in the building is",
         "You meet a neighbour in the lift of your building for the first time.",
         "Say hello, tell her your name and ask how she is.",
-        "Oh, hello! You must be new in this building, right?", "friendly"),
+        "Hi! I'm Lucy. I live on the second floor. What's your name?", "friendly"),
       sc("David", "a new colleague", "to get to know the people around him on his first day",
         "It is David's first morning in the office and he stops by your desk.",
         "Introduce yourself to him and ask him a question back.",
-        "Hi! It's my first day here. Do you work on this floor?", "friendly"),
+        "Hi! I'm David. It's my first day here. What's your name?", "friendly"),
       sc("Marta", "another traveller at the gate", "to pass the time before boarding",
         "You are waiting at an airport gate next to another traveller.",
         "Introduce yourself and start a short friendly conversation.",
-        "Excuse me, is this seat free?", "relaxed"),
+        "Hi! I'm Marta. What's your name?", "relaxed"),
       sc("Tom", "a classmate on the first day", "to make friends in a new class",
         "It is the first day of a course and the seat next to you is empty.",
         "Introduce yourself to your classmate and ask how he is.",
-        "Hi there! Is anyone sitting here?", "curious"),
+        "Hi there! I'm Tom. What's your name?", "curious"),
       sc("Ms. Green", "the examiner", "to hear you introduce yourself clearly",
         "You are at the start of a short speaking exam.",
         "Introduce yourself politely and answer the examiner.",
-        "Good morning. Could you start by telling me who you are?", "calm"),
+        "Good morning. My name is Ms. Green. What is your name?", "calm"),
     ],
   },
 
@@ -99,7 +112,7 @@ export const A1_U1_2: Authored[] = [
     target: "am / is / are and their short forms",
     correction: "Say the correct form of 'be' in a full sentence and ask the learner to repeat it.",
     summary: "You learned when to use am, is and are, and how to say the short forms.",
-    minutes: 6,
+    minutes: 8,
     points: [
       {
         form: "am, is, are",
@@ -118,21 +131,35 @@ export const A1_U1_2: Authored[] = [
         ex: ["I'm from Spain.", "He's my teacher.", "We're in the same class."],
       },
     ],
-    ex: [
-      fill("My brother ___ a doctor.", ["is"]),
-      mcq("Which sentence is correct?", [
-        "We are in the same class.",
-        "We is in the same class.",
-        "We be in the same class.",
-      ], 0),
-      say("they / be / my friends", ["They are my friends.", "They're my friends."]),
+    ex: [],
+    drills: [
+      // p1 — am, is, are
+      fc("p1", "I ___ a student.", ["am", "is", "are"]),
+      pairs("p1", [
+        ["I", "am"],
+        ["she", "is"],
+        ["they", "are"],
+      ]),
+      fc("p1", "My sister ___ a nurse.", ["is", "am", "are"]),
+      fc("p1", "We ___ in the same class.", ["are", "is", "am"]),
+      arr("p1", "They are at home.", ["is"]),
+      lc("p1", "He is a doctor.", ["She is a doctor.", "He has a doctor."]),
+      // p2 — kısa biçimler
+      sit("p2", "What is the short form of 'we are'?", ["we're", "were", "we's"]),
+      pairs("p2", [
+        ["I am", "I'm"],
+        ["you are", "you're"],
+        ["he is", "he's"],
+        ["it is", "it's"],
+      ]),
+      err("p2", "Im from Spain.", "Im", "I'm"),
+      la("p2", "We're in the same class.", ["were"]),
+      spk("p2", "She's my sister."),
+      // karışık
+      chat("mix", ["Who is that?", null], ["She's my teacher.", "She my teacher.", "She are my teacher."]),
+      lc("mix", "They're my friends.", ["They were my friends.", "They're your friends."]),
+      spk("mix", "I'm a student and you're a teacher."),
     ],
-    open: {
-      q: "Tell me about two people you know. Use 'is' and 'are'.",
-      must: ["is", "are"],
-      criteria: "The answer uses is and are with the right subjects.",
-      example: "My sister is a nurse. My parents are teachers.",
-    },
     success: "The learner uses am, is and are with the right subject at least twice.",
     quiz: [
       qmcq("Which sentence is correct?", ["I am ready.", "I is ready.", "I are ready."], 0),
@@ -143,23 +170,23 @@ export const A1_U1_2: Authored[] = [
       sc("Sophie", "a friend looking at your photos", "to find out who the people in the photos are",
         "You are showing photos on your phone to a friend.",
         "Say who each person is and where they are.",
-        "These photos are lovely! Who are all these people?", "curious"),
+        "Nice photos! Who is this man?", "curious"),
       sc("Martin", "a colleague from another office", "to learn who is who in your team",
         "A colleague from another city is visiting and sees your team photo.",
         "Explain who the people in your team are.",
-        "I've only met you so far. Who is who in this team?", "friendly"),
+        "Nice team photo! Who are these people?", "friendly"),
       sc("Elena", "a fellow guest at the hotel", "to hear about the people you are travelling with",
         "You are having breakfast at a hotel and a guest asks about your group.",
         "Say who the people with you are.",
-        "You are travelling in a group, aren't you? Who is with you?", "friendly"),
+        "Hello! Who is with you today?", "friendly"),
       sc("Mr. Hall", "your teacher", "to learn about his new students",
         "Your teacher is getting to know the class on the first day.",
         "Tell the teacher who you are and who your classmates are.",
-        "Let's get to know each other. Who are you and who do you know here?", "warm"),
+        "Hello! I'm Mr. Hall, your teacher. Who are you?", "warm"),
       sc("Ms. Reed", "the examiner", "to check that you can describe people simply",
         "The examiner shows you a picture of a family.",
         "Say who the people are, using am, is and are.",
-        "Look at this family photo. Can you tell me about the people in it?", "neutral"),
+        "Tell me about your family. Who is in your family?", "neutral"),
     ],
   },
 
@@ -171,7 +198,7 @@ export const A1_U1_2: Authored[] = [
     target: "are you...? / yes, I am / no, I'm not",
     correction: "Model the question with the verb first and ask the learner to say it again.",
     summary: "You learned how to ask questions with be and how to answer them short.",
-    minutes: 6,
+    minutes: 8,
     points: [
       {
         form: "Are you...?",
@@ -190,21 +217,42 @@ export const A1_U1_2: Authored[] = [
         ex: ["Yes, I am.", "No, I'm not.", "Yes, she is."],
       },
     ],
-    ex: [
-      fill("___ you from Italy?", ["Are", "are"]),
-      mcq("Someone asks: 'Are you a teacher?' You are a teacher. What do you say?", [
-        "Yes, I am.",
-        "Yes, I'm.",
-        "Yes, I do.",
-      ], 0),
-      say("be / she / your sister / question", ["Is she your sister?"]),
+    ex: [],
+    drills: [
+      // p1 — soru kurma
+      arr("p1", "Are you a student?", ["Do"]),
+      fc("p1", "___ he your brother?", ["Is", "Are", "Do"]),
+      fc("p1", "___ you a teacher?", ["Are", "Is", "Am"]),
+      lc("p1", "Are they at home?", ["They are at home.", "Are they at work?"]),
+      sit("p1", "You want to know if your new classmate is from this city. What do you ask?", [
+        "Are you from this city?",
+        "Is you from this city?",
+        "Do you from this city?",
+      ]),
+      la("p1", "Is she your sister?", ["Does"]),
+      // p2 — kısa cevaplar
+      chat("p2", ["Are you a teacher?", null], ["Yes, I am.", "Yes, I'm.", "Yes, I do."]),
+      err("p2", "Is she at home? Yes, she's.", "she's", "she is"),
+      pairs("p2", [
+        ["Are you a student?", "Yes, I am."],
+        ["Is she a student?", "Yes, she is."],
+        ["Are they students?", "Yes, they are."],
+      ]),
+      fc("p2", "Are you hungry? No, I'm ___.", ["not", "isn't", "don't"]),
+      spk("p2", "No, I'm not."),
+      // karışık
+      chat("mix", ["Are you from London?", "No, I'm not. I'm from Rome.", "Is Rome nice?", null], [
+        "Yes, it is.",
+        "Yes, it's.",
+        "Yes, it does.",
+      ]),
+      lc("mix", "Is your sister at work?", ["Is your sister at home?", "Your sister is at work."]),
+      sit("mix", "Your friend asks: 'Are your parents at home?' They are at work. What do you say?", [
+        "No, they aren't.",
+        "No, they don't.",
+        "No, they not.",
+      ]),
     ],
-    open: {
-      q: "You want to know three things about a new classmate. Ask three questions with be.",
-      must: ["are you", "is"],
-      criteria: "The questions put am, is or are before the person and do not use do.",
-      example: "Are you a student? Is your family here? Are you from this city?",
-    },
     success: "The learner asks questions with be and answers with short answers.",
     quiz: [
       qmcq("Which question is correct?", ["Are you tired?", "You are tired?", "Do you are tired?"], 0),
@@ -219,23 +267,23 @@ export const A1_U1_2: Authored[] = [
       sc("Anna", "someone waiting at the same bus stop", "to make small talk while waiting",
         "You are waiting at a bus stop and start talking to the person next to you.",
         "Ask her questions with be and answer her questions.",
-        "This bus is really late today, isn't it?", "chatty"),
+        "Hi! Are you from this city?", "chatty"),
       sc("Peter", "a colleague you have just met", "to find out more about the new person",
         "You are having coffee with a colleague you met this morning.",
         "Ask him questions about himself using be.",
-        "So, we finally have five minutes. What would you like to know about me?", "friendly"),
+        "Hi! Are you the new colleague?", "friendly"),
       sc("Nina", "a guide meeting the group", "to check who is in her tour group",
         "A guide is meeting your tour group for the first time.",
         "Answer her questions and ask her some of your own with be.",
-        "Welcome, everyone! Are you all here for the city tour?", "cheerful"),
+        "Hello! Are you here for the city tour?", "cheerful"),
       sc("Mr. Diaz", "the course teacher", "to find out about a new student",
         "You are enrolling in a language course and the teacher asks about you.",
         "Answer his questions and ask two questions about the course.",
-        "Nice to see you. Are you new to this school?", "warm"),
+        "Hello! Are you a new student?", "warm"),
       sc("Ms. Park", "the examiner", "to check that you can ask and answer simple questions",
         "In the exam the examiner asks you to interview her.",
         "Ask the examiner three questions using be.",
-        "Now I would like you to ask me some questions. Are you ready?", "neutral"),
+        "Hello. Are you ready to start?", "neutral"),
     ],
   },
 
@@ -247,14 +295,14 @@ export const A1_U1_2: Authored[] = [
     target: "I'm not / it isn't / we aren't",
     correction: "Model the negative form in a full sentence and let the learner repeat it.",
     summary: "You learned how to make negative sentences with be and correct a mistake politely.",
-    minutes: 6,
+    minutes: 8,
     points: [
       {
         form: "I'm not / isn't / aren't",
         claims: [
           "Put 'not' after am, is or are: I am not, she is not, we are not.",
           "In speaking, use the short forms: I'm not, she isn't, we aren't.",
-          "There is no short form for 'am not' on its own, so always say 'I'm not'.",
+          "The short form of 'I am not' is 'I'm not' — never 'I amn't'.",
         ],
         ex: ["I'm not from this city.", "She isn't at work today.", "We aren't ready yet."],
       },
@@ -267,21 +315,42 @@ export const A1_U1_2: Authored[] = [
         ex: ["I'm not Spanish. I'm Italian.", "It isn't my bag. It's her bag."],
       },
     ],
-    ex: [
-      fill("She ___ at home today. She is at work.", ["isn't", "is not"]),
-      mcq("Which sentence is correct?", [
-        "They aren't in the office.",
-        "They not are in the office.",
-        "They doesn't in the office.",
-      ], 0),
-      say("I / not / from / this city", ["I'm not from this city.", "I am not from this city."]),
+    ex: [],
+    drills: [
+      // p1 — I'm not / isn't / aren't
+      fc("p1", "She ___ at work today. She is at home.", ["isn't", "aren't", "not"]),
+      arr("p1", "We aren't at home.", ["isn't"]),
+      fc("p1", "They ___ in the office.", ["aren't", "isn't", "am not"]),
+      lc("p1", "It isn't my phone.", ["It is my phone.", "It isn't my bag."]),
+      pairs("p1", [
+        ["I am not", "I'm not"],
+        ["she is not", "she isn't"],
+        ["we are not", "we aren't"],
+        ["it is not", "it isn't"],
+      ]),
+      spk("p1", "I'm not from this city."),
+      // p2 — önce olumsuz, sonra doğrusu
+      sit("p2", "Someone says: 'You're Spanish, right?' You are Italian. What do you say?", [
+        "I'm not Spanish. I'm Italian.",
+        "I'm not Italian. I'm Spanish.",
+        "I amn't Spanish. I'm Italian.",
+      ]),
+      chat("p2", ["Is this your bag?", null], [
+        "No, it isn't. It's her bag.",
+        "No, it isn't. It's my bag.",
+        "No, it not. It's her bag.",
+      ]),
+      fc("p2", "You are a teacher, not a doctor. 'I'm not a doctor. ___ a teacher.'", ["I'm", "I'm not", "Am"]),
+      la("p2", "It isn't Monday, it's Tuesday.", ["is"]),
+      spk("p2", "We aren't sisters, we're friends."),
+      // karışık
+      chat("mix", ["Are you and Tom in the same class?", null], [
+        "No, we aren't. He's in class B.",
+        "No, we isn't. He's in class B.",
+        "No, we don't. He's in class B.",
+      ]),
+      err("mix", "I amn't from here. I'm from Lisbon.", "amn't", "am not"),
     ],
-    open: {
-      q: "Someone thinks you are a doctor, but you are not. Correct them and say what is true.",
-      must: ["I'm not"],
-      criteria: "The answer says what is not true and then gives the correct information.",
-      example: "I'm not a doctor. I'm a teacher.",
-    },
     success: "The learner corrects wrong information with a negative form of be.",
     quiz: [
       qmcq("Which sentence is correct?", ["He isn't ready.", "He not ready.", "He doesn't ready."], 0),
@@ -296,23 +365,23 @@ export const A1_U1_2: Authored[] = [
       sc("Clara", "a neighbour who has got things wrong", "to work out who is who in the building",
         "Your neighbour thinks you are someone else from the building.",
         "Politely say what is not true and give the right information.",
-        "You're the family from the third floor, aren't you?", "friendly"),
+        "Hi! Are you Maria from the third floor?", "friendly"),
       sc("James", "a colleague with the wrong information", "to sort out who does what in the team",
         "A colleague thinks you work in a different department.",
         "Correct him politely and say what you really do.",
-        "You're in the finance team, right?", "busy"),
+        "Hi! Are you Tom from the finance team?", "busy"),
       sc("Sofia", "a hotel receptionist", "to check the details of your booking",
         "The receptionist has the wrong details for your stay.",
         "Say what is not correct and give the right information.",
-        "So you're leaving on Sunday and you asked for two rooms, yes?", "polite"),
+        "Hello! Are you Anna Brown from room twelve?", "polite"),
       sc("Dr. Kim", "your course tutor", "to check she has the right student in front of her",
         "Your tutor has mixed you up with another student.",
         "Explain what is not true and correct it.",
-        "You're the student who joined last week, aren't you?", "warm"),
+        "Hi! Are you Sam, the new student from Canada?", "warm"),
       sc("Mr. Ellis", "the examiner", "to see whether you can correct information politely",
         "The examiner makes some wrong guesses about you on purpose.",
         "Correct each wrong guess with a negative sentence.",
-        "Let me guess a few things about you. You're a student here, right?", "neutral"),
+        "Let's start. Is your name Peter?", "neutral"),
     ],
   },
 
@@ -324,7 +393,7 @@ export const A1_U1_2: Authored[] = [
     target: "I'm from / where are you from / I live in",
     correction: "Repeat the phrase correctly with the country name and let the learner say it again.",
     summary: "You learned how to say where you are from and where you live, and how to ask other people.",
-    minutes: 5,
+    minutes: 7,
     points: [
       {
         form: "I'm from",
@@ -345,27 +414,47 @@ export const A1_U1_2: Authored[] = [
       {
         form: "I live in",
         claims: [
-          "Use 'I live in' plus a city or country for the place where you are now.",
+          "Use 'I live in' plus a city or country for the place where your home is.",
           "You can be from one place and live in another.",
+          "Ask 'Where do you live?' to find out where someone's home is.",
         ],
-        ex: ["I live in Berlin now.", "I'm from Poland, but I live in France."],
+        ex: ["I live in Berlin now.", "I'm from Poland, but I live in France.", "Where do you live?"],
       },
     ],
-    ex: [
-      fill("I'm ___ Turkey, but I live in Germany.", ["from"]),
-      mcq("Which question asks about someone's country?", [
-        "Where are you from?",
-        "Where are you go?",
-        "From where you are?",
-      ], 0),
-      say("I / live / in Madrid / now", ["I live in Madrid now.", "I live in Madrid."]),
+    ex: [],
+    drills: [
+      // p1 — I'm from
+      fc("p1", "She's ___ a small town near Rome.", ["from", "of", "to"]),
+      lc("p1", "I'm from Japan.", ["I'm in Japan.", "I'm from Jordan."]),
+      spk("p1", "I'm from a small town."),
+      // p2 — Where are you from?
+      arr("p2", "Where are you from?", ["do"]),
+      fc("p2", "Where ___ you from?", ["are", "is", "am"]),
+      chat("p2", ["Hi, I'm Leo.", null, "I'm from Canada."], [
+        "Hi Leo! Where are you from?",
+        "Hi Leo! Where you are from?",
+        "Hi Leo! Where do you from?",
+      ]),
+      // p3 — I live in
+      fc("p3", "I'm from Poland, but I ___ in France now.", ["live", "living", "lives"]),
+      sit("p3", "You come from Spain. Your home is in London now. What do you say?", [
+        "I'm from Spain, but I live in London.",
+        "I'm from London, but I live in Spain.",
+        "I live from Spain, but I'm in London.",
+      ]),
+      la("p3", "I live in Berlin now.", ["from"]),
+      // karışık
+      pairs("mix", [
+        ["Where are you from?", "I'm from Mexico."],
+        ["Where do you live?", "I live in Paris."],
+        ["What's your name?", "My name is Sara."],
+      ]),
+      chat("mix", ["Where are you from?", null], [
+        "I'm from Egypt, but I live in Germany.",
+        "I'm Egypt, but I live in Germany.",
+        "I from Egypt, but I live in Germany.",
+      ]),
     ],
-    open: {
-      q: "A new person asks about you. Say where you are from and where you live now.",
-      must: ["I'm from", "I live in"],
-      criteria: "The answer names a place of origin and a place where the speaker lives.",
-      example: "I'm from a small town in Italy, but I live in Milan now.",
-    },
     success: "The learner says where they are from, where they live, and asks the other person too.",
     quiz: [
       qmcq("Which sentence is correct?", ["I'm from Mexico.", "I'm of Mexico.", "I from Mexico."], 0),
@@ -380,23 +469,23 @@ export const A1_U1_2: Authored[] = [
       sc("Emily", "someone at a neighbourhood party", "to get to know new people in the area",
         "You are at a small party in your neighbourhood and meet someone new.",
         "Say where you are from and where you live, and ask her the same.",
-        "I don't think we've met. How long have you been in this area?", "sociable"),
+        "Hi! I'm Emily. Where are you from?", "sociable"),
       sc("Ravi", "a colleague at an international office", "to learn where his new colleagues come from",
         "Your company has people from many countries and you meet a colleague at lunch.",
         "Talk about where you are from and where you live now.",
-        "Our team is from all over the place. What about you?", "friendly"),
+        "Hi! I'm Ravi, from India. Where are you from?", "friendly"),
       sc("Hanna", "a traveller at the airport gate", "to chat while waiting for a delayed flight",
         "Your flight is delayed and the traveller next to you starts talking.",
         "Talk about your country and your city, and ask about hers.",
-        "Two hours of waiting! Is this trip taking you home?", "relaxed"),
+        "Hi! I'm from Sweden. Where are you from?", "relaxed"),
       sc("Mr. Owen", "the course teacher", "to learn where the students in the class come from",
         "On the first day the teacher asks students about their backgrounds.",
         "Say where you are from and where you live now.",
-        "We have students from many countries this year. Would you like to start?", "warm"),
+        "Welcome to the class! Where are you from?", "warm"),
       sc("Ms. Blake", "the examiner", "to hear you talk about your background",
         "The examiner asks you a few simple questions about yourself.",
         "Say where you are from and where you live, in full sentences.",
-        "Let's begin with where you come from. Can you tell me about that?", "neutral"),
+        "Let's begin. Where are you from?", "neutral"),
     ],
   },
 
@@ -428,21 +517,36 @@ export const A1_U1_2: Authored[] = [
         ex: ["Really? That's interesting.", "Me too! I live there as well."],
       },
     ],
-    ex: [
-      fill("I'm from Poland. What ___ you?", ["about"]),
-      mcq("Your new friend says 'I'm a student.' You are a student too. What do you say?", [
+    ex: [],
+    drills: [
+      // p1 — What about you?
+      chat("p1", ["Where are you from?", null], [
+        "I'm from Chile. What about you?",
+        "I'm from Chile. What you?",
+        "I'm from Chile. How about me?",
+      ]),
+      arr("p1", "I'm a student, what about you?", ["me"]),
+      spk("p1", "What about you?"),
+      // p2 — Really? / Me too!
+      sit("p2", "Your new friend says: 'I love coffee.' You love coffee too. What do you say?", [
         "Me too!",
-        "Me also am!",
-        "I too is!",
-      ], 0),
-      say("nice / to meet / you", ["Nice to meet you.", "It's nice to meet you."]),
+        "Me neither!",
+        "I too!",
+      ]),
+      sit("p2", "Your new friend says: 'I have ten brothers!' You are surprised. What do you say?", [
+        "Really?",
+        "Me too!",
+        "Nice to meet you.",
+      ]),
+      lc("p2", "Really? That's interesting.", ["Really? That's important.", "Really? That's interesting too."]),
+      // karışık
+      chat("mix", ["I'm a student. What about you?", null], [
+        "Me too! Where are you from?",
+        "Me neither! Where are you from?",
+        "Me too! Where you from?",
+      ]),
+      lc("mix", "Me too! What about you?", ["Me too! What about him?", "Really? What about you?"]),
     ],
-    open: {
-      q: "You meet someone at an event. Say hello, give one thing about yourself and ask them a question.",
-      must: ["nice to meet you", "what about you"],
-      criteria: "The answer greets, gives information and asks a question back.",
-      example: "Hi, I'm Ana. Nice to meet you. I'm from Portugal. What about you?",
-    },
     success: "The learner greets, gives information about themselves and asks questions back at least twice.",
     quiz: [
       qmcq("Which phrase gives the turn back to the other person?", [
@@ -457,23 +561,23 @@ export const A1_U1_2: Authored[] = [
       sc("Julia", "another guest at a friend's party", "to meet new people at the party",
         "You are at a friend's party and you do not know many people.",
         "Meet Julia, tell her about yourself and ask her questions.",
-        "Hi! I don't know many people here either. How do you know the host?", "sociable"),
+        "Hi! I'm Julia. I don't know many people here. What's your name?", "sociable"),
       sc("Ben", "a colleague at a company event", "to network with people from other teams",
         "You are at a company event where people from different teams meet.",
         "Introduce yourself and keep the conversation going.",
-        "Hi there! Which part of the company are you in?", "friendly"),
+        "Hi there! I'm Ben, from the sales team. What's your name?", "friendly"),
       sc("Carla", "a guest at the hostel kitchen", "to find travel company for the evening",
         "You are cooking in a hostel kitchen and another guest starts talking.",
         "Introduce yourself and find out about her trip.",
-        "That smells good! Have you just arrived?", "cheerful"),
+        "Hi! I'm Carla. I'm from Mexico. And you?", "cheerful"),
       sc("Adam", "a student at a welcome event", "to make friends at the start of the course",
         "You are at a welcome event for new students.",
         "Meet Adam and keep the conversation going with questions.",
-        "Hi! Are you starting the same course as me?", "curious"),
+        "Hi! I'm Adam. Are you new here too?", "curious"),
       sc("Ms. Shaw", "the examiner", "to see how you handle a first conversation",
         "In the exam you role play meeting someone for the first time.",
         "Greet, give information about yourself and ask questions back.",
-        "Imagine we have just met at an event. Shall we begin?", "neutral"),
+        "Imagine we have just met. Hi, I'm Ms. Shaw. What's your name?", "neutral"),
     ],
   },
 
@@ -486,7 +590,7 @@ export const A1_U1_2: Authored[] = [
     target: "this is my / her name is / our teacher",
     correction: "Say the correct possessive word in a short sentence and let the learner repeat it.",
     summary: "You learned the words my, your, his, her, our and their, and how to introduce people.",
-    minutes: 6,
+    minutes: 8,
     points: [
       {
         form: "my, your, his, her, our, their",
@@ -501,26 +605,44 @@ export const A1_U1_2: Authored[] = [
         form: "This is...",
         claims: [
           "Use 'This is' plus a person to introduce someone who is with you.",
-          "For people who are not here, use 'That's my...' or just say the name.",
+          "You can also use 'This is' for a person in a photo you are showing.",
         ],
         ex: ["This is my friend Tom.", "This is my colleague from work."],
       },
     ],
-    ex: [
-      fill("That's Anna. ___ brother is a doctor.", ["Her", "her"]),
-      mcq("Which sentence is correct?", [
-        "This is our teacher.",
-        "This is ours teacher.",
-        "This is us teacher.",
-      ], 0),
-      say("this / be / my / sister", ["This is my sister."]),
+    ex: [],
+    drills: [
+      // p1 — my, your, his, her, our, their
+      fc("p1", "That's Anna. ___ brother is a doctor.", ["Her", "His", "She"]),
+      pairs("p1", [
+        ["I", "my"],
+        ["you", "your"],
+        ["he", "his"],
+        ["she", "her"],
+        ["they", "their"],
+      ]),
+      fc("p1", "They have a new teacher. ___ teacher is very nice.", ["Their", "They", "There"]),
+      err("p1", "We love ours teacher.", "ours", "our"),
+      arr("p1", "Her name is Maria.", ["She"]),
+      lc("p1", "Our teacher is very kind.", ["Your teacher is very kind.", "Our teachers are very kind."]),
+      spk("p1", "Our teacher is very nice."),
+      // p2 — This is...
+      sit("p2", "Your friend Tom is with you. You want your mother to meet him. What do you say?", [
+        "This is my friend Tom.",
+        "That is my friend Tom's.",
+        "He is my friend Tom is.",
+      ]),
+      chat("p2", ["Who is this?", null], ["This is my sister.", "This is me sister.", "This my sister."]),
+      la("p2", "This is my colleague from work.", ["mine"]),
+      spk("p2", "This is my brother."),
+      // karışık
+      chat("mix", ["Who is that woman?", null], [
+        "That's my teacher. Her name is Lin.",
+        "That's my teacher. His name is Lin.",
+        "That's my teacher. She name is Lin.",
+      ]),
+      fc("mix", "This is my sister. ___ name is Ana.", ["Her", "His", "She"]),
     ],
-    open: {
-      q: "Introduce two people in your family. Say who they are and give one detail.",
-      must: ["this is my", "her name is"],
-      criteria: "The answer introduces people with a possessive word and gives a detail.",
-      example: "This is my sister. Her name is Elena and she is a nurse.",
-    },
     success: "The learner introduces people using possessive words correctly at least twice.",
     quiz: [
       qmcq("Which sentence is correct?", ["His name is Paul.", "He name is Paul.", "Him name is Paul."], 0),
@@ -535,23 +657,23 @@ export const A1_U1_2: Authored[] = [
       sc("Rosa", "a friend visiting your home", "to learn about the people in your family photos",
         "A friend is at your home and looks at the family photos on the wall.",
         "Introduce the people in the photos and give a detail about each one.",
-        "Your wall is full of photos! Who is in them?", "curious"),
+        "Nice photo! Who is this woman?", "curious"),
       sc("Karl", "a colleague at a family day", "to meet the families of his colleagues",
         "Your company has a family day and a colleague comes to say hello.",
         "Introduce the people who came with you.",
-        "Great to see you outside the office! Who have you brought along?", "friendly"),
+        "Hi! Who is this with you?", "friendly"),
       sc("Ines", "a host family member", "to learn about her guest's family back home",
         "You are staying with a host family and they ask about your family.",
         "Introduce your family members and give a detail about each.",
-        "We would love to hear about your family. Do you have any photos?", "warm"),
+        "Is this a photo of your family? Who is this?", "warm"),
       sc("Mrs. Doyle", "your teacher", "to learn about the students' families",
         "In class you are talking about families.",
         "Tell the class about two people in your family.",
-        "Today we are talking about families. Would you like to start?", "warm"),
+        "Look at this photo of your class. Who is this?", "warm"),
       sc("Mr. Grant", "the examiner", "to hear you describe people close to you",
         "The examiner asks you about the people in your life.",
         "Introduce two people using my, his and her.",
-        "Could you tell me about two people who are important to you?", "neutral"),
+        "Do you have a photo of your family? Who is this?", "neutral"),
     ],
   },
 
@@ -563,14 +685,14 @@ export const A1_U1_2: Authored[] = [
     target: "he / she / they with the correct form of be",
     correction: "Replace the name with the right pronoun in a full sentence and let the learner repeat.",
     summary: "You learned to use he, she, it, we and they with the right form of be.",
-    minutes: 6,
+    minutes: 8,
     points: [
       {
         form: "he, she, it, we, they",
         claims: [
           "Use 'he' for a man, 'she' for a woman, and 'it' for a thing or a place.",
           "Use these words after you have said the name once, so you do not repeat it.",
-          "Use 'they' for two or more people, women and men together.",
+          "Use 'we' for you and other people together. Use 'they' for two or more people or things.",
         ],
         ex: ["That's Peter. He's my colleague.", "This is Ana. She's new here.", "They're in my class."],
       },
@@ -583,21 +705,38 @@ export const A1_U1_2: Authored[] = [
         ex: ["She's my best friend.", "They're students at my school."],
       },
     ],
-    ex: [
-      fill("This is Sara. ___ is my neighbour.", ["She", "she"]),
-      mcq("Which sentence is correct?", [
-        "They are my classmates.",
+    ex: [],
+    drills: [
+      // p1 — he, she, it, we, they
+      fc("p1", "That's Peter. ___ is my colleague.", ["He", "She", "They"]),
+      fc("p1", "This is my new phone. ___ is very small.", ["It", "He", "She"]),
+      pairs("p1", [
+        ["Anna", "she"],
+        ["Peter", "he"],
+        ["the book", "it"],
+        ["Anna and Peter", "they"],
+        ["Anna and I", "we"],
+      ]),
+      fc("p1", "This is my sister. ___ is from Brazil.", ["She", "He", "It"]),
+      lc("p1", "She's in my class.", ["He's in my class.", "She's in my car."]),
+      arr("p1", "They are students at my school.", ["is"]),
+      // p2 — he's / she's / they're
+      sit("p2", "What is the short form of 'they are'?", ["they're", "their", "they's"]),
+      chat("p2", ["Who is the new man?", null], [
+        "He's new here. He's from Spain.",
+        "His new here. He's from Spain.",
+        "He new here. He's from Spain.",
+      ]),
+      la("p2", "She's my best friend.", ["her"]),
+      spk("p2", "He's new here."),
+      // karışık
+      chat("mix", ["Who are Tom and Ana?", null], [
+        "They're my classmates.",
+        "Their my classmates.",
         "They is my classmates.",
-        "Them are my classmates.",
-      ], 0),
-      say("he / be / new / here", ["He is new here.", "He's new here."]),
+      ]),
+      spk("mix", "She's my friend and they're my neighbours."),
     ],
-    open: {
-      q: "Think of two people you know. Say who they are using he, she or they.",
-      must: ["she's", "he's"],
-      criteria: "The answer uses pronouns with the correct form of be.",
-      example: "That's Marco. He's my neighbour. And those are the Ricci family. They're very kind.",
-    },
     success: "The learner uses he, she or they with the correct form of be at least twice.",
     quiz: [
       qmcq("This is my mother. ___ is a teacher.", ["She", "Her", "Hers"], 0),
@@ -608,23 +747,23 @@ export const A1_U1_2: Authored[] = [
       sc("Nadia", "a friend at a coffee shop", "to hear about the people you have mentioned",
         "You are telling a friend about people from your daily life.",
         "Talk about two or three people using he, she and they.",
-        "You keep mentioning people I don't know! Who are they?", "curious"),
+        "Who is that girl with you?", "curious"),
       sc("Oscar", "a colleague new to the building", "to work out who is who in the office",
         "A colleague has just moved into your office and does not know anyone.",
         "Tell him who the people around you are.",
-        "Everyone is new to me here. Can you help me out?", "friendly"),
+        "Hi! Who is that man at the desk?", "friendly"),
       sc("Petra", "a fellow traveller in your group", "to learn about the other people on the tour",
         "You are on a group tour and a traveller asks about the others.",
         "Say who the other people in the group are.",
-        "There are so many of us. Do you know anyone here?", "curious"),
+        "Who are those people over there?", "curious"),
       sc("Mr. Lang", "your teacher", "to learn about the people in his students' lives",
         "In class you are talking about the people around you.",
         "Describe two people using he, she or they.",
-        "Tell us about someone you see every day. Who is it?", "warm"),
+        "Who is your best friend?", "warm"),
       sc("Ms. Vale", "the examiner", "to check that you can use pronouns naturally",
         "The examiner shows a picture of a group of people.",
         "Describe the people using he, she and they.",
-        "Look at this picture of a group. What can you tell me about them?", "neutral"),
+        "Look at this picture. Who are these people?", "neutral"),
     ],
   },
 
@@ -636,7 +775,7 @@ export const A1_U1_2: Authored[] = [
     target: "I've got / have you got / she hasn't got",
     correction: "Model the full form with 'got' and ask the learner to say the sentence again.",
     summary: "You learned to use have got to say what people have, and to ask for things you need.",
-    minutes: 6,
+    minutes: 8,
     points: [
       {
         form: "I've got / she's got",
@@ -662,21 +801,47 @@ export const A1_U1_2: Authored[] = [
         ex: ["I haven't got any money with me.", "He hasn't got a car."],
       },
     ],
-    ex: [
-      fill("___ you got a pen I can borrow?", ["Have", "have"]),
-      mcq("Which sentence is correct?", [
-        "She's got a new bike.",
-        "She've got a new bike.",
-        "She has get a new bike.",
-      ], 0),
-      say("I / not / have got / my keys", ["I haven't got my keys.", "I have not got my keys."]),
+    ex: [],
+    drills: [
+      // p1 — I've got / she's got
+      fc("p1", "She ___ got a new bike.", ["has", "have", "is"]),
+      pairs("p1", [
+        ["I have got", "I've got"],
+        ["she has got", "she's got"],
+        ["we have got", "we've got"],
+        ["he has got", "he's got"],
+      ]),
+      sit("p1", "Your brother owns a car. What do you say?", [
+        "My brother has got a car.",
+        "My brother have got a car.",
+        "My brother is got a car.",
+      ]),
+      lc("p1", "I've got two sisters.", ["I've got two brothers.", "I haven't got two sisters."]),
+      // p2 — Have you got...?
+      arr("p2", "Have you got a pen?", ["Do"]),
+      chat("p2", ["Have you got a phone charger?", null], [
+        "No, I haven't.",
+        "No, I haven't got.",
+        "No, I don't got.",
+      ]),
+      sit("p2", "You need a pen. Your classmate is next to you. What do you ask?", [
+        "Have you got a pen?",
+        "Do you got a pen?",
+        "Has you got a pen?",
+      ]),
+      spk("p2", "Have you got a pencil?"),
+      // p3 — haven't got / hasn't got
+      fc("p3", "Sorry, I ___ got any money with me.", ["haven't", "hasn't", "don't"]),
+      la("p3", "He hasn't got a car.", ["have"]),
+      fc("p3", "She ___ got a sister.", ["hasn't", "haven't", "don't"]),
+      // karışık
+      chat("mix", ["Has your brother got a car?", null], [
+        "No, he hasn't. He's got a bike.",
+        "No, he haven't. He's got a bike.",
+        "No, he hasn't. He have got a bike.",
+      ]),
+      spk("mix", "I've got a pen, but I haven't got paper."),
     ],
-    open: {
-      q: "You need two small things for a class. Ask a classmate for them.",
-      must: ["have you got"],
-      criteria: "The answer asks for something with have got in question form.",
-      example: "Have you got a pen? And have you got some paper too?",
-    },
     success: "The learner asks for things with have got and answers about what they have.",
     quiz: [
       qmcq("Which question is correct?", [
@@ -695,23 +860,23 @@ export const A1_U1_2: Authored[] = [
       sc("Mia", "a flatmate looking for things", "to find the things she needs before going out",
         "Your flatmate is getting ready to leave and cannot find things.",
         "Say what you have and have not got, and ask her about other things.",
-        "I can't find anything this morning! Can you help me look?", "hurried"),
+        "I can't find my keys! Have you got my keys?", "hurried"),
       sc("Chris", "a colleague in a meeting room", "to set up the room before a meeting",
         "You are setting up a meeting room and something is missing.",
         "Ask your colleague if he has the things you need.",
-        "Right, the meeting starts in five minutes. Are we missing anything?", "busy"),
+        "The meeting starts soon. Have you got the laptop?", "busy"),
       sc("Ayla", "a receptionist at the hostel", "to help guests with what they need",
         "You have just checked in and you need a few small things.",
         "Ask the receptionist if she has them.",
-        "You're all checked in. Is there anything you need for your room?", "helpful"),
+        "Welcome! Have you got your passport?", "helpful"),
       sc("Mr. Silva", "your teacher before class", "to make sure students have what they need",
         "Class is starting and you do not have everything with you.",
         "Ask a classmate and the teacher for what you need.",
-        "Before we start, is everyone ready to write?", "warm"),
+        "Before we start, have you got a pen?", "warm"),
       sc("Ms. Todd", "the examiner", "to check that you can ask for things",
         "The examiner asks you to role play borrowing things.",
         "Ask for three things using have got.",
-        "Imagine you have forgotten your bag. What would you ask me?", "neutral"),
+        "Let's start. Have you got any brothers or sisters?", "neutral"),
     ],
   },
 
@@ -723,15 +888,16 @@ export const A1_U1_2: Authored[] = [
     target: "I'm a teacher / what do you do / he's an engineer",
     correction: "Model the job phrase with a or an and let the learner say the sentence again.",
     summary: "You learned how to talk about jobs and when to use a or an before a job.",
-    minutes: 6,
+    minutes: 7,
     points: [
       {
         form: "I'm a teacher",
         claims: [
-          "In English you always need 'a' or 'an' before a job: 'I'm a teacher', not 'I'm teacher'.",
+          "When you say one person's job with I'm, he's or she's, use 'a' or 'an': 'I'm a teacher', not 'I'm teacher'.",
           "Use 'an' when the job starts with a vowel sound: an engineer, an artist, an accountant.",
+          "You can also say 'I work as a' plus the job: 'I work as a nurse.'",
         ],
-        ex: ["I'm a nurse.", "He's an engineer.", "She's a shop assistant."],
+        ex: ["I'm a nurse.", "He's an engineer.", "I work as a designer."],
       },
       {
         form: "What do you do?",
@@ -742,21 +908,30 @@ export const A1_U1_2: Authored[] = [
         ex: ["What do you do?", "I'm a designer. What do you do?"],
       },
     ],
-    ex: [
-      fill("My sister is ___ engineer.", ["an"]),
-      mcq("Which sentence is correct?", [
-        "I'm a teacher.",
-        "I'm teacher.",
-        "I am the teacher job.",
-      ], 0),
-      say("what / do / you / do / question", ["What do you do?"]),
+    ex: [],
+    drills: [
+      // p1 — a / an + meslek
+      fc("p1", "He's ___ engineer.", ["an", "a", "on"]),
+      err("p1", "She's a artist.", "a", "an"),
+      sit("p1", "Your friend works in a hospital. She is a nurse. What do you say?", [
+        "She's a nurse.",
+        "She's nurse.",
+        "She's an nurse.",
+      ]),
+      lc("p1", "He's an engineer.", ["He's engineer.", "He's an engineer too."]),
+      spk("p1", "She's an accountant."),
+      // p2 — What do you do?
+      arr("p2", "What do you do?", ["are"]),
+      chat("p2", ["I'm a designer. What do you do?", null], ["I'm a teacher.", "I'm teacher.", "I do a teacher."]),
+      fc("p2", "What ___ you do?", ["do", "does", "are"]),
+      // karışık
+      chat("mix", ["What do you do?", null], [
+        "I work as a nurse. What about you?",
+        "I work as nurse. What about you?",
+        "I work like a nurse. What about you?",
+      ]),
+      la("mix", "I work as a waiter in a cafe.", ["an"]),
     ],
-    open: {
-      q: "Someone at a party asks about your work. Answer and ask them the same question.",
-      must: ["what do you do"],
-      criteria: "The answer names a job with a or an and asks the question back.",
-      example: "I'm a nurse at the city hospital. What do you do?",
-    },
     success: "The learner names jobs with a or an correctly and asks about the other person's job.",
     quiz: [
       qmcq("Which sentence is correct?", ["She's an artist.", "She's a artist.", "She's artist."], 0),
@@ -771,23 +946,23 @@ export const A1_U1_2: Authored[] = [
       sc("Helen", "a guest at a friend's party", "to get to know the other guests",
         "You are at a friend's birthday party and start talking to another guest.",
         "Talk about jobs and ask her about hers.",
-        "So, how do you know the birthday girl?", "sociable"),
+        "Hi! I'm Helen. What do you do?", "sociable"),
       sc("Tarek", "someone at a company networking event", "to meet people from other companies",
         "You are at a networking event and someone starts a conversation.",
         "Say what you do and ask about his job.",
-        "These events are always so busy! Is this your first one?", "friendly"),
+        "Hi! I'm Tarek. I'm an engineer. What do you do?", "friendly"),
       sc("Grace", "a guest at the hotel bar", "to chat with another traveller",
         "You are at a hotel bar and start talking to another guest.",
         "Talk about your job and ask about hers.",
-        "Are you here on holiday or is this a work trip?", "relaxed"),
+        "Hello! Are you here for work? What do you do?", "relaxed"),
       sc("Mr. Novak", "a careers teacher", "to hear what jobs his students want",
         "Your class is talking about jobs and future plans.",
         "Say what job you have or want, and ask about others.",
-        "Today we are talking about work. What would you like to tell us?", "warm"),
+        "Today we talk about jobs. What do you do?", "warm"),
       sc("Ms. Hart", "the examiner", "to hear you talk about work simply",
         "The examiner asks about your work or studies.",
         "Talk about your job or the job you would like, using a or an.",
-        "Can you tell me a little about your work or your studies?", "neutral"),
+        "Let's begin. What do you do?", "neutral"),
     ],
   },
 
@@ -799,7 +974,7 @@ export const A1_U1_2: Authored[] = [
     target: "how old are you / I'm twenty five / she's ten",
     correction: "Say the number or the age sentence correctly and let the learner repeat it.",
     summary: "You learned numbers up to one hundred and how to ask and answer about age.",
-    minutes: 5,
+    minutes: 7,
     points: [
       {
         form: "How old are you?",
@@ -807,32 +982,47 @@ export const A1_U1_2: Authored[] = [
           "Ask about age with 'How old are you?' and answer with 'I'm' plus the number.",
           "Do not add the word 'years' unless you say 'years old': 'I'm thirty' or 'I'm thirty years old'.",
         ],
-        ex: ["How old are you?", "I'm twenty five.", "She's ten years old."],
+        ex: ["How old are you?", "I'm twenty-five years old.", "She's ten years old."],
       },
       {
         form: "numbers up to one hundred",
         claims: [
-          "The tens are twenty, thirty, forty, fifty, sixty, seventy, eighty, ninety.",
+          "The tens are twenty, thirty, forty, fifty, sixty, seventy, eighty, ninety, and then one hundred.",
           "Join tens and units with a hyphen when you write: twenty-one, forty-six.",
         ],
-        ex: ["My number is forty-two.", "There are sixty people here."],
+        ex: ["My number is forty-two.", "There are sixty people here.", "This book has one hundred pages."],
       },
     ],
-    ex: [
-      fill("___ old are you?", ["How", "how"]),
-      mcq("Which answer is correct?", [
-        "I'm thirty years old.",
+    ex: [],
+    drills: [
+      // p1 — How old are you?
+      fc("p1", "___ old are you?", ["How", "What", "Who"]),
+      sit("p1", "Someone asks: 'How old are you?' You are thirty. What do you say?", [
+        "I'm thirty.",
         "I have thirty years.",
         "I'm thirty years.",
-      ], 0),
-      say("she / be / ten / years old", ["She is ten years old.", "She's ten years old."]),
+      ]),
+      arr("p1", "How old is your sister?", ["are"]),
+      spk("p1", "How old are you?"),
+      // p2 — sayılar
+      lc("p2", "I'm forty-two.", ["I'm forty-three.", "I'm fourteen."]),
+      pairs("p2", [
+        ["20", "twenty"],
+        ["30", "thirty"],
+        ["50", "fifty"],
+        ["15", "fifteen"],
+        ["100", "one hundred"],
+      ]),
+      fc("p2", "Sixty plus ten is ___.", ["seventy", "seventeen", "sixty-ten"]),
+      la("p2", "There are sixty people here.", ["sixteen"]),
+      // karışık
+      chat("mix", ["How old is your brother?", null], [
+        "He's twelve years old.",
+        "He has twelve years.",
+        "He's twelve year old.",
+      ]),
+      err("mix", "My sister has ten years old.", "has", "is"),
     ],
-    open: {
-      q: "You are filling in a form with a receptionist. Give your age and one number, like a phone number.",
-      must: ["how old are you", "I'm"],
-      criteria: "The answer gives an age with the correct pattern and says a number clearly.",
-      example: "I'm twenty-eight, and my number is six two four one.",
-    },
     success: "The learner asks about age and gives ages and numbers correctly.",
     quiz: [
       qmcq("Which question asks about age?", [
@@ -847,23 +1037,23 @@ export const A1_U1_2: Authored[] = [
       sc("Dana", "a neighbour with young children", "to talk about the children in the building",
         "Your neighbour is talking about her children in the playground.",
         "Ask about ages and give some numbers about your own family.",
-        "The children love this playground. Do you have any little ones?", "friendly"),
+        "Hi! My son is ten years old. How old are you?", "friendly"),
       sc("Victor", "a colleague organising a team event", "to collect details for a team event",
         "A colleague is collecting simple details for a company event.",
         "Give the numbers he asks for and ask him a question back.",
-        "I need a few details for the list. Have you got a minute?", "busy"),
+        "I need some details for the list. How old are you?", "busy"),
       sc("Lena", "a receptionist at the sports centre", "to fill in a membership form",
         "You are joining a sports centre and the receptionist fills in a form.",
         "Give your age and other numbers she asks for.",
-        "Welcome! Shall I start filling in your form?", "helpful"),
+        "Welcome! Let's fill in your form. How old are you?", "helpful"),
       sc("Mr. Bauer", "the school secretary", "to complete a student record",
         "You are enrolling in a course and the secretary needs your details.",
         "Give your age and numbers, and check the details.",
-        "I just need a few details for your record. Ready?", "polite"),
+        "Hello! I need your details. How old are you?", "polite"),
       sc("Ms. Frost", "the examiner", "to check that you can give personal details",
         "The examiner asks for simple personal information.",
         "Give your age and repeat numbers clearly.",
-        "Let's start with some simple details. How old are you?", "neutral"),
+        "Let's start. How old are you?", "neutral"),
     ],
   },
 
@@ -895,21 +1085,28 @@ export const A1_U1_2: Authored[] = [
         ex: ["She's really nice.", "He's really funny."],
       },
     ],
-    ex: [
-      fill("Ana and I met at school. ___ good friends.", ["We're", "We are"]),
-      mcq("Which sentence sounds most natural when you describe a friend?", [
-        "She's really nice.",
-        "She's very much nice.",
-        "She is nice too much.",
-      ], 0),
-      say("this / be / my / colleague", ["This is my colleague."]),
+    ex: [],
+    drills: [
+      // p1 — we're good friends
+      fc("p1", "Ana and I met at school. ___ good friends.", ["We're", "We", "Were"]),
+      arr("p1", "We're good friends from school.", ["our"]),
+      lc("p1", "We're good friends from work.", ["We're good friends from school.", "We're old friends from work."]),
+      // p2 — she's really nice
+      sit("p2", "You want to say your friend is very funny. What do you say?", [
+        "She's really funny.",
+        "She's really fun funny.",
+        "She really funny.",
+      ]),
+      chat("p2", ["What is your friend like?", null], ["She's really nice.", "She's really much nice.", "She really nice."]),
+      spk("p2", "He's really funny."),
+      // karışık
+      pairs("mix", [
+        ["This is my", "friend Lea."],
+        ["We're good", "friends from school."],
+        ["She's really", "funny."],
+      ]),
+      la("mix", "We're good friends and she's really nice.", ["her"]),
     ],
-    open: {
-      q: "Tell me about two people who are important to you and say one thing about each.",
-      must: ["this is my", "we're good friends"],
-      criteria: "The answer names two people, says who they are and adds one detail about each.",
-      example: "This is my friend Lea. We're good friends from university and she's really funny.",
-    },
     success: "The learner describes people, gives details and reacts to what the other person says.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -928,23 +1125,23 @@ export const A1_U1_2: Authored[] = [
       sc("Iris", "a friend looking through your photos", "to hear the stories behind the photos",
         "You are looking through photos with a friend who does not know your family.",
         "Talk about several people and add a detail about each.",
-        "I love old photos! Who should we start with?", "curious"),
+        "Nice photo! Who is this?", "curious"),
       sc("Marco", "a colleague at lunch", "to get to know you outside work",
         "You are having lunch with a colleague and the talk turns to families.",
         "Talk about the people close to you.",
-        "We always talk about work. Tell me something about your life instead?", "friendly"),
+        "Who is your best friend?", "friendly"),
       sc("Yara", "a host at a homestay", "to learn about her guest's life at home",
         "You are staying with a family abroad and they ask about your life at home.",
         "Describe the people in your life.",
-        "We would love to know more about you. Who is waiting for you at home?", "warm"),
+        "Is this your family? Who is this?", "warm"),
       sc("Mrs. Klein", "your teacher", "to hear a longer answer from her student",
         "In class you are describing people who matter to you.",
         "Talk about two or three people with details.",
-        "Today I would like a longer answer. Who is important in your life?", "warm"),
+        "Tell me about a friend. Who is your best friend?", "warm"),
       sc("Mr. Rossi", "the examiner", "to hear you speak for a longer stretch",
         "The examiner asks you to talk about people for about a minute.",
         "Describe two or three people with a detail for each.",
-        "Could you tell me about the people who are close to you?", "neutral"),
+        "Tell me about a person in your life. Who is important to you?", "neutral"),
     ],
   },
 ];

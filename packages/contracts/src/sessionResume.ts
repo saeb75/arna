@@ -14,7 +14,7 @@ export const sessionPositionSchema = z.object({
   /** Lecture'da aktif beat — id çekirdek revizyonuna bağlı, index yedek çözümleyici */
   beatId: z.string().max(40).nullable(),
   beatIndex: z.number().int().min(0).max(50),
-  awaiting: z.enum(["ask", "exercise", "open_response", "practice", "wrapup"]).nullable(),
+  awaiting: z.enum(["ask", "exercise", "open_response", "drills", "practice", "wrapup"]).nullable(),
   /** Mevcut beat'te harcanan LLM turu (MAX_BEAT_EXCHANGES bütçesi) */
   beatExchanges: z.number().int().min(0).max(20),
   /** Soru davet penceresi sayacı (MAX_QUESTION_INVITES) */
@@ -25,10 +25,19 @@ export const sessionPositionSchema = z.object({
   practiceTurn: z.number().int().min(0).max(30),
   /** Kozmetik: övgü rotasyonu kaldığı yerden sürsün */
   praiseIndex: z.number().int().min(0).max(20),
+  /** Oyun bloğu durumu (drillGrade.DrillState) — yalnız blok içindeyken */
+  drill: z
+    .object({
+      retry: z.array(z.string().max(40)).max(40),
+      cursor: z.number().int().min(0).max(80),
+      skipSpeak: z.boolean(),
+      firstTry: z.array(z.string().max(40)).max(40),
+    })
+    .optional(),
 });
 export type SessionPosition = z.infer<typeof sessionPositionSchema>;
 
-export const TRANSCRIPT_SOURCES = ["chat", "script", "failed"] as const;
+export const TRANSCRIPT_SOURCES = ["chat", "script", "failed", "drill"] as const;
 export type TranscriptSource = (typeof TRANSCRIPT_SOURCES)[number];
 
 /** Devam görünümünde ve admin panelde kullanılan transkript satırı */
@@ -59,6 +68,8 @@ export const sessionSyncBodySchema = z
           text: z.string().min(1).max(2000),
           runs: richTextSchema.nullable().optional(),
           phase: z.enum(["lecture", "practice", "wrapup"]),
+          /** drill = oyun bloğunda verilen cevap (istemcide puanlandı); yoksa script */
+          source: z.enum(["script", "drill"]).optional(),
         }),
       )
       .max(20)

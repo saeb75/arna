@@ -1,6 +1,5 @@
 import {
   chatResponseSchema,
-  DEFAULT_AVATAR_ID,
   endSessionResponseSchema,
   hasWordContent,
   roleplaySessionOpenSchema,
@@ -9,7 +8,9 @@ import {
 import { Alert } from "react-native";
 import { router } from "expo-router";
 import { api, errorCode } from "../api";
+import { tutorOfAvatarResponse } from "../domain/tutors";
 import { tr } from "../i18n/tr";
+import { useMeStore } from "../stores/useMeStore";
 import { VoiceService } from "../lib/voice";
 import { HapticsService } from "../services/HapticsService";
 import { useRoleplaySessionStore } from "../stores/useRoleplaySessionStore";
@@ -107,10 +108,11 @@ export class RoleplaySessionController {
         api.get("/v1/avatar").catch(() => null),
       ]);
       const session = roleplaySessionOpenSchema.parse(open.data);
-      const avatarId = (avatar?.data as { activeId?: string } | undefined)?.activeId ?? DEFAULT_AVATAR_ID;
+      const { avatarId, tutorName } = tutorOfAvatarResponse(avatar?.data, useMeStore.getState().me?.tutor);
       this.store().set({
         session,
         avatarId,
+        tutorName,
         phase: "playing",
         done: Object.fromEntries(session.objectives.map((o) => [o.id, false])),
       });

@@ -11,6 +11,7 @@ import { TopBar } from "../../components/ui/TopBar";
 import { RoleplayController } from "../../controllers/RoleplayController";
 import { RoleplaySessionController } from "../../controllers/RoleplaySessionController";
 import { categoryLook } from "../../domain/roleplayCategories";
+import { useTutorName } from "../../hooks/useTutorName";
 import { tr } from "../../i18n/tr";
 import { useRoleplaySessionStore } from "../../stores/useRoleplaySessionStore";
 import { useRoleplayStore } from "../../stores/useRoleplayStore";
@@ -31,6 +32,8 @@ export function RoleplayBriefScreen({ slug }: { slug: string }) {
   const brief = useRoleplayStore((s) => s.briefs[slug]);
   const briefError = useRoleplayStore((s) => s.briefError);
   const opening = useRoleplaySessionStore((s) => s.phase === "opening");
+  // Rol yapmada karakteri öğretmen kendi adıyla oynar (sunucu persona'yı yeniden adlandırır)
+  const tutorName = useTutorName();
   const scrollY = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
@@ -95,7 +98,7 @@ export function RoleplayBriefScreen({ slug }: { slug: string }) {
           <Animated.View entering={enter(4)} className="gap-3">
             <View className="gap-0.5">
               <Text className="text-xl font-bold tracking-tight text-foreground">{tr.roleplay.brief.goals}</Text>
-              <Text className="text-sm text-muted-foreground">{tr.roleplay.brief.goalsBody}</Text>
+              <Text className="text-sm text-muted-foreground">{tr.roleplay.brief.goalsBody(tutorName)}</Text>
             </View>
             <View className="gap-1 rounded-3xl border border-border bg-card p-2">
               {brief.objectives.map((o, i) => (

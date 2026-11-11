@@ -7,6 +7,9 @@ interface CheckpointState {
   error: string | null;
   /** Sonuç POST'u düştüyse — testi geçersiz kılmaz, yalnız bilgilendirir */
   saveError: string | null;
+  /** Dinleme maddesinin sesi çalıyor (öğretmenin sesi) */
+  speaking: boolean;
+  setSpeaking: (v: boolean) => void;
   setCheckpoint: (c: Checkpoint) => void;
   setLoading: (v: boolean) => void;
   setError: (e: string | null) => void;
@@ -19,6 +22,8 @@ export const useCheckpointStore = create<CheckpointState>((set) => ({
   loading: false,
   error: null,
   saveError: null,
+  speaking: false,
+  setSpeaking: (speaking) => set({ speaking }),
   setCheckpoint: (checkpoint) => set({ checkpoint, error: null }),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),

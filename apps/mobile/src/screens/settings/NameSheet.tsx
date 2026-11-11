@@ -8,7 +8,7 @@ import { tr } from "../../i18n/tr";
 import { useMeStore } from "../../stores/useMeStore";
 import { closeSheetSoon } from "./closeSheet";
 
-/** Ad — Emma selamlamada kullanır. (Taslak metin sunumsal yerel durum.) */
+/** Ad — öğretmen selamlamada kullanır. (Taslak metin sunumsal yerel durum.) */
 export function NameSheet() {
   const current = useMeStore((s) => s.me?.profile?.displayName ?? "");
   const saving = useMeStore((s) => s.saving);

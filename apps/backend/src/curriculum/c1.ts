@@ -203,7 +203,7 @@ export const C1: LevelSpec = {
       unitIndex: 3,
       kind: "grammar",
       title: "Some Do, Some Don't",
-      focus: "standing in for a whole idea with so, do and one",
+      focus: "standing in for a whole idea with do, so and neither",
       themeHint: "agreeing and disagreeing economically",
       targetPhrases: ["some do", "so do I", "neither did she"],
     },

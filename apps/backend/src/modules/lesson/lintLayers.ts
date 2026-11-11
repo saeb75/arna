@@ -1,5 +1,6 @@
 import { TRACKS, type LessonCore, type LessonLocalePack, type SceneSet } from "@glotmate/contracts";
 import { isEnglishText, lintMustUse, type LintReport } from "./lint.js";
+import { lintDrills, type LessonKind } from "./lintDrills.js";
 
 /**
  * v7 katman lint'leri — LLM'siz, deterministik, bedava.
@@ -13,6 +14,8 @@ import { isEnglishText, lintMustUse, type LintReport } from "./lint.js";
 export interface LayerLintContext {
   /** İçerikte geçmemesi gereken kullanıcıya özel değerler (gizlilik) */
   forbidden: string[];
+  /** Katalog ders tipi — drill sayı aralığı buna göre (yoksa sayı denetlenmez) */
+  lessonKind?: LessonKind;
 }
 
 function walkStrings(value: unknown, path: string, out: Array<[string, string]>): void {
@@ -129,9 +132,23 @@ export function lintCore(core: LessonCore, ctx: LayerLintContext): LintReport {
     }
   }
 
+  // OYUN BLOĞU (drills) — varsa eski biçim alıştırma/açık uçlu YOKTUR (karışık format yok)
+  const drillBeats = beats.filter((b) => b.kind === "drills");
+  const hasDrills = drillBeats.length > 0;
+  if (drillBeats.length > 1) errors.push("En fazla 1 drills beat'i olmalı");
+  for (const d of drillBeats) {
+    if (d.kind !== "drills") continue;
+    lintDrills(d, pointIds, ctx.lessonKind, errors, warnings);
+    const i = beats.indexOf(d);
+    if (beats[i - 1]?.kind !== "say") errors.push("drills beat'i alıştırma duyurusu (say) beat'inin hemen ardından gelmeli");
+  }
+  if (hasDrills && beats.some((b) => b.kind === "exercise" || b.kind === "open_response")) {
+    errors.push("drills olan derste exercise/open_response beat'i olamaz");
+  }
+
   // Alıştırmalar — format bazlı yapı kuralları
   const exercises = beats.filter((b) => b.kind === "exercise");
-  if (exercises.length < 2) errors.push("En az 2 alıştırma olmalı");
+  if (!hasDrills && exercises.length < 2) errors.push("En az 2 alıştırma olmalı");
   // Üst sınır A2'den itibaren 4: gramer dersleri daha çok tekrar istiyor (kullanıcı
   // kararı, Ağu 2026). 5'te ders ~9 dk'ya çıkıyor ve alıştırma ekranı sohbetin önüne
   // geçiyor — konuşma uygulamasında istemediğimiz şey.
@@ -198,7 +215,7 @@ export function lintCore(core: LessonCore, ctx: LayerLintContext): LintReport {
 
   // Alıştırmalar anlatımdan sonra
   const teachIdx = beats.findIndex((b) => b.kind === "teach");
-  const firstExIdx = beats.findIndex((b) => b.kind === "exercise");
+  const firstExIdx = beats.findIndex((b) => b.kind === "exercise" || b.kind === "drills");
   if (teachIdx !== -1 && firstExIdx !== -1 && firstExIdx < teachIdx) {
     errors.push("Alıştırmalar teach beat'inden sonra gelmeli");
   }

@@ -92,8 +92,9 @@ export const tr = {
     intro: {
       eyebrow: "GLOTMATE",
       talk: {
-        title: "Emma ile konuşarak İngilizce öğren",
-        body: "Gerçek bir sohbet gibi: sen konuşursun, Emma dinler, düzeltir ve seni hatırlar.",
+        // Öğretmen henüz seçilmedi (adım sonra gelir) — ad yerine nötr "hocan"
+        title: "Hocanla konuşarak İngilizce öğren",
+        body: "Gerçek bir sohbet gibi: sen konuşursun, hocan dinler, düzeltir ve seni hatırlar.",
       },
       roleplay: {
         title: "Gerçek hayatı önceden prova et",
@@ -115,7 +116,7 @@ export const tr = {
     },
     name: {
       title: "Sana nasıl hitap edelim?",
-      body: "Emma derslerde seni adınla selamlayacak.",
+      body: "Öğretmenin derslerde seni adınla selamlayacak.",
       placeholder: "Adın",
     },
     track: {
@@ -126,8 +127,16 @@ export const tr = {
       title: "İngilizcen ne düzeyde?",
       body: "Emin değilsen bir altını seç — istediğin zaman değiştirebilirsin.",
     },
+    /** Öğretmen seçimi (yüz + ses + ad) — açıklama DİLİ `tutor` adımıdır, karıştırma */
+    teacher: {
+      title: "Öğretmenini seç",
+      body: "Dokun ve sesini dinle. Derslerde ve rol yapmada seninle o konuşacak.",
+      cta: (name: string) => `${name} ile devam et`,
+      listen: "Sesini dinlemek için dokun",
+    },
     tutor: {
-      title: "Emma açıklamaları nasıl yapsın?",
+      // Ad ekle birleşmez (ünlü uyumu her adda tutmaz) — "{ad} …" nötr kurgu
+      title: (name: string) => `${name} açıklamaları nasıl yapsın?`,
       body: "Rol yapma ve örnekler her zaman İngilizce.",
     },
     interests: {
@@ -137,7 +146,7 @@ export const tr = {
     },
     occupation: {
       title: "Ne iş yapıyorsun?",
-      body: "İstersen yaz; Emma sohbetlerde örnekleri buna göre seçer.",
+      body: (name: string) => `İstersen yaz; ${name} sohbetlerde örnekleri buna göre seçer.`,
       placeholder: "Örn. yazılımcı, öğrenci, hemşire",
     },
     goal: {
@@ -156,7 +165,7 @@ export const tr = {
     building: {
       title: "Planın hazırlanıyor…",
       done: "Hazır!",
-      items: ["Seviyene göre dersler", "Günlük hedefin", "Rol yapma sahnelerin", "Emma seni tanıyor"],
+      items: (name: string) => ["Seviyene göre dersler", "Günlük hedefin", "Rol yapma sahnelerin", `${name} seni tanıyor`],
       failed: "Planını kaydedemedik.",
     },
     plan: {
@@ -175,7 +184,7 @@ export const tr = {
       title: "Serini koru",
       body: "Her gün seçtiğin saatte nazik bir hatırlatma gönderelim.",
       previewTitle: (min: number) => `Bugünkü ${min} dakikan seni bekliyor`,
-      previewBody: "Emma kaldığın yerden devam etmeye hazır.",
+      previewBody: (name: string) => `${name} kaldığın yerden devam etmeye hazır.`,
       cta: "Hatırlatmaları aç",
       skip: "Şimdi değil",
     },
@@ -183,7 +192,7 @@ export const tr = {
 
   reminder: {
     title: "Bugünkü dersin seni bekliyor",
-    body: "Birkaç dakika yeter — Emma kaldığın yerden devam etmeye hazır.",
+    body: (name: string) => `Birkaç dakika yeter — ${name} kaldığın yerden devam etmeye hazır.`,
   },
 
   paywall: {
@@ -287,12 +296,13 @@ export const tr = {
     resume: "Kaldığın yerden devam et",
     restart: "Baştan başla",
     minutes: "≈ 6 dk",
-    withEmma: "Emma ile birebir",
-    speaking: "Emma konuşuyor…",
-    avatarLoading: "Emma hazırlanıyor…",
-    thinking: "Emma düşünüyor…",
+    // Öğretmenin adı /me (`tutor.name`) ya da oturumun /v1/avatar cevabından gelir
+    withTutor: (name: string) => `${name} ile birebir`,
+    speaking: (name: string) => `${name} konuşuyor…`,
+    avatarLoading: (name: string) => `${name} hazırlanıyor…`,
+    thinking: (name: string) => `${name} düşünüyor…`,
     placeholderAnswer: "Cevabını yaz…",
-    placeholderBarge: "Yaz ve gönder — Emma susar",
+    placeholderBarge: (name: string) => `Yaz ve gönder — ${name} susar`,
     holdToTalk: "Basılı tut ve konuş",
     releaseToSend: "Bırakınca gönderilir",
     finish: "Dersi Bitir",
@@ -311,7 +321,42 @@ export const tr = {
     listening: "dinliyor",
     waiting: "cevabını bekliyor",
     talking: "konuşuyor",
-    tutorName: "Emma",
+    practiceTargets: "Bu sohbette kullan",
+  },
+
+  /** Dersteki oyunlaştırılmış alıştırma bloğu — yönergeler türe göre sabit (chrome'a alan açılmaz) */
+  drill: {
+    instruction: {
+      fill_choice: "Boşluğu doldur",
+      arrange: "Kelimeleri sırala",
+      situation: "Doğru cevabı seç",
+      find_error: "Hatalı kelimeye dokun",
+      complete_chat: "Sohbeti tamamla",
+      match: "Eşleşen çiftleri seç",
+      listen_choose: "Duyduğunu seç",
+      listen_arrange: "Duyduğuna dokun",
+      speak: "Bu cümleyi söyle",
+    },
+    eyebrow: (i: number, n: number) => `ALIŞTIRMA ${i}/${n}`,
+    retryEyebrow: "TEKRAR",
+    check: "Kontrol et",
+    continue: "Devam",
+    correct: "Doğru!",
+    answerWas: "Doğrusu:",
+    recall: "Konuyu hatırla",
+    replay: "Tekrar dinle",
+    cantSpeak: "Şu an konuşamıyorum",
+    holdToSpeak: "Basılı tut ve söyle",
+    tryAgain: "Bir daha dene",
+    youSaid: "Duyduğum:",
+    skipSpeak: "Geç",
+    them: "O",
+    you: "Sen",
+    tapToTranslate: "Anlamı için dokun",
+    translateFailed: "Çeviri şu an alınamadı.",
+    doneTitle: "Alıştırmalar bitti!",
+    doneBody: (ok: number, total: number) => `${total} sorunun ${ok} tanesini ilk denemede bildin.`,
+    toRoleplay: "Rol yapmaya geç",
   },
 
   /** Ses/sohbet aksadığında ders ve rol yapma ekranında görünen kısa uyarılar (NoticeBar) */
@@ -343,7 +388,7 @@ export const tr = {
 
   roleplay: {
     title: "Rol Yap",
-    subtitle: "Gerçek hayattan sahneleri Emma'yla canlandır.",
+    subtitle: (name: string) => `Gerçek hayattan sahneleri ${name} ile canlandır.`,
     forYou: "Seviyene uygun",
     all: "Tüm sahneler",
     goals: (n: number) => `${n} hedef`,
@@ -365,7 +410,7 @@ export const tr = {
       scene: "Sahne",
       persona: "Karşındaki",
       goals: "Hedeflerin",
-      goalsBody: "Konuşurken bunları yapmaya çalış — Emma sohbet içinde fırsat verir.",
+      goalsBody: (name: string) => `Konuşurken bunları yapmaya çalış — ${name} sohbet içinde fırsat verir.`,
       raised: (level: string) => `Bu sahne ${level} seviyesinde oynanır.`,
       start: "Başla",
       english: "Sahne tamamen İngilizce geçer.",
@@ -383,7 +428,7 @@ export const tr = {
       good: "İyi deneme!",
       body: (done: number, total: number) => `${total} hedeften ${done} tanesini tamamladın.`,
       goals: "Hedefler",
-      coaching: "Emma'dan notlar",
+      coaching: (name: string) => `${name} diyor ki`,
       saidIt: "Söylediğin",
       missed: "Bir dahaki sefere",
       again: "Tekrar oyna",
@@ -416,6 +461,7 @@ export const tr = {
     rows: {
       level: "Seviyem",
       track: "Konuşma bağlamı",
+      teacher: "Öğretmen",
       tutor: "Açıklama dili",
       goal: "Günlük hedef",
       name: "Adım",
@@ -436,8 +482,8 @@ export const tr = {
     signOutTitle: "Çıkış yapılsın mı?",
     signOutBody: "Tekrar giriş yaparak kaldığın yerden devam edersin.",
     deleteTitle: "Hesabın silinsin mi?",
-    deleteBody:
-      "Tüm ilerlemen, sohbetlerin ve Emma'nın seni hatırladıkları kalıcı olarak silinir. Mağaza aboneliğin Apple'da sürer; iptal etmek için Aboneliği yönet'e git.",
+    deleteBody: (name: string) =>
+      `Tüm ilerlemen ve ${name} ile sohbetlerin kalıcı olarak silinir; ${name} seni artık hatırlamaz. Mağaza aboneliğin Apple'da sürer; iptal etmek için Aboneliği yönet'e git.`,
     deleteConfirm: "Kalıcı olarak sil",
     deleted: "Hesabın silindi.",
     footer: "İngilizce konuşmayı sevdiren öğretmen",
@@ -449,6 +495,8 @@ export const tr = {
     levelBody: "İlerlemen kaybolmaz; yol yeni seviyene göre açılır.",
     trackTitle: "Konuşma bağlamı",
     trackBody: "Rol yapma sahnelerinin dekoru buna göre değişir.",
+    teacherTitle: "Öğretmenini seç",
+    teacherBody: "Dokun ve sesini dinle. Bir sonraki dersten itibaren seninle o konuşur.",
     tutorTitle: "Açıklama dili",
     goalTitle: "Günlük hedef",
     nameTitle: "Adın",
@@ -461,7 +509,7 @@ export const tr = {
     loginTitle: "Tekrar hoş geldin",
     loginBody: "Hesabınla giriş yap, ilerlemen geri gelsin.",
     saveTitle: "İlerlemeni kaydet",
-    saveBody: "Hesap oluştur — dersler, serin ve Emma'nın hafızası her cihazda seninle.",
+    saveBody: (name: string) => `Hesap oluştur — dersler, serin ve ${name} ile sohbetlerin her cihazda seninle.`,
     apple: "Apple ile devam et",
     or: "ya da e-posta ile",
     email: "E-posta",

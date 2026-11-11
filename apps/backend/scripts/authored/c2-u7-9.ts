@@ -19,7 +19,7 @@
  *
  *  Ünite 8'in tek gramer dersi o; kalanı 3 alıştırma.
  */
-import { fill, mcq, qfill, qmcq, say, sc, type Authored } from "./dsl.js";
+import { chat, err, fc, la, lc, pairs, qfill, qmcq, sc, sit, spk, type Authored } from "./dsl.js";
 
 export const C2_U7_9: Authored[] = [
   // --- Ünite 7 · Abstract Topics ---------------------------------------------
@@ -39,8 +39,8 @@ export const C2_U7_9: Authored[] = [
       {
         form: "in principle at least",
         claims: [
-          "'In principle, at least' claims the idea works while leaving practice open.",
-          "The concession is the point: without 'at least' the same phrase is often heard as a full endorsement.",
+          "'In principle, at least' accepts the idea while leaving practice open.",
+          "'At least' makes the limit explicit: you accept the idea, not yet the practice.",
         ],
         ex: ["In principle, at least, it should work.", "In principle at least, they are equivalent."],
       },
@@ -56,30 +56,26 @@ export const C2_U7_9: Authored[] = [
         form: "at a fundamental level",
         claims: [
           "'At a fundamental level' claims the difference is not a matter of detail.",
-          "It is a strong claim, so it needs the fundamental difference actually named afterwards.",
+          "It is a strong claim, so unless the context already makes it clear, name the fundamental difference afterwards.",
         ],
         ex: ["At a fundamental level, they differ.", "At a fundamental level, it is a question of trust."],
       },
     ],
-    ex: [
-      mcq("Which phrase keeps isolated exceptions from automatically refuting a claim?", [
-        "Broadly speaking, costs have risen.",
-        "Costs have risen by four per cent.",
-        "At a fundamental level, costs have risen.",
-      ], 0),
-      mcq("What does 'at a fundamental level' need afterwards?", [
-        "the fundamental difference actually named",
-        "a supporting statistic",
-        "a concession",
-      ], 0),
-      say("broadly speaking / cost / have / rise", ["Broadly speaking, costs have risen."]),
+    ex: [],
+    drills: [
+      sit("p1", "You think a four-day week works as an idea, but you doubt it would work in your office. What do you say?", ["In principle, at least, it should work.", "It works, full stop.", "Broadly speaking, it never works."]),
+      chat("p1", ["Do you think the plan will work?", "I like the idea, but I doubt the details.", "So do you support it or not?", null], ["In principle, at least. In practice, I'm not sure.", "Yes, in every way.", "No, not even as an idea."]),
+      lc("p1", "In principle, at least, it should work.", ["In practice, it already works.", "In the end, it didn't work."]),
+      sit("p1", "You accept a rule as an idea only, and you want nobody to hear it as full support. Which version makes that limit explicit?", ["In principle, at least, it's fair.", "It's fair in practice too.", "It's fair in every way."]),
+      chat("p2", ["Prices went down in March, though. So you're wrong that they've risen.", null], ["One month doesn't refute it. Broadly speaking, prices have risen.", "Broadly speaks, prices have risen.", "Broad speaking, prices have risen."]),
+      sit("p2", "Most of your friends found jobs quickly, but two did not. You want a general claim that those two do not disprove. What do you say?", ["Broadly speaking, my friends found work quickly.", "All of my friends found work quickly.", "None of my friends found work quickly."]),
+      spk("p2", "Broadly speaking, costs have risen."),
+      sit("p3", "You think two schools differ in their basic aims, not in details, and you say what the difference is. What do you say?", ["At a fundamental level, they differ: one trains, one educates.", "At a fundamental level, they differ.", "They differ slightly in the details."]),
+      lc("p3", "At a fundamental level, they differ.", ["At a later stage, they agree.", "On a personal level, they differ."]),
+      chat("p3", ["You said the two plans differ in their basic aims. How would you put it?", null], ["At a fundamental level, they differ: one trusts people, one controls them.", "They differ only in small details.", "At a fundamentally level, they differ."]),
+      sit("mix", "You support free buses as an idea but not as a practice, and you think the real issue is basic: who pays. What do you say?", ["In principle, at least, it's fair. At a fundamental level, it's about who pays.", "It's fair in practice. At a fundamental level, it's about the colour of the buses.", "Broadly speaking, it never works and nobody pays."]),
+      pairs("mix", [["In principle, at least", "the idea works; practice is open"], ["Broadly speaking", "a generalisation with exceptions"], ["At a fundamental level", "not a matter of detail"]]),
     ],
-    open: {
-      q: "Discuss whether free public transport would work. Separate the principle from the practice, mark your generalisation, and name one fundamental issue.",
-      must: ["in principle at least", "broadly speaking", "at a fundamental level"],
-      criteria: "The answer keeps principle and practice apart, marks its generalisation and names the fundamental issue it claims.",
-      example: "In principle, at least, it removes a barrier. Broadly speaking, cities that tried it saw ridership rise. But at a fundamental level it is a funding question: someone pays, and that is where the argument actually is.",
-    },
     success: "The learner separates principle from practice and names the fundamental issue.",
     quiz: [
       qmcq("Why is 'broadly speaking' a poor choice when you have the figure?", [
@@ -151,30 +147,25 @@ export const C2_U7_9: Authored[] = [
         form: "we'd know it when",
         claims: [
           "'We'd know it when we saw it' claims shared recognition where shared definition is missing.",
-          "Recognition is weaker evidence than definition, and it fails when two people recognise different things.",
+          "Recognition gives no shared test, and it fails when two people recognise different things.",
         ],
         ex: ["We'd know it when we saw it.", "We'd know it when it was gone."],
       },
     ],
-    ex: [
-      mcq("Why is an approximate definition honest for a contested concept?", [
-        "A confident one invites easy counter-examples.",
-        "Approximations are always safer.",
-        "It is shorter to say.",
-      ], 0),
-      mcq("When does 'we'd know it when we saw it' fail?", [
-        "when two people recognise different things",
-        "when the concept is abstract",
-        "when it comes last",
-      ], 0),
-      say("the closest / I / can get / be / this", ["The closest I can get is this."]),
+    ex: [],
+    drills: [
+      sit("p1", "Someone asks you to define 'fairness'. The concept is hard, not your English, and you will still try. What do you say?", ["It resists definition, but I'll try.", "I don't know that word in English.", "It resists definition, so I won't try."]),
+      chat("p1", ["What is 'home', exactly? Can you define it?", null], ["It resists definition, but here's my attempt: where you're missed.", "It resist definition, but here's my attempt: where you're missed.", "It resisting definition, but here's my attempt: where you're missed."]),
+      lc("p1", "The word itself resists definition.", ["This word is easy to define.", "The rest of it needs no explanation."]),
+      sit("p2", "You offer a definition of 'trust' but want to admit it is only approximate. What do you say?", ["The closest I can get is 'earned confidence'.", "The exact definition is 'earned confidence'.", "The closer I can get is 'earned confidence'."]),
+      chat("p2", ["So what is 'integrity', in one phrase?", null], ["The closest I can get is acting the same when nobody checks.", "The closest I can getting is acting the same when nobody checks.", "The close I can get is acting the same when nobody checks."]),
+      spk("p2", "The closest I can get is earned trust."),
+      sit("p3", "You can't define 'good taste', but you're sure you would both recognise it. What do you say?", ["We'd know it when we saw it.", "We'd knew it when we saw it.", "We know it before we see it."]),
+      chat("p3", ["Two of us could recognise different things, though.", null], ["True. Recognition gives us no shared test.", "True. That makes recognition stronger than a definition.", "True. So we'd never knows it."]),
+      spk("p3", "We'd know it when we saw it."),
+      chat("mix", ["Can you define 'courage' for me?", null], ["It resists definition, but the closest I can get is fear plus action.", "It resists definition, so I won't even try.", "The closest I can get is that I can't define it at all."]),
+      sit("mix", "You admit 'success' is hard to define, offer an approximation, and add that people still recognise it. What do you say?", ["The closest I can get is 'enough'. We'd know it when we saw it.", "Success is exactly 'money'. Nobody could disagree.", "It resists definition, so let's not talk about it."]),
     ],
-    open: {
-      q: "Define 'integrity'. Say why it resists definition, give your closest attempt, and admit the limit of recognition as evidence.",
-      must: ["it resists definition", "closest I can get", "we'd know it when"],
-      criteria: "The answer names why definition fails, still attempts one, and admits recognition is weaker evidence.",
-      example: "It resists definition because every version has counter-examples. The closest I can get is acting the same when nobody checks. We'd know it when we saw it — though that is weak, since two of us might recognise different things.",
-    },
     success: "The learner attempts a definition and admits the limit of recognition.",
     quiz: [
       qmcq("What does 'it resists definition' claim?", [
@@ -201,11 +192,11 @@ export const C2_U7_9: Authored[] = [
       sc("Livia", "a fellow traveller in a philosophical mood", "to think it through together",
         "A long journey has produced a conceptual question.",
         "Attempt a definition.",
-        "Is there a word for that feeling? What would you call it?", "reflective"),
+        "That feeling of missing a place while you are still there. What would you call it?", "reflective"),
       sc("Professor Vasari", "your tutor", "to practise conceptual analysis",
         "The seminar is examining contested concepts.",
         "Attempt and mark the limit.",
-        "Why does recognition make weaker evidence than definition?", "probing"),
+        "What goes wrong when two people recognise different things?", "probing"),
       sc("Ms. Achebe", "the examiner", "to check conceptual discussion",
         "The examiner names a contested concept.",
         "Attempt a definition and mark its limit.",
@@ -230,7 +221,7 @@ export const C2_U7_9: Authored[] = [
         form: "there's no clean choice",
         claims: [
           "'There's no clean choice' rules out the costless option before anyone offers one.",
-          "It is honest only if you then choose; used to avoid choosing, it is fence-sitting.",
+          "It is honest when you then choose; used by the person who must decide to avoid deciding, it is fence-sitting.",
         ],
         ex: ["There's no clean choice here.", "There's no clean choice, only a least bad one."],
       },
@@ -238,38 +229,33 @@ export const C2_U7_9: Authored[] = [
         form: "someone pays either way",
         claims: [
           "'Someone pays either way' names that the cost moves rather than disappears.",
-          "It obliges you to say who, or the phrase becomes a way of dismissing the cost.",
+          "Unless the context already makes it clear, say who, or the phrase becomes a way of dismissing the cost.",
         ],
         ex: ["Someone pays either way.", "Someone pays either way — the question is who."],
       },
       {
         form: "I'd weigh it as",
         claims: [
-          "'I'd weigh it as X over Y' states the ranking you are actually using.",
-          "Making the ranking explicit is what allows someone to disagree with the reasoning rather than the conclusion.",
+          "'I'd weigh it as X' states how you actually rate an option: the smaller harm, a net gain.",
+          "Making your assessment explicit is what lets others challenge it, rather than guess at it.",
         ],
-        ex: ["I'd weigh it as safety over speed.", "I'd weigh it as the smaller harm."],
+        ex: ["I'd weigh it as the smaller harm.", "I'd weigh it as a net gain for most people."],
       },
     ],
-    ex: [
-      mcq("What does 'someone pays either way' oblige you to say?", [
-        "who bears the cost",
-        "how much it costs",
-        "when it will be paid",
-      ], 0),
-      mcq("Why make your ranking explicit?", [
-        "It lets someone disagree with the reasoning rather than the conclusion.",
-        "It shortens the argument.",
-        "It avoids naming the cost.",
-      ], 0),
-      say("I / would weigh / it / as / safety / over speed", ["I'd weigh it as safety over speed.", "I would weigh it as safety over speed."]),
+    ex: [],
+    drills: [
+      sit("p1", "Every option for the hospital budget harms someone, and you will still choose one. How do you start?", ["There's no clean choice, only a least bad one.", "There's an easy choice here, and it costs nothing.", "There's no clean choice, so I won't choose."]),
+      chat("p1", ["So which option costs nobody anything?", null], ["None. There's no clean choice here.", "None. There's no clean choose here.", "None. There's no clean chosen here."]),
+      err("p1", "There's no cleanly choice, only a least bad one.", "cleanly", "clean"),
+      sit("p2", "Moving the bus depot saves money, but the cost moves to the people who now walk further. What do you say?", ["Someone pays either way: the people who walk further.", "Nobody pays: the cost simply disappears.", "Someone pay either way: the people who walk further."]),
+      chat("p2", ["Someone pays either way. So what?", null], ["So we should say who. Here, it's the night workers.", "So the cost doesn't matter at all.", "So nobody needs to know who."]),
+      lc("p2", "Someone pays either way — the question is who.", ["Someone paid in advance — the question is when.", "Nobody pays at all — that's the good news."]),
+      sit("p3", "You think the new bus route helps more people than it hurts, and you want your assessment open to argument. What do you say?", ["I'd weigh it as a net gain for most people.", "Obviously it's perfect. Next question.", "I'd weighs it as a net gain for most people."]),
+      chat("p3", ["You chose the slower plan. What's your reasoning?", null], ["I'd weigh it as the smaller harm: fewer people lose out.", "I'd weighing it as the smaller harm: fewer people lose out.", "I'd weigh it as the bigger harm, so I chose it."]),
+      spk("p3", "I'd weigh it as the smaller harm."),
+      chat("mix", ["Should the town close the old library?", null], ["There's no clean choice. Someone pays either way, and here it's older readers.", "It's a clean choice. Nobody pays either way.", "Someone pays either way, so the question doesn't matter."]),
+      sit("mix", "You admit every option costs something, then say how you rate the one you choose. What do you say?", ["There's no clean choice. I'd weigh it as the smaller harm.", "There's a clean choice. I'd weigh it as nothing.", "Someone pays either way, so I refuse to rate them."]),
     ],
-    open: {
-      q: "A hospital must choose between a treatment that helps many a little and one that helps a few greatly. Weigh it, and name who pays under your choice.",
-      must: ["there's no clean choice", "someone pays either way", "I'd weigh it as"],
-      criteria: "The answer rules out a costless option, states its ranking explicitly and names who bears the cost of it.",
-      example: "There's no clean choice here. Someone pays either way — under the broad option the few who would have recovered fully. I'd weigh it as total benefit over concentrated benefit, and those few are the cost of that ranking.",
-    },
     success: "The learner states a ranking and names who bears its cost.",
     quiz: [
       qmcq("When is 'there's no clean choice' fence-sitting?", [
@@ -300,7 +286,7 @@ export const C2_U7_9: Authored[] = [
       sc("Professor Vasari", "your tutor", "to practise trade-off reasoning",
         "The seminar is examining trade-offs.",
         "Rank explicitly and name the cost.",
-        "Why must a ranking be stated rather than implied?", "probing"),
+        "Why make your assessment explicit?", "probing"),
       sc("Ms. Achebe", "the examiner", "to check ethical reasoning",
         "The examiner poses a dilemma.",
         "Weigh it and name who pays.",
@@ -325,7 +311,7 @@ export const C2_U7_9: Authored[] = [
         form: "it cuts both ways",
         claims: [
           "'It cuts both ways' claims one mechanism produces effects in both directions.",
-          "It needs both directions named, or it is a way of appearing balanced without being it.",
+          "Where the effects are not already clear, name both directions, or it is a way of appearing balanced without being it.",
         ],
         ex: ["It cuts both ways.", "Automation cuts both ways."],
       },
@@ -341,30 +327,25 @@ export const C2_U7_9: Authored[] = [
         form: "hard to reverse",
         claims: [
           "'Hard to reverse' shifts attention from immediate harm to lock-in and irreversibility.",
-          "It supports caution even where the effect might be good, but only if you say what would make reversal difficult.",
+          "It supports caution even where the effect might be good, as long as it is clear what would make reversal difficult.",
         ],
         ex: ["Once the system is embedded, it may be hard to reverse.", "That kind of institutional change is hard to reverse."],
       },
     ],
-    ex: [
-      mcq("What does 'we're already seeing' change about a claim?", [
-        "It moves it from prediction to observation.",
-        "It makes it more cautious.",
-        "It marks it as a generalisation.",
-      ], 0),
-      mcq("What must accompany an irreversibility argument?", [
-        "an account of what would make reversal difficult",
-        "evidence of harm already done",
-        "a prediction about the future",
-      ], 0),
-      say("automation / cut / both ways", ["Automation cuts both ways."]),
+    ex: [],
+    drills: [
+      sit("p1", "Online banking helps people who travel, but it shuts out people without smartphones. You name both effects. What do you say?", ["It cuts both ways: easier for travellers, harder for people without phones.", "It cuts both ways, and that's all I'll say.", "It only helps, and nobody loses."]),
+      chat("p1", ["Is automation good or bad for workers?", null], ["It cuts both ways: safer jobs, but fewer of them.", "It cut both way: safer jobs, but fewer of them.", "It cuts both ways, so there's nothing more to say."]),
+      spk("p1", "Automation cuts both ways."),
+      sit("p2", "Companies have already started using the tool in hiring, and you have read the reports. What do you say?", ["We're already seeing it in hiring.", "We might see it in hiring one day.", "We're already seen it in hiring."]),
+      chat("p2", ["Isn't this all just prediction?", null], ["Not entirely. We're already seeing the first effects in schools.", "Not entirely. We already seeing the first effects in schools.", "Not entirely. We're already see the first effects in schools."]),
+      lc("p2", "We're already seeing the first effects.", ["We'll only see the effects later.", "We were seeing friends at the weekend."]),
+      sit("p3", "You want caution because once schools build their timetables around the app, going back would be very difficult. What do you say?", ["Once it's built into the timetable, it may be hard to reverse.", "Once it's built into the timetable, it may be easy to reverse.", "Once it's built into the timetable, it may be hardly to reverse."]),
+      chat("p3", ["Why worry? If it goes wrong, we just stop using it.", null], ["It's not that simple. Once contracts are signed, it's hard to reverse.", "You're right. It's always easy to reverse.", "It's not that simple. Once contracts are signed, it's hard to reversed."]),
+      spk("p3", "That kind of change is hard to reverse."),
+      chat("mix", ["Shops already scan faces now: less theft, but everyone is tracked. Good or bad?", null], ["It cuts both ways: less theft, less privacy. And we're already seeing it in shops.", "It's only good. We're already seeing no problems at all.", "It cut both way: less theft, less privacy. And we're already seeing it in shops."]),
+      sit("mix", "A tool is already in use in hospitals, and once staff depend on it, stopping would be difficult. What do you say?", ["We're already seeing it in hospitals, and it may be hard to reverse.", "We might see it in hospitals one day, and it would be easy to undo.", "We're already seen it in hospitals, and it may be hard to reverse."]),
     ],
-    open: {
-      q: "Discuss whether AI in hiring is good or bad. Argue both directions of one mechanism, and separate what is observable from what is predicted.",
-      must: ["it cuts both ways", "we're already seeing", "hard to reverse"],
-      criteria: "The answer names both directions of one mechanism and keeps observation apart from prediction.",
-      example: "Automated screening — it cuts both ways: it reduces individual inconsistency and reproduces the bias already in the data. We're already seeing these systems at scale, though their effect on fairness is disputed. Once embedded in hiring, they may be hard to reverse.",
-    },
     success: "The learner argues both directions and separates observation from prediction.",
     quiz: [
       qmcq("What does 'it cuts both ways' need to avoid being empty?", [
@@ -387,7 +368,7 @@ export const C2_U7_9: Authored[] = [
       sc("Ms. Okoye", "a colleague evaluating a tool", "to make a balanced assessment",
         "A tool is being evaluated for hiring.",
         "Argue both directions of one mechanism.",
-        "Should we use this for screening or not?", "evaluative"),
+        "Should we use AI to screen job applicants or not?", "evaluative"),
       sc("Cosimo", "a fellow traveller comparing eras", "to compare fairly",
         "A conversation has turned to how things have changed.",
         "Separate observation from prediction.",
@@ -441,25 +422,20 @@ export const C2_U7_9: Authored[] = [
         ex: ["Does that matter, though?", "Does that matter for a preference?"],
       },
     ],
-    ex: [
-      mcq("Why is reporting an effect defensible where a verdict is not?", [
-        "The effect is a fact about you rather than about the work.",
-        "Effects are easier to describe.",
-        "Verdicts are always wrong.",
-      ], 0),
-      mcq("What does answering 'no' to 'does that matter?' commit you to?", [
-        "accepting other people's tastes on the same terms",
-        "abandoning your own preference",
-        "proving the work is good",
-      ], 0),
-      say("I / can not defend / it / and / I / not want / to", ["I can't defend it, and I don't want to.", "I cannot defend it, and I do not want to."]),
+    ex: [],
+    drills: [
+      sit("p1", "Your friend says the song is badly written. You don't argue about its quality; you report its effect on you. What do you say?", ["Maybe. But it does something to me.", "No, it's objectively a masterpiece.", "Maybe. But it do something to me."]),
+      chat("p1", ["What do you see in that painting?", null], ["I'm not sure. It does something to me I can't name.", "I'm not sure. It does something for me I can't named.", "I'm not sure. It doing something to me I can't name."]),
+      lc("p1", "That one does something to me.", ["That one doesn't do much for me.", "That one is something to see."]),
+      sit("p2", "You love a cheesy film. You admit you can't argue for it, without claiming that no defence exists. What do you say?", ["I can't defend it, and I don't want to.", "Nobody could ever defend it.", "I can't defending it, and I don't want to."]),
+      chat("p2", ["Give me one good reason that film is worth watching.", null], ["Honestly? I can't defend it on any grounds.", "Honestly? I can't defends it on any grounds.", "Honestly? I can't defend on it any grounds."]),
+      spk("p2", "I can't defend it, and I don't want to."),
+      sit("p3", "Your friend says you need reasons to like a song. You question whether taste needs reasons at all. What do you say?", ["Does that matter for a preference?", "Do that matter for a preference?", "Here are my five reasons."]),
+      chat("p3", ["You can't explain why you like it.", null], ["True. Does that matter, though?", "True. Does that matters, though?", "True. Do that matter, though?"]),
+      sit("p3", "You say taste needs no justification. Your friend loves a show you find silly. What follows from your view?", ["You accept their taste on the same terms.", "You can demand that they justify it.", "You can call their taste wrong."]),
+      pairs("mix", [["It does something to me.", "reports an effect on you"], ["I can't defend it.", "admits you can't argue for it"], ["Does that matter?", "asks if taste needs reasons"]]),
+      chat("mix", ["That band is terrible. Why do you listen to them?", null], ["It does something to me. I can't defend it, but does that matter?", "I can defend it: they're objectively the best band.", "It does nothing to me, so I listen every day."]),
     ],
-    open: {
-      q: "Defend liking something widely considered bad. Report the effect rather than a verdict, and answer whether a preference needs defending at all.",
-      must: ["it does something to me", "I can't defend it", "does that matter"],
-      criteria: "The answer reports the effect rather than asserting a verdict and takes a position on whether taste needs justification.",
-      example: "The film is badly made and it does something to me every time. I can't defend it on any grounds a critic would accept. Does that matter? I don't think it does — and if not, I have to grant everyone else the same latitude.",
-    },
     success: "The learner reports an effect and takes a position on justification.",
     quiz: [
       qmcq("Why is conceding that you cannot argue for it stronger than a bad argument?", [
@@ -486,7 +462,7 @@ export const C2_U7_9: Authored[] = [
       sc("Cosimo", "a fellow visitor at a gallery", "to talk about a work honestly",
         "You are both looking at the same work.",
         "Report the effect.",
-        "Everyone stops at this one. Does it work for you?", "open"),
+        "Think of a famous painting everyone admires. Does it do anything for you?", "open"),
       sc("Professor Vasari", "your tutor", "to practise aesthetic argument",
         "The seminar is examining aesthetic judgement.",
         "Report effect and address justification.",
@@ -536,25 +512,20 @@ export const C2_U7_9: Authored[] = [
         ex: ["Ask me again in ten years.", "Ask me again in a decade and see."],
       },
     ],
-    ex: [
-      mcq("What does 'I used to think X' invite?", [
-        "the question of what changed it",
-        "agreement with the new view",
-        "a definition",
-      ], 0),
-      mcq("When is 'ask me again in ten years' a dodge?", [
-        "when it replaces an answer rather than following one",
-        "when the question is personal",
-        "when the speaker is young",
-      ], 0),
-      say("I / use / to think / it / be / freedom", ["I used to think it was freedom."]),
+    ex: [],
+    drills: [
+      sit("p1", "Someone asks what makes a life good. You reduce it to one thing and keep it as your own view, not everyone's. What do you say?", ["For me it comes down to work I care about.", "For everyone it comes down to money.", "For me it come down to work I care about."]),
+      chat("p1", ["Big question: what really matters?", null], ["For me it comes down to two things: people and work.", "For me it comes down at two things: people and work.", "For me it coming down to two things: people and work."]),
+      lc("p1", "For me it comes down to two things.", ["For me it's just one thing.", "For now I'll write down two things."]),
+      sit("p2", "Your view has changed: you once believed freedom mattered most. You report the change. What do you say?", ["I used to think it was freedom.", "I use to thinking it was freedom.", "I'm used to think it was freedom."]),
+      chat("p2", ["I used to think money mattered most.", null], ["Really? What changed your mind?", "Really? So you've always thought that?", "Really? What changed you mind?"]),
+      spk("p2", "I used to think that mattered more."),
+      sit("p3", "You have answered the question, and you want to mark the answer as provisional without taking it back. What do you add?", ["Ask me again in ten years.", "Ask me again in ten years, because I won't answer now.", "Asking me again in ten years."]),
+      chat("p3", ["Give me your answer, even if it might change.", null], ["Family, and work I'd do unpaid. Ask me again in ten years.", "Ask me again in ten years. I'm not answering now.", "Family, and work I'd do unpaid. Ask me again ten years in."]),
+      spk("p3", "Ask me again in ten years."),
+      chat("mix", ["Have you worked out what a good life is?", null], ["I used to think it was success. Now, for me it comes down to time.", "I used to thinking it was success. Now, for me it comes down to time.", "I used to think it was success. Now, for me it come down to time."]),
+      sit("mix", "You report how your view changed, give your current answer, and mark it as provisional. What do you say?", ["I used to think it was freedom. Now it's people. Ask me again in ten years.", "I used to think it was freedom, and it still is, forever.", "Ask me again in ten years. I used to think nothing."]),
     ],
-    open: {
-      q: "Say what makes a life good. Reduce it to what you would defend, report how your view has changed, and concede it is provisional.",
-      must: ["for me it comes down", "I used to think", "ask me again in"],
-      criteria: "The answer commits to one thing, reports a change of view with what caused it, and marks the answer as provisional after giving it.",
-      example: "For me it comes down to work I would do unpaid and two or three people who know me. I used to think it was freedom, until a year of it left me with nothing to be free for. Ask me again in ten years.",
-    },
     success: "The learner commits to an answer and reports how their view changed.",
     quiz: [
       qmcq("What does 'for me' keep the claim from becoming?", [
@@ -577,7 +548,7 @@ export const C2_U7_9: Authored[] = [
       sc("Ms. Okoye", "a colleague at a turning point", "to think through a decision",
         "A colleague is weighing a life decision.",
         "Say what you would defend.",
-        "I am about to change everything. What would you do?", "unsettled"),
+        "I am about to change everything. What matters most to you, and has that changed?", "unsettled"),
       sc("Cosimo", "a fellow traveller on a long walk", "to talk properly",
         "A long walk has produced a real conversation.",
         "Reduce it and report the change.",
@@ -618,7 +589,7 @@ export const C2_U7_9: Authored[] = [
         form: "I don't expect to",
         claims: [
           "'I don't expect to change your mind' removes the pressure to win.",
-          "It also removes your own excuse for pressing, so saying it commits you to stopping.",
+          "It also removes your own excuse for pressing, so continuing to push after saying it sounds insincere.",
         ],
         ex: ["I don't expect to change your mind.", "I don't expect to persuade you."],
       },
@@ -631,25 +602,20 @@ export const C2_U7_9: Authored[] = [
         ex: ["We'll have to differ on that.", "We'll have to differ, and that's fine."],
       },
     ],
-    ex: [
-      mcq("What does locating the gap before the argument tell you?", [
-        "that factual evidence alone may not resolve it",
-        "that one side must be wrong",
-        "that the facts are disputed",
-      ], 0),
-      mcq("When does 'we'll have to differ' look like avoidance?", [
-        "when it comes before the gap has been located",
-        "when it closes a long argument",
-        "when it is said calmly",
-      ], 0),
-      say("we / start / from / different premises", ["We start from different premises."]),
+    ex: [],
+    drills: [
+      sit("p1", "You and a friend agree on all the facts about a tax, but you value different things. Where do you place the gap?", ["We start from different premises.", "We disagree about the numbers.", "We start from different premise."]),
+      chat("p1", ["We agree on the facts. We disagree on what's fair. Will more data change your mind?", null], ["Data won't settle it. We start from different premises.", "Data will settle it. We just need more numbers.", "Data won't settle it. We start from difference premises."]),
+      lc("p1", "We start from different places on this.", ["We started in different places last year.", "We stand in the same place on this."]),
+      sit("p2", "You want to discuss your view honestly and take away any pressure to win. What do you say?", ["I don't expect to change your mind.", "I'll keep going until you agree.", "I don't expect to changing your mind."]),
+      chat("p2", ["Are you trying to convert me?", null], ["No. I don't expect to persuade you.", "No. I don't expect persuade you.", "No. I don't expecting to persuade you."]),
+      spk("p2", "I don't expect to change your mind."),
+      sit("p3", "You have both located the real gap in your values, and you want to close calmly while both views stand. What do you say?", ["We'll have to differ on that.", "So you agree I'm right.", "We'll have to different on that."]),
+      chat("p3", ["So neither of us is moving, then.", null], ["No. We'll have to differ, and that's fine.", "No. We'll have to differ, and that fine.", "Yes. You've finally accepted my view."]),
+      sit("p3", "Five minutes in, before either of you has explained your view, your friend says 'We'll have to differ.' How may it sound?", ["Like avoidance.", "Like a strong argument.", "Like a detailed summary."]),
+      chat("mix", ["We agree on the facts, but not on what's fair. I still don't see how you can believe that.", null], ["We start from different premises. I don't expect to change your mind.", "We start from the same premises. I don't expect to change your mind.", "We start from different premises, so you must agree with me."]),
+      sit("mix", "You name the real gap, then close without trying to win. What do you say?", ["We start from different premises, so we'll have to differ.", "We start from the same facts, so you're simply wrong.", "We'll have to differ, so let me try once more to convince you."]),
     ],
-    open: {
-      q: "You disagree with someone about whether inheritance should be taxed, and no fact will settle it. Locate the gap and close the conversation well.",
-      must: ["we start from different", "I don't expect to", "we'll have to differ"],
-      criteria: "The answer locates the disagreement in differing premises rather than facts and closes without pressing further.",
-      example: "We start from different premises: you begin with what a family earned, I begin with what a child did not. No figure decides between those. I don't expect to change your mind, and we'll have to differ — which is not the same as either of us being careless.",
-    },
     success: "The learner locates the gap in premises and closes without pressing.",
     quiz: [
       qmcq("What does 'I don't expect to change your mind' also remove?", [
@@ -672,7 +638,7 @@ export const C2_U7_9: Authored[] = [
       sc("Ms. Okoye", "a colleague with different priorities", "to work together anyway",
         "Two colleagues have genuinely different priorities.",
         "Locate the gap.",
-        "We are not going to agree on this, are we?", "even"),
+        "We agree on the facts but not on what matters most. Where is the real gap?", "even"),
       sc("Cosimo", "a fellow traveller from elsewhere", "to understand each other",
         "Two travellers hold different assumptions.",
         "Locate the difference and close.",
@@ -706,15 +672,15 @@ export const C2_U7_9: Authored[] = [
         form: "what I'm asking of",
         claims: [
           "'What I'm asking of you is X' frames a requirement as an ask, which invites a response.",
-          "It is not a softer instruction: if you would not accept 'no', calling it an ask is misleading.",
+          "It is not a softer instruction: presenting a decision that is already fixed as open to discussion is misleading.",
         ],
-        ex: ["What I'm asking of you is six weeks.", "What I'm asking of the team is honesty."],
+        ex: ["What I'm asking of you is six more weeks.", "What I'm asking of the team is honesty."],
       },
       {
         form: "here's where we're going",
         claims: [
-          "'Here's where we're going' gives direction, which is what people need before they need reasons.",
-          "Direction without a reason works once; repeated it produces compliance rather than commitment.",
+          "'Here's where we're going' gives direction, which can give people a first point of orientation.",
+          "Direction without a reason may work once; repeated, it may produce compliance rather than commitment.",
         ],
         ex: ["Here's where we're going next year.", "Here's where we're going, and why."],
       },
@@ -727,25 +693,20 @@ export const C2_U7_9: Authored[] = [
         ex: ["I take responsibility for the delay.", "I take responsibility for that decision."],
       },
     ],
-    ex: [
-      mcq("When is calling a requirement an ask misleading?", [
-        "when you would not accept 'no'",
-        "when the request is large",
-        "when the team is junior",
-      ], 0),
-      mcq("What does direction without a reason produce if repeated?", [
-        "compliance rather than commitment",
-        "faster decisions",
-        "more questions",
-      ], 0),
-      say("I / take / responsibility / for / the delay", ["I take responsibility for the delay."]),
+    ex: [],
+    drills: [
+      sit("p1", "You need six more weeks of extra effort from your team, and you want to hear their response. What do you say?", ["What I'm asking of you is six more weeks of focused work.", "You will give me six more weeks. No discussion.", "What I'm asking from of you is six more weeks of focused work."]),
+      chat("p1", ["What exactly do you need from the team?", null], ["What I'm asking of the team is honesty about the date.", "What I'm asking of the team are honesty about the date.", "What I asking of the team is honesty about the date."]),
+      sit("p1", "The new rule is already decided and is not open to discussion. What is the honest way to present it?", ["Present it as a decision, not as an ask.", "Call it an ask so it sounds open.", "Say 'What I'm asking of you' and hope nobody refuses."]),
+      sit("p2", "Your team is confused after a reorganisation, and they first need direction. How do you start?", ["Here's where we're going next year.", "Here's where we went last year.", "Here's where we're go next year."]),
+      lc("p2", "Here's where we're going, and why.", ["Here's who we're meeting, and when.", "Here's what went wrong last time."]),
+      chat("p2", ["You've told us where we're going three times now. But why?", null], ["Fair. Here's the reason: our biggest client is leaving.", "Because I said so. Here's where we're going.", "Here's where we're going, again."]),
+      sit("p3", "The launch slipped because you approved a weak estimate. You want your words to be more than a gesture. What do you say?", ["I take responsibility for approving that estimate.", "I take responsibility for everything, generally.", "I take responsible for approving that estimate."]),
+      chat("p3", ["The date slipped again. Whose fault is it?", null], ["Mine. I take responsibility for the delay.", "Mine. I takes responsibility for the delay.", "Mine. I taking responsibility for the delay."]),
+      spk("p3", "I take responsibility for that decision."),
+      chat("mix", ["We heard the project has failed. What now?", null], ["I take responsibility for the failure. Here's where we're going next.", "I take responsibility, generally. Let's not talk about it.", "Here's where we went. Nobody is responsible."]),
+      sit("mix", "You give the team a direction, then ask for something specific from them. What do you say?", ["Here's where we're going: one release. What I'm asking of you is six more weeks.", "Here's where we went: one release. What I asked of you was six more weeks.", "What I'm asking of you is nothing. Here's where we're going: nowhere."]),
     ],
-    open: {
-      q: "Address a team after a decision you got wrong. Give direction, make one specific ask, and take responsibility for the specific error.",
-      must: ["what I'm asking of", "here's where we're going", "I take responsibility"],
-      criteria: "The answer gives direction, makes an ask it would accept 'no' to, and names the specific error it owns.",
-      example: "I take responsibility for the second estimate — I approved it without a review. Here's where we're going: one release, properly scoped. What I'm asking of you is six weeks and a straight answer if you think the date is wrong.",
-    },
     success: "The learner gives direction and takes specific responsibility.",
     quiz: [
       qmcq("What makes taking responsibility more than a gesture?", [
@@ -822,22 +783,20 @@ export const C2_U7_9: Authored[] = [
         ex: ["We'll confirm in due course.", "Details will follow in due course."],
       },
     ],
-    ex: [
-      fill("We ___ exploring options at the moment. (be)", ["are", "'re"]),
-      fill("Nothing ___ been decided yet. (have)", ["has"]),
-      mcq("Where does the honesty line sit?", [
-        "between declining to confirm and creating a false impression",
-        "between the active and the passive voice",
-        "between formal and informal register",
-      ], 0),
-      say("details / will follow / in due course", ["Details will follow in due course."]),
+    ex: [],
+    drills: [
+      fc("p1", "The board ___ still reviewing the proposals.", ["is", "has", "does"]),
+      sit("p1", "Work on the decision is genuinely still in progress. A journalist asks where things stand. What do you say?", ["We're exploring options at the moment.", "We have decided, and the answer is final.", "We explore options at the moment."]),
+      sit("p1", "The outcome is already fixed, but you tell staff 'We're exploring options.' What is the problem?", ["It presents a fixed outcome as an ongoing process.", "It uses the wrong tense for the future.", "There is no problem; it is always honest."]),
+      fc("p2", "Nothing has ___ decided yet.", ["been", "be", "being"]),
+      sit("p2", "You want to report the state of the decision without naming who is deciding. What do you say?", ["Nothing has been decided yet.", "The CEO hasn't decided yet.", "Nothing has decided yet."]),
+      chat("p2", ["Has the office closure been decided?", null], ["Nothing has been decided at this stage.", "Nothing has been decide at this stage.", "Nothing has being decided at this stage."]),
+      sit("p3", "A reporter asks for a date. You will not give one, so you answer 'when' with no time in it. What do you say?", ["We'll confirm in due course.", "We'll confirm on the fifth of May.", "We'll confirm in due courses."]),
+      lc("p3", "Details will follow in due course.", ["Details will follow next Monday.", "The details are in the course book."]),
+      spk("p3", "We'll confirm the timetable in due course."),
+      sit("mix", "Work is still going on, nobody has chosen yet, and you can't give a date. What do you say?", ["We're exploring options, nothing has been decided, and we'll confirm in due course.", "We explored options, the CEO decided, and we'll confirm on Monday.", "We're exploring options, nothing has decided, and we'll confirm in due course."]),
+      chat("mix", ["Are redundancies on the table? Yes or no?", null], ["We're exploring options, and nothing has been decided yet.", "We're exploring options, and nothing has been decide yet.", "We exploring options, and nothing has been decided yet."]),
     ],
-    open: {
-      q: "You speak for an organisation. A restructure is genuinely undecided and staff are anxious. Say very little without misleading anyone.",
-      must: ["we're exploring options", "nothing has been decided", "in due course"],
-      criteria: "The answer withholds detail without implying an outcome that has been settled, and does not deny knowing what it knows.",
-      example: "We're exploring options and nothing has been decided — that is the actual position, not a formula. There will be consultation before anything changes, and we'll confirm the timetable in due course. If a decision is taken, you will hear it from me first.",
-    },
     success: "The learner withholds detail without implying a settled outcome.",
     quiz: [
       qmcq("What does the agentless passive do to the decider?", [
@@ -914,25 +873,20 @@ export const C2_U7_9: Authored[] = [
         ex: ["Where I'd start is the handover process.", "Where I'd start is with the data."],
       },
     ],
-    ex: [
-      mcq("Why must the claim come before the history?", [
-        "History only matters as evidence for the claim.",
-        "History is less interesting.",
-        "Interviewers prefer short answers.",
-      ], 0),
-      mcq("What does naming a first action expose?", [
-        "your judgement, since a wrong first action is visible immediately",
-        "your experience level",
-        "your salary expectation",
-      ], 0),
-      say("where / I / would start / be / the handover process", ["Where I'd start is the handover process.", "Where I would start is the handover process."]),
+    ex: [],
+    drills: [
+      sit("p1", "The panel asks why they should hire you. You answer in terms of the role, not your CV. What do you say?", ["What I'd bring is calm in a bad quarter.", "I was born in 1985 and studied economics.", "What I'd brought is calm in a bad quarter."]),
+      chat("p1", ["Why you, rather than the other candidates?", null], ["What I'd bring is the ability to build a team people stay in.", "What I'd bringing is the ability to build a team people stay in.", "What I'd brings is the ability to build a team people stay in."]),
+      lc("p1", "What I'd bring is a rebuilt pipeline.", ["What I bought was a new pipeline.", "Where I'd begin is the budget."]),
+      sit("p2", "Your retention has been strong in three different teams over six years. How do you point at it?", ["My track record on retention is good.", "I had one lucky year with retention.", "My track record on retention are good."]),
+      chat("p2", ["Retention is your strength, you say. Is it?", null], ["Yes. My track record on retention is strong across three teams.", "Yes. My track records on retention is strong across three teams.", "Yes. My track record on retention are strong across three teams."]),
+      spk("p2", "My track record speaks to that."),
+      sit("p3", "The panel asks about your first step. You name an action, not a philosophy. What do you say?", ["Where I'd start is the handover process.", "I believe in excellence and people.", "Where I'd started is the handover process."]),
+      chat("p3", ["The team lost three people this year. What would you do first?", null], ["Where I'd start is follow-up interviews with the three who left.", "Where I'd start is to believe in people.", "Where I'd starting is follow-up interviews with the three who left."]),
+      lc("p3", "Where I'd start is with the data.", ["Where I'd stop is at the border.", "When I started, there was no data."]),
+      chat("mix", ["What would you bring to a role like this?", null], ["What I'd bring is retention. My track record shows it, and where I'd start is the data.", "I'd bring nothing new. My track record is one good year.", "What I'd bring is retention. My track record show it, and where I'd start is the data."]),
+      pairs("mix", [["What I'd bring is...", "answers in terms of the role"], ["My track record on...", "points at a pattern"], ["Where I'd start is...", "names a first action"]]),
     ],
-    open: {
-      q: "You are interviewing to lead a team that has lost three people in a year. State what you would bring, the pattern behind it, and your first action.",
-      must: ["what I'd bring is", "my track record", "where I'd start"],
-      criteria: "The answer claims in terms of the role, offers a checkable pattern and names a specific first action.",
-      example: "What I'd bring is a team people stay in. My track record on retention holds across three teams, not one good year. Where I'd start is exit conversations with the three who left, before I change anything at all.",
-    },
     success: "The learner claims in role terms and names a specific first action.",
     quiz: [
       qmcq("Why is 'my track record' a risk?", [
@@ -988,7 +942,7 @@ export const C2_U7_9: Authored[] = [
         form: "three things you need",
         claims: [
           "'Three things you need to know' bounds the briefing before it starts.",
-          "The number is a commitment, so a fourth thing tells the listener the briefing was not prepared.",
+          "The number is a commitment, so a fourth thing suggests the briefing was not prepared.",
         ],
         ex: ["Three things you need to know.", "Three things you need, then questions."],
       },
@@ -1009,25 +963,20 @@ export const C2_U7_9: Authored[] = [
         ex: ["Anything I've missed?", "Anything I've missed before we finish?"],
       },
     ],
-    ex: [
-      mcq("What does the number in 'three things' commit you to?", [
-        "exactly three, since a fourth suggests it was unprepared",
-        "a short briefing",
-        "taking no questions",
-      ], 0),
-      mcq("Why ask 'anything I've missed?' last?", [
-        "An open invitation catches what specific questions cannot.",
-        "It is the polite convention.",
-        "It signals the end.",
-      ], 0),
-      say("what / be / the headline", ["What's the headline?", "What is the headline?"]),
+    ex: [],
+    drills: [
+      sit("p1", "You have five minutes to brief a colleague and exactly three points ready. How do you start?", ["Three things you need to know.", "Let me start from the very beginning, last March.", "Three thing you need to know."]),
+      chat("p1", ["I've got two minutes. Go.", null], ["Three things you need to know, then questions.", "Three things you needs to know, then questions.", "Three things you need knowing, then questions."]),
+      lc("p1", "Three things you need, then questions.", ["Three people you met, then lunch.", "There's nothing you need, then."]),
+      sit("p2", "A colleague starts telling you the whole story from the beginning, and you want the conclusion first. What do you say?", ["Before the detail — what's the headline?", "Please start even earlier.", "Before the detail — what the headline is?"]),
+      chat("p2", ["So on Monday morning I got in, and the first thing I noticed was...", null], ["Sorry to cut in. What's the headline?", "Sorry to cut in. What's a headline is?", "Sorry to cut in. What headline's the?"]),
+      spk("p2", "Before the detail, what's the headline?"),
+      sit("p3", "You've finished your questions, and you want to catch anything you wouldn't think to ask. What do you ask last?", ["Anything I've missed?", "Any questions I've asked?", "Anything I've miss?"]),
+      chat("p3", ["That's everything on my list.", null], ["Thanks. Anything I've missed before we finish?", "Thanks. Anything I've missed before we started?", "Thanks. Anything I've missing before we finish?"]),
+      sit("p3", "Why ask 'Anything I've missed?' at the end of a briefing?", ["An open question catches what specific questions couldn't.", "It is more polite than a specific question.", "It is shorter than a specific question."]),
+      chat("mix", ["I'm taking over tomorrow. Where are we?", null], ["Three things you need to know. Then you tell me: anything I've missed?", "Three things you need to know. Then you tell me: anything I've miss?", "Three thing you need to know. Then you tell me: anything I've missed?"]),
+      sit("mix", "A colleague hands over a project. You ask for the conclusion first, and at the end you invite any gaps. What do you say?", ["What's the headline? And at the end: anything I've missed?", "Start from the beginning. And at the end: nothing more, please.", "What's the headline? And at the end: anything you've said?"]),
     ],
-    open: {
-      q: "Brief a colleague on an incident in three points, then take a briefing from them by asking for the headline and checking for gaps.",
-      must: ["three things you need", "what's the headline", "anything I've missed"],
-      criteria: "The answer bounds its own briefing by number and, when receiving, asks for the conclusion first and checks for gaps.",
-      example: "Three things you need to know: the outage lasted four hours, two clients noticed, and the cause was a config change. Now yours — what's the headline? And once you have given me that: anything I've missed that I would not think to ask?",
-    },
     success: "The learner bounds a briefing by number and asks for the headline when receiving one.",
     quiz: [
       qmcq("What does asking for the headline interrupt?", [
@@ -1062,7 +1011,7 @@ export const C2_U7_9: Authored[] = [
       sc("Mr. Salvatierra", "the examiner", "to check information handling",
         "The examiner asks for a briefing.",
         "Bound it by number.",
-        "Brief me on something complicated in your field?", "neutral"),
+        "What do I need to know about something complicated in your field?", "neutral"),
     ],
   },
 
@@ -1091,7 +1040,7 @@ export const C2_U7_9: Authored[] = [
         form: "I want to leave you",
         claims: [
           "'I want to leave you with one thought' names the single thing you expect to be remembered.",
-          "One is the number that survives: a room asked to remember three usually keeps none.",
+          "One thought is easier to keep: a room asked to remember three often keeps none of them clearly.",
         ],
         ex: ["I want to leave you with one thought.", "I want to leave you with a question."],
       },
@@ -1099,30 +1048,25 @@ export const C2_U7_9: Authored[] = [
         form: "let me close with",
         claims: [
           "'Let me close with X' signals the end, which stops the audience wondering how long is left.",
-          "Signalling the close and then continuing is the most reliable way to lose a room.",
+          "Signalling the close and then continuing is a quick way to lose a room.",
         ],
         ex: ["Let me close with a figure.", "Let me close with something short."],
       },
     ],
-    ex: [
-      mcq("Why leave the room with one thought rather than three?", [
-        "A room asked to remember three usually keeps none.",
-        "Three takes too long.",
-        "One is easier to phrase.",
-      ], 0),
-      mcq("What is the most reliable way to lose a room?", [
-        "signalling the close and then continuing",
-        "opening with thanks",
-        "using a figure",
-      ], 0),
-      say("let me / close / with / a figure", ["Let me close with a figure."]),
+    ex: [],
+    drills: [
+      sit("p1", "The chair has just introduced you, and you want a brief, conventional opening. What do you say?", ["Thank you for having me.", "Thank you for having me, and the organisers, and the caterers, and the technicians...", "Thank you for have me."]),
+      chat("p1", ["Please welcome our next speaker.", null], ["Thank you for having me. I'll be brief.", "Thank you for having me. I'll be briefly.", "Thanks you for having me. I'll be brief."]),
+      lc("p1", "Thank you for having me — I'll be brief.", ["Thank you for helping me — I'll be back.", "Thank you all for coming tonight."]),
+      sit("p2", "You want the room to remember one single idea from your talk. What do you say?", ["I want to leave you with one thought.", "I want to leave you with seven thoughts.", "I want to leaving you with one thought."]),
+      chat("p2", ["You've got thirty seconds left.", null], ["Then I want to leave you with a question.", "Then I want to leave you a with question.", "Then I want leave you with a question."]),
+      spk("p2", "I want to leave you with one thought."),
+      sit("p3", "You are about to finish, and you want the audience to know the end is near. What do you say?", ["Let me close with a figure.", "Let me open with a figure.", "Let me closing with a figure."]),
+      sit("p3", "You said 'Let me close with this' and then spoke for ten more minutes. What probably happened?", ["You lost the room.", "You kept the room's attention perfectly.", "You followed the best practice."]),
+      la("p3", "Let me close with something short.", ["closing"]),
+      chat("mix", ["You're on. The room is yours.", null], ["Thank you for having me. I want to leave you with one thought.", "Thank you for having me. I want to leave you with ten thoughts.", "Thank you for have me. I want to leave you with one thought."]),
+      sit("mix", "You are ending a short talk: you signal the close and name the one idea to remember. What do you say?", ["Let me close with this: trust is built slowly. That's the thought I want to leave you with.", "Let me open with this: trust is built slowly. Those are the ten thoughts I want to leave you with.", "Let me close with this: trust is built slowly. That's the thought I want to leaving you with."]),
     ],
-    open: {
-      q: "Give the opening and closing of a two-minute address on why your field matters. Keep the opening brief and leave the room with one idea.",
-      must: ["thank you for having", "I want to leave you", "let me close with"],
-      criteria: "The answer opens briefly and closes on a single idea, without signalling the close and continuing.",
-      example: "Thank you for having me — I'll be brief. My field matters because it turns uncertainty into decisions people can defend. Let me close with the one thing I want to leave you with: better tools do not replace judgement, they make responsible judgement possible.",
-    },
     success: "The learner opens briefly and closes on one idea.",
     quiz: [
       qmcq("What does extending the thanks spend?", [
@@ -1145,19 +1089,19 @@ export const C2_U7_9: Authored[] = [
       sc("Mr. Bergstrom", "a conference chair introducing you", "to run the session to time",
         "A conference session is yours for two minutes.",
         "Open briefly and close cleanly.",
-        "Two minutes, and the room is yours. Ready?", "brisk"),
+        "Two minutes, and the room is yours. How will you open?", "brisk"),
       sc("Naledi", "an audience member at a small event", "to hear something memorable",
         "A small room is waiting for you to begin.",
         "Land one idea.",
-        "We are all listening. Go ahead?", "receptive"),
+        "We are all listening. What would you like to tell us?", "receptive"),
       sc("Professor Ferrers", "your tutor", "to practise address structure",
         "The seminar is examining short addresses.",
         "Open briefly and close on one idea.",
-        "Why does a room asked to remember three things keep none?", "probing"),
+        "Why is one thought easier for a room to keep than three?", "probing"),
       sc("Mr. Salvatierra", "the examiner", "to check prepared delivery",
         "The examiner invites a short address.",
         "Open briefly and close on one idea.",
-        "Speak for two minutes on why your subject matters?", "neutral"),
+        "You have two minutes. Why does your subject matter?", "neutral"),
     ],
   },
 
@@ -1194,30 +1138,25 @@ export const C2_U7_9: Authored[] = [
         form: "let me address that",
         claims: [
           "'Let me address that directly' commits you to the question as asked.",
-          "It is the highest-risk option, so a room that is expecting evasion notices it most.",
+          "It is the most committal option, and a room that is expecting evasion notices it most.",
         ],
         ex: ["Let me address that directly.", "Let me address that head on."],
       },
     ],
-    ex: [
-      mcq("Why does 'good question' fail if used every time?", [
-        "A sceptical room hears it as stalling.",
-        "It is grammatically incomplete.",
-        "It flatters the questioner.",
-      ], 0),
-      mcq("What must follow pushing back on a premise?", [
-        "answering the question the premise was hiding",
-        "an apology to the questioner",
-        "moving to the next question",
-      ], 0),
-      say("let me / address / that / directly", ["Let me address that directly."]),
+    ex: [],
+    drills: [
+      sit("p1", "A hard question surprises you, and you need a second to think before answering. What do you say?", ["Good question. Two answers to that.", "Bad question. Next.", "Good questions. Two answers to that."]),
+      sit("p1", "You have said 'Good question' to every single question tonight. How does a sceptical room hear it?", ["As stalling.", "As real interest.", "As a strong answer."]),
+      lc("p1", "Good question, and a fair one.", ["Good morning, and welcome.", "Good luck, and take care."]),
+      sit("p2", "A questioner asks why all three projects failed, but only one failed. You reject the assumption, then answer about that one. What do you say?", ["I'd push back on the premise: only one failed, because its supplier withdrew.", "You're a liar.", "I'd pushing back on the premise: only one failed, because its supplier withdrew."]),
+      chat("p2", ["Isn't your whole department wasting money?", null], ["I'd push back on that framing. Here's what we actually spend.", "I'd push back on that framing, and I won't say more.", "I'd push back that on framing. Here's what we actually spend."]),
+      spk("p2", "I'd push back on that framing."),
+      sit("p3", "A resident asks whether you broke last year's promise. You choose to answer the question exactly as asked. What do you say?", ["Let me address that directly.", "Let me address another question.", "Let me addressing that directly."]),
+      chat("p3", ["You promised this last year too, didn't you?", null], ["I did. Let me address that head on.", "I did. Let me address that head off.", "I did. Let me addressed that head on."]),
+      spk("p3", "Let me address that head on."),
+      chat("mix", ["Three failures in a row. Why should we trust you?", null], ["Good question. I'd push back on 'three', but let me address the one that failed.", "Good question. I'd push back on 'three', and that's all I'll say.", "Bad question. I'd push back on you personally."]),
+      sit("mix", "A questioner's assumption is wrong. You reject it, then answer the real question underneath. What do you say?", ["I'd push back on the premise. But let me address the real issue directly.", "I'd push back on the premise, so there's nothing to address.", "I agree with the premise. Let me avoid the issue."]),
     ],
-    open: {
-      q: "A sceptical room asks: 'Why should we trust you when the last three projects failed?' Answer it, and push back on the part of the premise that is wrong.",
-      must: ["good question", "I'd push back on", "let me address that"],
-      criteria: "The answer engages the question as asked and separates the accurate part of the premise from the inaccurate part.",
-      example: "Good question. I'd push back on 'three' — two were cancelled for funding, which is a different failure. But let me address that directly: the one that failed on delivery was mine, and here is what changed afterwards.",
-    },
     success: "The learner engages directly and corrects only the wrong part of the premise.",
     quiz: [
       qmcq("What does 'let me address that directly' commit you to?", [
@@ -1226,8 +1165,8 @@ export const C2_U7_9: Authored[] = [
         "agreeing with the questioner",
       ], 0),
       qfill("I'd ___ back on that framing. (push)", ["push"]),
-      qmcq("Why is direct engagement the highest-risk option?", [
-        "A room expecting evasion notices it most.",
+      qmcq("Why does a sceptical room notice 'let me address that directly' most?", [
+        "It is expecting evasion.",
         "It takes the longest.",
         "It cannot be retracted.",
       ], 0),
@@ -1280,7 +1219,7 @@ export const C2_U7_9: Authored[] = [
       {
         form: "I can't speak to",
         claims: [
-          "'I can't speak to that' declines on grounds of remit rather than of knowledge.",
+          "'I can't speak to that' often declines on grounds of remit rather than of knowledge.",
           "It is honest where the question belongs to someone else, and evasive where it is simply awkward.",
         ],
         ex: ["I can't speak to the legal side.", "I can't speak to another team's decision."],
@@ -1294,25 +1233,20 @@ export const C2_U7_9: Authored[] = [
         ex: ["What we can say is that nobody was hurt.", "What we can say is limited."],
       },
     ],
-    ex: [
-      mcq("What does 'I can't speak to that' decline on?", [
-        "grounds of remit rather than of knowledge",
-        "grounds of confidentiality",
-        "grounds of time",
-      ], 0),
-      mcq("How does a bare refusal read?", [
-        "as concealment, even where none is intended",
-        "as professionalism",
-        "as a request for time",
-      ], 0),
-      say("our / position / be / unchanged", ["Our position is unchanged.", "Our position's unchanged."]),
+    ex: [],
+    drills: [
+      sit("p1", "The board has agreed a statement, and a journalist asks for the company's view. What do you say?", ["Our position is set out in the letter.", "My personal feeling is that it's set out in the letter.", "Our position are set out in the letter."]),
+      chat("p1", ["Has anything changed since last month?", null], ["No. Our position is unchanged.", "No. Our position are unchanged.", "No. Our position is unchange."]),
+      lc("p1", "Our position is unchanged.", ["Our office has moved.", "Our prices have gone up."]),
+      sit("p2", "A journalist asks you about the legal case, but that belongs to the company lawyers, not you. What do you say?", ["I can't speak to the legal side.", "I can speak to the legal side in full detail.", "I can't speaks to the legal side."]),
+      chat("p2", ["What did the other team decide on Friday?", null], ["I can't speak to another team's decision.", "I can't speak to another team's decide.", "I can't speaking to another team's decision."]),
+      spk("p2", "I can't speak to the legal side."),
+      sit("p3", "You can't share most details, but you can confirm nobody was hurt. You offer that part. What do you say?", ["What we can say is that nobody was hurt.", "No comment.", "What we can saying is that nobody was hurt."]),
+      chat("p3", ["Is the report going to be published?", null], ["What we can say is that it will be published.", "What we can saying is that it will be published.", "What can we say is that it will be published."]),
+      sit("p3", "Why add 'What we can say is...' instead of simply refusing?", ["A bare refusal reads as concealment.", "A bare refusal is against the law.", "It makes the answer shorter."]),
+      chat("mix", ["Was anyone at fault here?", null], ["I can't speak to fault; that's for the inquiry. What we can say is that nobody was hurt.", "I can't speak to fault. What we can saying is that nobody was hurt.", "I can speak to fault: it was Dave. What we can say is nothing."]),
+      sit("mix", "A journalist asks three things. You give the agreed company view, decline what is outside your remit, and offer what is available. What do you say?", ["Our position is clear. I can't speak to the legal side, but what we can say is that nobody was hurt.", "My position is clear. I can speak to everything, so here is all of it.", "Our position is clear. I can't speak to anything, and we can say nothing."]),
     ],
-    open: {
-      q: "Speak for your organisation about an incident. Give the agreed position, decline the part outside your remit, and offer what is available.",
-      must: ["our position is", "I can't speak to", "what we can say"],
-      criteria: "The answer separates the organisation's agreed position from the speaker's own view and pairs each refusal with something available.",
-      example: "Our position is that the process was followed. I can't speak to the legal side — that sits with counsel, not with me. What we can say is that nobody was hurt and the report will be published. My own view is not the point here.",
-    },
     success: "The learner speaks in the organisation's voice and pairs refusals with what is available.",
     quiz: [
       qmcq("Why must 'our position is' be a position that was agreed?", [
@@ -1347,7 +1281,7 @@ export const C2_U7_9: Authored[] = [
       sc("Mr. Salvatierra", "the examiner", "to check representative register",
         "The examiner asks you to speak for a body.",
         "Give the position and decline the rest.",
-        "Speak for your university on tuition fees?", "neutral"),
+        "What is your university's position on tuition fees?", "neutral"),
     ],
   },
 
@@ -1384,31 +1318,26 @@ export const C2_U7_9: Authored[] = [
       {
         form: "small world",
         claims: [
-          "'Small world' marks a coincidence, but on its own it closes the topic.",
+          "'Small world' marks a coincidence, but on its own it tends to close the topic.",
           "Following it with a question is what turns the coincidence into a conversation.",
         ],
         ex: ["Small world. My sister lived there too.", "Small world — when were you there?"],
       },
     ],
-    ex: [
-      mcq("Why does 'how do you know X?' work better than 'do you know X?'", [
-        "It invites an account of the connection rather than a yes or no.",
-        "It is more polite.",
-        "It is shorter.",
-      ], 0),
-      mcq("What turns 'small world' into a conversation?", [
-        "following it with a question",
-        "saying it warmly",
-        "repeating the coincidence",
-      ], 0),
-      say("small world / when / be / you / there", ["Small world — when were you there?", "Small world, when were you there?"]),
+    ex: [],
+    drills: [
+      sit("p1", "At a wedding, you want to learn how a stranger is connected to the couple, and invite more than yes or no. What do you ask?", ["How do you know the couple?", "Are you enjoying the wedding?", "How do you knows the couple?"]),
+      chat("p1", ["I'm a friend of the bride.", null], ["Oh, lovely. How do you know her?", "Oh, lovely. How you know her?", "Oh, lovely. How do you know she?"]),
+      spk("p1", "How do you know the family?"),
+      sit("p2", "At a conference, you want to ask a stranger about their reason for being there, not who they are. What do you ask?", ["What brings you here?", "Who are you, exactly?", "What bring you here?"]),
+      chat("p2", ["Hi. I don't know anyone here.", null], ["Me neither. What brings you here?", "Me neither. What brings you to here?", "Me neither. What's bringing here you?"]),
+      la("p2", "So what brings you to the city?", ["bring"]),
+      sit("p3", "A stranger lived on your street years ago. You mark the coincidence and keep the conversation going. What do you say?", ["Small world. When were you there?", "Small world.", "Small worlds. When were you there?"]),
+      chat("p3", ["I studied in your home town, actually.", null], ["Small world! Which part did you live in?", "Small world! Which part you did live in?", "Small worlds! Which part did you live in?"]),
+      lc("p3", "Small world — my sister lived there too.", ["Small town — my sister lives there now.", "Small change — my sister paid for it."]),
+      chat("mix", ["I used to live in your town, actually.", null], ["Small world! When were you there? And what brings you here today?", "Small worlds! When were you there? And what brings you here today?", "Small world! When were you there? And what bring you here today?"]),
+      sit("mix", "At a wedding, you ask a stranger how they're connected, then discover you went to the same school. What do you say?", ["How do you know the couple? ... Small world! When were you there?", "Do you know the couple? ... Small world.", "How do you know the couple? ... Big world! When were you there?"]),
     ],
-    open: {
-      q: "You meet someone at a wedding and discover you both lived in the same city. Establish the connection and keep it going past the coincidence.",
-      must: ["how do you know", "what brings you here", "small world"],
-      criteria: "The answer establishes a shared frame and follows the coincidence with a question rather than stopping at it.",
-      example: "How do you know the couple? Same here, through her brother. What brings you here — did you travel far? Wait, you lived in Porto? Small world. When were you there? I was two streets from the market.",
-    },
     success: "The learner establishes common ground and extends past the coincidence.",
     quiz: [
       qmcq("What does 'what brings you here?' ask about?", [
@@ -1479,31 +1408,26 @@ export const C2_U7_9: Authored[] = [
       {
         form: "we've been here hours",
         claims: [
-          "'We've been here hours' notices the length as a good thing rather than a signal to leave.",
-          "Tone carries the difference: the same sentence is a way of ending the evening.",
+          "Said warmly, 'We've been here hours' notices the length as a good thing rather than a signal to leave.",
+          "Tone carries the difference: said flatly, the same sentence hints that it is time to leave.",
         ],
         ex: ["We've been here hours.", "We've been here hours and I haven't noticed."],
       },
     ],
-    ex: [
-      mcq("Why is 'speaking of which' easier to break than 'that reminds me'?", [
-        "It claims a tighter link, so a loose connection shows.",
-        "It is more formal.",
-        "It is longer.",
-      ], 0),
-      mcq("What decides whether 'we've been here hours' extends or ends the evening?", [
-        "the tone it is said in",
-        "the actual number of hours",
-        "who says it first",
-      ], 0),
-      say("that / remind / me / of something", ["That reminds me of something."]),
+    ex: [],
+    drills: [
+      sit("p1", "Your friend mentions a trip, and it really makes you think of a related story. How do you shift topic?", ["That reminds me of something.", "Anyway, completely different topic.", "That remind me of something."]),
+      chat("p1", ["We finally got the keys to the new flat.", null], ["That reminds me — did you ever hear back from the landlord?", "That reminds to me — did you ever hear back from the landlord?", "That reminding me — did you ever hear back from the landlord?"]),
+      lc("p1", "That reminds me of something.", ["That reminded him of nothing.", "That remains to be seen."]),
+      sit("p2", "Your friend mentions concert tickets, and you need to talk about the concert tickets you still have to buy. What do you say?", ["Speaking of which — the tickets.", "Speaking of what — the tickets.", "Speak of which — the tickets."]),
+      sit("p2", "Your friend talks about her cat, and you jump to tax forms with 'Speaking of which'. What happens?", ["The phrase draws attention to the loose link.", "The shift feels perfectly natural.", "Your friend hears a tight link."]),
+      chat("p2", ["My brother is flat-hunting too.", null], ["Speaking of which, how is your flat?", "Speaking of which, how are your flat?", "Speak of which, how is your flat?"]),
+      sit("p3", "It's midnight, you started at seven, and you're enjoying it. You notice the time warmly. What do you say?", ["We've been here hours, and I haven't noticed.", "We've been here hours. I'd better go.", "We've being here hours, and I haven't noticed."]),
+      spk("p3", "We've been here hours and I haven't noticed."),
+      chat("p3", ["Is that the time? It's almost one.", null], ["I know! We've been here hours, and I haven't noticed.", "I know! We've been here hour, and I haven't noticed.", "I know! We been here hours, and I haven't noticed."]),
+      sit("mix", "Your friend mentions a holiday, which makes you think of a related story. Later you notice, happily, how late it is. What do you say?", ["That reminds me of my trip... We've been here hours!", "Anyway, new topic... I'm bored, let's go.", "That remind me of my trip... We've been here hours!"]),
+      chat("mix", ["I've just booked flights for the summer.", null], ["Speaking of which, did you book the hotel? That reminds me, I need one too.", "Speaking of which, did you booked the hotel? That reminds me, I need one too.", "Speaking of which, did you book the hotel? That remind me, I need one too."]),
     ],
-    open: {
-      q: "You have been talking to a friend for three hours. Shift topic twice by association, and notice the length without ending the evening.",
-      must: ["that reminds me", "speaking of which", "we've been here hours"],
-      criteria: "The answer shifts topic through real associative links and treats the length as a good thing.",
-      example: "That reminds me — did you ever hear back about the flat? Speaking of which, your brother was looking too, wasn't he? We've been here hours and I hadn't noticed. Are you all right for another?",
-    },
     success: "The learner shifts topic by association and treats the length as welcome.",
     quiz: [
       qmcq("What does a false associative link do?", [
@@ -1580,25 +1504,20 @@ export const C2_U7_9: Authored[] = [
         ex: ["I'm not proud of it.", "I'm not proud of how much I watch it."],
       },
     ],
-    ex: [
-      mcq("What disarms mockery in 'my guilty pleasure'?", [
-        "The low status of the taste has already been granted.",
-        "The phrase is idiomatic.",
-        "It names the pleasure specifically.",
-      ], 0),
-      mcq("What happens to 'I must confess' about something that matters?", [
-        "It raises the stakes rather than lowering them.",
-        "It becomes funnier.",
-        "It loses its meaning.",
-      ], 0),
-      say("I / not be / proud / of it", ["I'm not proud of it.", "I am not proud of it."]),
+    ex: [],
+    drills: [
+      sit("p1", "You jokingly admit that you love a silly TV show. What do you say?", ["I must confess I love it.", "I must to confess I love it.", "I must confessing I love it."]),
+      sit("p1", "You use 'I must confess' before admitting something that really matters, like a lie to a friend. What happens?", ["It raises the stakes instead of lowering them.", "It turns it into a joke.", "It hides the confession."]),
+      chat("p1", ["Do you secretly like reality TV?", null], ["I must confess to a weakness there.", "I must confessed to a weakness there.", "I must confess at a weakness there."]),
+      sit("p2", "You love cheesy pop music, admit it's low-prestige, and keep loving it. What do you say?", ["That's my guilty pleasure.", "That's my proudest achievement.", "That's my guiltily pleasure."]),
+      lc("p2", "My guilty pleasure is worse than that.", ["My greatest pleasure is meeting you.", "My guilty conscience kept me awake."]),
+      chat("p2", ["Go on, what's yours? Something terrible?", null], ["My guilty pleasure is old talent shows.", "My guilty pleasures is old talent shows.", "My guilt pleasure is old talent shows."]),
+      sit("p3", "You watch a lot of cartoons and want to perform shame lightly, so nobody feels they must reassure you. What do you say?", ["I'm not proud of it.", "There's nothing embarrassing about it at all.", "I'm not proud from it."]),
+      spk("p3", "I'm not proud of how much I watch it."),
+      chat("p3", ["You've seen every episode? Twice?", null], ["I'm not proud of it.", "I'm not proud with it.", "I not proud of it."]),
+      chat("mix", ["What do you watch when nobody's around?", null], ["I must confess, my guilty pleasure is bad detective shows. I'm not proud of it.", "I must confess, my guilty pleasure is bad detective shows. I'm not proud from it.", "I must confessed, my guilty pleasure is bad detective shows. I'm not proud of it."]),
+      sit("mix", "You jokingly admit a low-prestige taste and add a light touch of shame. What do you say?", ["My guilty pleasure is boy bands. I'm not proud of it.", "My proudest moment is boy bands. I'm very proud of it.", "My guilty pleasure is boy bands. I'm not proud from it."]),
     ],
-    open: {
-      q: "Confess a taste people mock, then say where you would drop the irony and defend it straight.",
-      must: ["I must confess", "my guilty pleasure", "I'm not proud of"],
-      criteria: "The answer confesses with controlled irony and identifies where the irony should be dropped.",
-      example: "I must confess to a weakness for terrible detective series. My guilty pleasure is the very worst of them. I'm not proud of how many I have watched. Though with someone who actually loves them, I would drop the irony — it is good writing, badly dressed.",
-    },
     success: "The learner confesses with controlled irony and judges when to drop it.",
     quiz: [
       qmcq("What does 'I'm not proud of it' spare the listener?", [
@@ -1656,7 +1575,7 @@ export const C2_U7_9: Authored[] = [
           "'Packed like sardines' is a stock image, which makes it instantly clear and entirely unsurprising.",
           "It works as shorthand next to one specific detail, and flat on its own.",
         ],
-        ex: ["Packed like sardines, as usual.", "Packed like sardines and someone was eating soup."],
+        ex: ["Packed like sardines, next to a man with a bicycle.", "Packed like sardines and someone was eating soup."],
       },
       {
         form: "out of nowhere",
@@ -1675,25 +1594,20 @@ export const C2_U7_9: Authored[] = [
         ex: ["Up at the crack of dawn again.", "At the crack of dawn, in the rain."],
       },
     ],
-    ex: [
-      mcq("What can carry an ordinary account?", [
-        "a break in the routine, a sharp observation or a character detail",
-        "a vivid stock phrase on its own",
-        "an unreasonable hour",
-      ], 0),
-      mcq("How does a stock image like 'packed like sardines' work best?", [
-        "as shorthand next to one specific detail",
-        "on its own, for clarity",
-        "repeated for emphasis",
-      ], 0),
-      say("out of nowhere / the train / stop", ["Out of nowhere the train stopped."]),
+    ex: [],
+    drills: [
+      sit("p1", "The train was so full nobody could move. You use the stock image and add one specific detail. What do you say?", ["Packed like sardines, and someone was eating soup.", "Packed like sardines.", "Packed like sardine, and someone was eating soup."]),
+      chat("p1", ["How was the train this morning?", null], ["Packed like sardines, with someone's backpack in my face.", "Packed like a sardines, with someone's backpack in my face.", "Packing like sardines, with someone's backpack in my face."]),
+      lc("p1", "Packed like sardines, next to a man with a bicycle.", ["Late again, as usual.", "Back in the garden with a ball."]),
+      sit("p2", "The bus was quiet, and then suddenly a man started singing. How do you mark the moment the routine broke?", ["And out of nowhere, singing.", "And as expected, singing.", "And out of anywhere, singing."]),
+      chat("p2", ["Then what happened?", null], ["Out of nowhere, the train stopped.", "Out of nowhere, the train stop.", "Out of nowheres, the train stopped."]),
+      spk("p2", "Out of nowhere the train stopped."),
+      sit("p3", "You had to get up at five, which felt unreasonably early. What do you say?", ["Up at the crack of dawn again.", "Up at the crack of noon again.", "Up at a crack of dawn again."]),
+      chat("p3", ["You look exhausted.", null], ["I was up at the crack of dawn, in the rain.", "I was up at the crack of dawns, in the rain.", "I was up on the crack of dawn, in the rain."]),
+      sit("p3", "Your whole story is just 'I got up at the crack of dawn.' Why might it wear your listener out?", ["It gives no event or detail to hold on to.", "It's too precise.", "It's too rude."]),
+      chat("mix", ["Bad journey?", null], ["Up at the crack of dawn, packed like sardines, and out of nowhere the train stopped.", "Up at the crack of dawn, packed like sardine, and out of nowhere the train stopped.", "Up at the crack of dawn, packed like sardines, and out of nowhere the train stop."]),
+      sit("mix", "You tell a commute story: a very early start, a crowded train, and then something sudden. Which line has all three?", ["At the crack of dawn, packed like sardines, then out of nowhere a dog got on.", "At noon, with lots of space, and nothing happened at all.", "At the crack of dawn, packed like sardines, and nothing happened."]),
     ],
-    open: {
-      q: "Make this morning's commute worth hearing. Use one stock image, one specific detail, and the moment the routine broke.",
-      must: ["packed like sardines", "out of nowhere", "at the crack of dawn"],
-      criteria: "The answer pairs the stock image with a specific detail and names the moment the routine broke.",
-      example: "Up at the crack of dawn, in the rain. Packed like sardines, and the man beside me was eating soup from a flask. Then out of nowhere the train stopped for forty minutes, and he offered me some.",
-    },
     success: "The learner pairs a stock image with a specific detail and names the break in routine.",
     quiz: [
       qmcq("What does 'at the crack of dawn' invite?", [
@@ -1728,7 +1642,7 @@ export const C2_U7_9: Authored[] = [
       sc("Ms. Solberg", "the examiner", "to check narrative from ordinary material",
         "The examiner asks about your routine.",
         "Make it worth hearing.",
-        "Tell me about your journey here this morning?", "neutral"),
+        "How was your journey here this morning?", "neutral"),
     ],
   },
 
@@ -1756,7 +1670,7 @@ export const C2_U7_9: Authored[] = [
       {
         form: "on your doorstep",
         claims: [
-          "'On your doorstep' argues from proximity, which is the city's strongest and narrowest claim.",
+          "'On your doorstep' argues from proximity, a common city argument and a narrow one.",
           "Narrow because proximity is only worth what you actually use.",
         ],
         ex: ["Everything is on your doorstep.", "Three theatres on your doorstep."],
@@ -1764,31 +1678,26 @@ export const C2_U7_9: Authored[] = [
       {
         form: "sense of community",
         claims: [
-          "'Sense of community' is the small town's strongest claim and its vaguest.",
+          "'Sense of community' is a common small-town argument, and a vague one.",
           "It needs one concrete instance, or the other side will supply a counter-example you cannot answer.",
         ],
         ex: ["There is a real sense of community.", "The sense of community is not sentimental."],
       },
     ],
-    ex: [
-      mcq("Why is proximity a narrow claim?", [
-        "It is only worth what you actually use.",
-        "It applies only to cities.",
-        "It cannot be measured.",
-      ], 0),
-      mcq("What does 'sense of community' need?", [
-        "one concrete instance",
-        "a statistic",
-        "a comparison",
-      ], 0),
-      say("everything / be / on your doorstep", ["Everything is on your doorstep.", "Everything's on your doorstep."]),
+    ex: [],
+    drills: [
+      sit("p1", "You miss the slow rhythm of village life, and you name a specific example. What do you say?", ["It's the pace of life I miss — I slept properly there.", "It's the pace of life I miss.", "It's the pace of lives I miss — I slept properly there."]),
+      chat("p1", ["Why did you leave the city?", null], ["The pace of life. I wanted evenings that weren't rushed.", "The pace of lifes. I wanted evenings that weren't rushed.", "The pace for life. I wanted evenings that weren't rushed."]),
+      lc("p1", "The pace of life is slower there.", ["The cost of living is higher there.", "The weather is warmer there."]),
+      sit("p2", "You live in the city and use two of the three nearby theatres every month. You argue from proximity. What do you say?", ["Three theatres on your doorstep, and I use two monthly.", "Three theatres on your doorstep, though I never go.", "Three theatres in your doorstep, and I use two monthly."]),
+      chat("p2", ["What's so great about the city?", null], ["Everything is on your doorstep.", "Everything is on you doorstep.", "Everything are on your doorstep."]),
+      spk("p2", "There are three theatres on your doorstep."),
+      sit("p3", "You defend village life with a concrete example: neighbours noticed your aunt was ill before her family did. What do you say?", ["There's a real sense of community: they noticed she was ill first.", "There's a real sense of community.", "There's a real sense of communities: they noticed she was ill first."]),
+      chat("p3", ["Sense of community? That's just a nice phrase.", null], ["Not there. The sense of community is real: they cooked for my aunt for a month.", "Not there. The sense of communities is real: they cooked for my aunt for a month.", "Not there. The sense of community are real: they cooked for my aunt for a month."]),
+      lc("p3", "There is a real sense of community.", ["There is a real chance of rain.", "There is a nice view of the river."]),
+      chat("mix", ["Could you ever leave the city?", null], ["Maybe. I'd miss having everything on my doorstep, but I'd gain a slower pace of life.", "Maybe. I'd miss having everything in my doorstep, but I'd gain a slower pace of life.", "Maybe. I'd miss having everything on my doorstep, but I'd gain a slower pace of lifes."]),
+      sit("mix", "You concede the town's slower pace, then argue for the city's proximity with a specific. What do you say?", ["I'll grant the town a slower pace of life. But here, two theatres I use are on my doorstep.", "The pace of life is faster in the town. And nothing is on my doorstep here.", "I'll grant the town a slower pace of life. But here, nothing is on my doorstep."]),
     ],
-    open: {
-      q: "Argue for where you live, conceding the other side's real gain. Replace each slogan with a specific.",
-      must: ["pace of life", "on your doorstep", "sense of community"],
-      criteria: "The answer concedes a genuine gain to the other side and gives a specific behind each general phrase.",
-      example: "I'll grant the pace of life — I slept properly for the first time in my aunt's village. But here you have three theatres on your doorstep and I use two monthly. The sense of community there is real, though: they noticed she was ill before her family did.",
-    },
     success: "The learner concedes a real gain and argues through specifics.",
     quiz: [
       qmcq("Why can both sides use 'pace of life'?", [
@@ -1811,7 +1720,7 @@ export const C2_U7_9: Authored[] = [
       sc("Mr. Ibori", "a colleague considering a move", "to make a good decision",
         "A colleague is deciding whether to move out.",
         "Argue through specifics.",
-        "Would you do it? Honestly?", "torn"),
+        "I am thinking of moving to a small town. What would you miss about the city?", "torn"),
       sc("Yara", "a fellow traveller from a small town", "to compare ways of living",
         "You come from very different places.",
         "Concede and argue.",
@@ -1865,25 +1774,20 @@ export const C2_U7_9: Authored[] = [
         ex: ["How did that feel at the time?", "How did that feel afterwards?"],
       },
     ],
-    ex: [
-      mcq("Why can 'what made you X?' produce a fuller account?", [
-        "It asks what led to the action, not merely whether it happened.",
-        "It is a longer question.",
-        "It flatters the person.",
-      ], 0),
-      mcq("When is 'how did that feel?' intrusive?", [
-        "when asked before any fact has been given",
-        "when the topic is work",
-        "when asked twice",
-      ], 0),
-      say("what / make / you / leave", ["What made you leave?"]),
+    ex: [],
+    drills: [
+      sit("p1", "Someone mentions three jobs. You want them to describe the first one in their own way. What do you say?", ["Tell me about the first one.", "Tell me about everything in your life.", "Tell me the first one about."]),
+      chat("p1", ["I spent a year in Japan after university.", null], ["Tell me about that year.", "Tell me about that years.", "Tell me that year about."]),
+      la("p1", "Tell me about the day you decided.", ["told"]),
+      sit("p2", "Someone says they left a job after fifteen years. You ask what led to it, with no assumption. What do you ask?", ["What made you leave?", "Why did you get fired?", "What made you to leave?"]),
+      chat("p2", ["I switched from law to cooking at forty.", null], ["What made you choose cooking?", "What made you chose cooking?", "What did made you choose cooking?"]),
+      lc("p2", "What made you choose that?", ["What made you laugh so much?", "Where did you find that?"]),
+      sit("p3", "Someone has just told you the facts of quitting their job. You move from the event to their experience. What do you ask?", ["How did that feel at the time?", "How long did that take?", "How did that felt at the time?"]),
+      chat("p3", ["I walked out on my last day and didn't look back.", null], ["How did that feel afterwards?", "How did that feels afterwards?", "How that did feel afterwards?"]),
+      spk("p3", "How did that feel at the time?"),
+      chat("mix", ["I was a translator for ten years, then I stopped.", null], ["What made you stop? Tell me about the last year.", "What made you stopped? Tell me about the last year.", "What made you stop? Tell me the last year about."]),
+      sit("mix", "Someone tells you they moved abroad alone at eighteen. You ask what led to it, then how it felt. What do you say?", ["What made you go? And how did that feel at first?", "Why were you forced to go? And how long was the flight?", "What made you went? And how did that feel at first?"]),
     ],
-    open: {
-      q: "You are interviewing someone who has just said they left a career of fifteen years. Ask three questions that follow that answer rather than a list.",
-      must: ["tell me about", "what made you", "how did that feel"],
-      criteria: "The answer's questions follow from the fact given rather than moving to unrelated prepared topics.",
-      example: "Fifteen years — what made you leave? Tell me about the day you decided; was it a day, or was it slower than that? And how did that feel walking out, once it was actually done?",
-    },
     success: "The learner asks open questions that follow the answer given.",
     quiz: [
       qmcq("When can 'what made you X?' sound leading?", [
@@ -1906,7 +1810,7 @@ export const C2_U7_9: Authored[] = [
       sc("Mr. Ibori", "a new colleague you are getting to know", "to be understood",
         "A new colleague is worth knowing properly.",
         "Follow the answer, not a list.",
-        "I came here from a completely different field. Curious?", "open"),
+        "I came here from a completely different field. What would you like to know?", "open"),
       sc("Yara", "a fellow traveller with a long story", "to tell it to someone interested",
         "Someone has hinted at a much longer story.",
         "Draw it out.",
@@ -1947,7 +1851,7 @@ export const C2_U7_9: Authored[] = [
         form: "I suppose the honest",
         claims: [
           "'I suppose the honest answer is X' signals you are about to say the less polished thing.",
-          "It raises expectation of candour, so a safe answer afterwards is noticeably worse than none.",
+          "It raises expectation of candour, so a polished, safe answer afterwards undermines what you promised.",
         ],
         ex: ["I suppose the honest answer is no.", "I suppose the honest version is messier."],
       },
@@ -1960,25 +1864,20 @@ export const C2_U7_9: Authored[] = [
         ex: ["Let me think for a second.", "Let me think about how to put that."],
       },
     ],
-    ex: [
-      mcq("What does 'I suppose the honest answer is' raise?", [
-        "expectation of candour",
-        "the formality of the register",
-        "the length of the answer",
-      ], 0),
-      mcq("What is worse than not pausing?", [
-        "pausing and then circling the answer",
-        "pausing twice",
-        "pausing silently",
-      ], 0),
-      say("let me / think / for / a second", ["Let me think for a second."]),
+    ex: [],
+    drills: [
+      sit("p1", "A friend asks how you are really doing, and nobody usually asks. You thank them warmly while you gather your thoughts. What do you say?", ["Good of you to ask — nobody does.", "Good of you to asking — nobody does.", "Good of your to ask — nobody does."]),
+      chat("p1", ["How are you, really? Nobody asks you that.", null], ["Good of you to ask. Honestly, tired.", "Good of you to asked. Honestly, tired.", "Good off you to ask. Honestly, tired."]),
+      lc("p1", "Good of you to ask.", ["Good luck with the task.", "Good to see you at last."]),
+      sit("p2", "Asked about your biggest mistake, you signal that the less polished answer is coming. What do you say?", ["I suppose the honest answer is a hire I made too fast.", "I suppose the honest answer is that I've never made a mistake.", "I suppose the honestly answer is a hire I made too fast."]),
+      chat("p2", ["Did you enjoy managing people?", null], ["I suppose the honest answer is no.", "I suppose the honest answer are no.", "I suppose an honest answers is no."]),
+      spk("p2", "I suppose the honest version is messier."),
+      sit("p3", "A question catches you off guard. You ask for a real pause, and then you will answer. What do you say?", ["Let me think for a second.", "Let me thinking for a second.", "Let me to think for a second."]),
+      chat("p3", ["What would you change about your education?", null], ["Let me think about how to put that.", "Let me think about how putting that.", "Let me think how about to put that."]),
+      sit("p3", "You said 'Let me think', paused, then talked in circles without answering. How does that compare to no pause?", ["It's worse than no pause.", "It's better than any answer.", "It's exactly the same."]),
+      sit("mix", "In a formal job interview, you need a moment and don't want to sound superior. Which is safer?", ["Let me think.", "Good of you to ask.", "Excellent question, as I'd expect from you."]),
+      chat("mix", ["What's your biggest failure? No preparation.", null], ["Let me think for a second. I suppose the honest answer is my first team.", "Let me think for a second. I suppose the honest answer is I've never failed.", "Let me thinking for a second. I suppose the honest answer is my first team."]),
     ],
-    open: {
-      q: "You are asked, unprepared: 'What is the biggest mistake you have made at work?' Buy a moment honestly, then commit to an answer.",
-      must: ["good of you to ask", "I suppose the honest", "let me think"],
-      criteria: "The answer buys time without evading and then commits to a specific answer rather than circling.",
-      example: "Good of you to ask — let me think for a second. I suppose the honest answer is a hire I made too fast, because I wanted the vacancy closed. It cost the team six months and cost her a year.",
-    },
     success: "The learner buys time honestly and commits to a specific answer.",
     quiz: [
       qmcq("When can 'good of you to ask' sound arch?", [
@@ -2055,25 +1954,20 @@ export const C2_U7_9: Authored[] = [
         ex: ["Thank you for listening.", "Thank you for listening to all that."],
       },
     ],
-    ex: [
-      mcq("What does announcing the weight prevent?", [
-        "the other person answering half a sentence",
-        "the conversation becoming emotional",
-        "the need to explain",
-      ], 0),
-      mcq("Why keep 'this is hard for me' brief?", [
-        "At length it asks the other person to manage your feelings.",
-        "It is grammatically awkward when extended.",
-        "It weakens the point.",
-      ], 0),
-      say("thank you / for / listen / to all that", ["Thank you for listening to all that."]),
+    ex: [],
+    drills: [
+      sit("p1", "You have something serious to tell your brother, and you want him to hear its weight before the content. How do you start?", ["There's something I need to say.", "Anyway, quick thing, no big deal.", "There's something I needs to say."]),
+      chat("p1", ["You've been quiet all evening. What is it?", null], ["There's something I need to say, and I've put it off for months.", "There's something I need to said, and I've put it off for months.", "There's something I need to say, and I've putting it off for months."]),
+      lc("p1", "I may say this badly, but I need to say it.", ["I may stay a bit, but I need to go.", "I may say no, but I don't need to."]),
+      sit("p2", "You are hesitating a lot, and you don't want it to be read as doubt. You explain briefly. What do you say?", ["This is hard for me, so bear with the wording.", "This is hard for me. Let me tell you about every feeling I've had since March.", "This is hard to me, so bear with the wording."]),
+      chat("p2", ["Take your time. Are you okay?", null], ["This is hard for me, so bear with me.", "This are hard for me, so bear with me.", "This is hardly for me, so bear with me."]),
+      spk("p2", "This is hard for me."),
+      sit("p3", "You've said something difficult, and there's no clear outcome. You close on what the other person did. What do you say?", ["Thank you for listening.", "So, do we have a deal?", "Thank you for listen."]),
+      chat("p3", ["I didn't know you felt that way.", null], ["I know. Thank you for listening to all that.", "I know. Thank you for listen to all that.", "I know. Thanks you for listening to all that."]),
+      la("p3", "Thank you for listening to me.", ["listen"]),
+      chat("mix", ["You asked for this meeting. What's on your mind?", null], ["There's something I need to say. This is hard for me, so bear with me.", "There's something I need to say. This is hard for me, so bear me with.", "There's something I need to says. This is hard for me, so bear with me."]),
+      sit("mix", "You announce the weight of what's coming, say it, and close on the other person's listening. Which fits?", ["There's something I need to say... Thank you for listening.", "Quick thing... So we agree, then?", "There's something I need to say... So, I win?"]),
     ],
-    open: {
-      q: "Tell someone close to you something you have avoided saying for months. Announce it, explain your delivery briefly, and close on their listening.",
-      must: ["I need to say", "this is hard for me", "thank you for listening"],
-      criteria: "The answer announces the weight before the content, keeps the self-explanation brief and closes without requiring an outcome.",
-      example: "There's something I need to say and I have put it off for months. This is hard for me, so bear with the wording. I have not been all right since March, and I have been letting you think I was. Thank you for listening.",
-    },
     success: "The learner announces the weight and closes without requiring resolution.",
     quiz: [
       qmcq("Why close on the other person's listening?", [
@@ -2108,7 +2002,7 @@ export const C2_U7_9: Authored[] = [
       sc("Ms. Solberg", "the examiner", "to check register under emotional weight",
         "The examiner invites something difficult.",
         "Announce it and say it.",
-        "Tell me about something you have found hard to say?", "neutral"),
+        "What is something you once found hard to say to someone?", "neutral"),
     ],
   },
 
@@ -2136,8 +2030,8 @@ export const C2_U7_9: Authored[] = [
       {
         form: "isn't that funny",
         claims: [
-          "'Isn't that funny?' invites the other person to share a small observation, expecting nothing.",
-          "It does not need an answer, which is what makes it suit a conversation going nowhere in particular.",
+          "'Isn't that funny?' shares a small observation and invites only a light response.",
+          "It needs no real answer, which is what makes it suit a conversation going nowhere in particular.",
         ],
         ex: ["Isn't that funny?", "Isn't that funny, how that works."],
       },
@@ -2150,25 +2044,20 @@ export const C2_U7_9: Authored[] = [
         ex: ["Anyway, how are you?", "Anyway — how are you, really?"],
       },
     ],
-    ex: [
-      mcq("Why does 'isn't that funny?' suit an aimless conversation?", [
-        "It does not need an answer.",
-        "It changes the subject cleanly.",
-        "It is a closed question.",
-      ], 0),
-      mcq("What is 'anyway, how are you?' rather than a close?", [
-        "a soft reset that keeps the conversation open",
-        "a signal to leave",
-        "a request for detail",
-      ], 0),
-      say("no idea / honestly / never / think / about it", ["No idea, honestly — never thought about it.", "No idea, honestly, never thought about it."]),
+    ex: [],
+    drills: [
+      sit("p1", "Someone asks why trains have numbers on their roofs. You have no idea, and you're relaxed about it. What do you say?", ["No idea, honestly — never thought about it.", "Because of the weather, obviously.", "Not idea, honestly — never thought about it."]),
+      chat("p1", ["Why do they still print phone books?", null], ["No idea, honestly.", "Not idea, honestly.", "No idea, honestlier."]),
+      lc("p1", "No idea, honestly — never thought about it.", ["Nice idea, honestly — let's try it.", "No, I'd rather not think about it."]),
+      sit("p2", "You notice that a whole job exists just to design bus tickets, and you share it lightly, expecting no real answer. What do you say?", ["Isn't that funny, that it's somebody's whole job?", "Isn't that funny, that it's somebody's whole job? Answer me.", "Aren't that funny, that it's somebody's whole job?"]),
+      chat("p2", ["Apparently the inventor of the alarm clock couldn't set it to any time he chose.", null], ["Ha. Isn't that funny?", "Ha. Isn't that funnies?", "Ha. Isn't funny that?"]),
+      spk("p2", "Isn't that funny?"),
+      sit("p3", "You've been chatting about nothing much, and you want to hand the turn back softly without closing. What do you say?", ["Anyway, how are you?", "Anyway, goodbye.", "Anyway, how you are?"]),
+      chat("p3", ["...and that's why I'll never buy a printer again.", null], ["Ha. Anyway — how are you, really?", "Ha. Anyway — how are you, real?", "Ha. Anyway — how is you, really?"]),
+      sit("p3", "What does 'Anyway, how are you?' do in a relaxed chat?", ["It resets softly and keeps the talk open.", "It ends the conversation.", "It asks for a medical update."]),
+      chat("mix", ["Why do they still print those little maps?", null], ["No idea, honestly. Isn't that funny? Anyway, how are you?", "No idea, honestly. Isn't that funny? Anyway, how you are?", "No idea, honestly. Aren't that funny? Anyway, how are you?"]),
+      sit("mix", "You can't answer a silly question, you're relaxed about it, and then you hand the turn back. What do you say?", ["No idea, honestly. Anyway, how are you?", "It's because of the tax laws of 1850. Goodbye.", "No idea, honestly. Anyway, goodbye."]),
     ],
-    open: {
-      q: "Have a few minutes of conversation with no agenda. Give one comfortable non-answer, share a small observation, and hand the turn back.",
-      must: ["no idea honestly", "isn't that funny", "anyway how are you"],
-      criteria: "The answer is comfortable without an agenda and hands the turn back without needing the topic to conclude.",
-      example: "Why do they still print those? No idea, honestly — never thought about it. Somebody must decide, though. Isn't that funny, that it is somebody's whole job. Anyway — how are you, really?",
-    },
     success: "The learner is comfortable without an agenda and hands the turn back.",
     quiz: [
       qmcq("When does 'no idea, honestly' read as a refusal?", [

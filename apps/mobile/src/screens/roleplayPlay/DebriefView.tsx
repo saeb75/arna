@@ -10,11 +10,12 @@ import { CtaButton } from "../../components/ui/CtaButton";
 import { ProgressRing } from "../../components/ui/ProgressRing";
 import { ScreenGlow } from "../../components/ui/ScreenGlow";
 import { tr } from "../../i18n/tr";
+import { useRoleplaySessionStore } from "../../stores/useRoleplaySessionStore";
 import { enter } from "../../theme/motion";
 import { useThemeColors } from "../../theme/useThemeColors";
 
 /**
- * Sahne sonu: halka X/Y, hedef başına öğrencinin BİREBİR sözü (kanıt), Emma'nın
+ * Sahne sonu: halka X/Y, hedef başına öğrencinin BİREBİR sözü (kanıt), öğretmenin
  * en fazla üç notu. İkili "geçti/kaldı" etiketi YOK (sözleşme md. 3) — yalnız sayı.
  * Debrief gelmezse canlı listeden kurulur (koçluk boş).
  */
@@ -31,6 +32,7 @@ export function DebriefView({
 }) {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
+  const tutorName = useRoleplaySessionStore((s) => s.tutorName);
   const objectives = debrief?.objectives ?? fallback.map((o) => ({ ...o, evidence: null }));
   const done = objectives.filter((o) => o.done).length;
   const total = objectives.length;
@@ -77,7 +79,7 @@ export function DebriefView({
 
         {debrief?.coaching.length ? (
           <Animated.View entering={enter(4)} className="gap-3">
-            <Text className="text-xl font-bold tracking-tight text-foreground">{tr.roleplay.debrief.coaching}</Text>
+            <Text className="text-xl font-bold tracking-tight text-foreground">{tr.roleplay.debrief.coaching(tutorName)}</Text>
             <View className="gap-2">
               {debrief.coaching.map((runs, i) => (
                 <View key={i} className="flex-row gap-3 rounded-3xl border border-border bg-card p-4">

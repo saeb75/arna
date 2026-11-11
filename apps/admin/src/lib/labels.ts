@@ -85,6 +85,44 @@ export const PRO_SOURCE_LABEL: Record<"revenuecat" | "admin", string> = {
   admin: "Granted by admin",
 };
 
+/** Öğretmen görünürlüğü — gizli öğretmeni seçmiş kullanıcılar varsayılana düşer */
+export const TUTOR_STATUS_LABEL: Record<"active" | "hidden", string> = {
+  active: "Active",
+  hidden: "Hidden",
+};
+
+export const TUTOR_GENDER_LABEL: Record<"female" | "male", string> = {
+  female: "Female",
+  male: "Male",
+};
+
+/** Serbest metin ses kimliği alanlarının örnek değeri (.env varsayılanı yoksa) */
+export const VOICE_PLACEHOLDER: Record<TtsProvider, string> = {
+  elevenlabs: "21m00Tcm4TlvDq8ikWAM",
+  inworld: "Ashley",
+  azure: "en-US-AvaMultilingualNeural",
+  gemini: "Kore",
+};
+
+/**
+ * Öğretmen uçlarının hata kodları — `exists`/`invalid_input` gibi genel kodlar burada
+ * öğretmene özgü okunur; geri kalanı `errorLabel`a düşer. Sunucunun `message`ı
+ * Türkçedir, ekrana taşınmaz.
+ */
+const TUTOR_ERROR_LABEL: Record<string, string> = {
+  invalid_input: "The tutor data does not match the schema — check the fields.",
+  voice_invalid: "This voice can't be used — the provider has no API key in .env or the model isn't supported.",
+  default_required: "To remove the default flag, make another tutor the default first.",
+  default_hidden: "The default tutor can't be hidden.",
+  exists: "A tutor with this id already exists — pick another id.",
+  not_found: "This tutor no longer exists — refresh the list.",
+  http_404: "This tutor no longer exists — refresh the list.",
+};
+
+export function tutorErrorLabel(code: string): string {
+  return TUTOR_ERROR_LABEL[code] ?? errorLabel(code);
+}
+
 const ERROR_LABEL: Record<string, string> = {
   provider_not_configured: "The selected provider is not configured — API key or voice ID missing in .env.",
   tts_unavailable: "The provider could not synthesize speech — check key, voice ID or model.",

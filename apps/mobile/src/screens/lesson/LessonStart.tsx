@@ -17,6 +17,7 @@ import { useThemeColors } from "../../theme/useThemeColors";
 export function LessonStart({
   title,
   theme,
+  tutorName,
   hasResume,
   busy,
   onStart,
@@ -25,6 +26,8 @@ export function LessonStart({
 }: {
   title: string;
   theme: string;
+  /** Öğretmenin adı (GET /v1/avatar) */
+  tutorName: string;
   hasResume: boolean;
   busy: boolean;
   onStart: () => void;
@@ -60,7 +63,7 @@ export function LessonStart({
           </View>
           <View className="h-8 flex-row items-center gap-1.5 rounded-full bg-muted px-3">
             <GraduationCap color={colors["muted-foreground"]} size={14} />
-            <Text className="text-sm font-semibold text-muted-foreground">{tr.lesson.withEmma}</Text>
+            <Text className="text-sm font-semibold text-muted-foreground">{tr.lesson.withTutor(tutorName)}</Text>
           </View>
         </Animated.View>
       </View>

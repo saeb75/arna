@@ -5,14 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SettingsController } from "@/controllers/SettingsController";
+import { VOICE_PLACEHOLDER } from "@/lib/labels";
 import { useSettingsStore } from "@/stores/useSettingsStore";
-
-const VOICE_PLACEHOLDER: Record<TtsProvider, string> = {
-  elevenlabs: "21m00Tcm4TlvDq8ikWAM",
-  inworld: "Ashley",
-  azure: "en-US-AvaMultilingualNeural",
-  gemini: "Kore",
-};
 
 /** Katalogdaki "varsayılanı kullan" seçeneği — Select null değer taşıyamaz */
 const DEFAULT_VOICE = "__default__";

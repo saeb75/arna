@@ -34,6 +34,13 @@ içeren her build'den önce `app.json` → `version` ARTIRILIR; artırılmazsa J
 güncellemesi o native kodu taşımayan eski build'e iner ve uygulama çöker.
 Yalnız JS/asset değişikliği → sürüm aynı kalır, `eas update` yeter.
 
+**OTA YALNIZ `npm run update:prod -- "mesaj"` İLE** (5 Kas 2026): çıplak `eas update`
+pakete yerel `.env.local`'i (`localhost:6560`) gömer — telefon kendi localhost'una
+bağlanmaya çalışır, her istek "Bağlanamadık" olur. İki sebep, ikisi de betikte:
+`--environment production` (EAS değişkenleri) ve `--clear-cache` (Metro `EXPO_PUBLIC_*`
+değerlerini önbellekte tutuyor; ölçüldü: doğru değer verilse bile önbellekle localhost
+girdi, `--clear` ile doğru adres girdi).
+
 **Marka varlıkları** `assets/brand/` (GlotCast deseni): `icon.png` (kaynak),
 `icon-dark`/`icon-tinted` (iOS), `splash-mark.png` (gradyan, şeffaf), `adaptive-*`
 (Android). Hepsi tek kaynak görselden türetilir.
@@ -300,7 +307,9 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
 | `POST /onboarding` | profil oluşturma |
 | `GET /curriculum/current` | seviye listesi + ilerleme |
 | `GET /me` · `GET /me/stats` | profil + abonelik · seri/dakika/7 gün |
-| `PATCH /me/profile` | profil alanları (seviye, track, açıklama dili, hedef, ad, saat dilimi) — müfredatı döner |
+| `PATCH /me/profile` | profil alanları (seviye, track, açıklama dili, öğretmen `tutorId`, hedef, ad, saat dilimi) — müfredatı döner |
+| `GET /tutors` · `POST /tutors/:id/sample` | seçilebilir öğretmenler (+ varsayılan) · öğretmenin sesiyle kısa tanıtım klibi |
+| `GET /avatar` | kullanıcının öğretmeninin yüzü + adı (`{ activeId, tutorName }`) — ders/rol yapma sahnesi |
 | `DELETE /me` | hesabı ve kişisel veriyi sil |
 | `POST /me/entitlement/refresh` | satın alma sonrası zorla doğrulama |
 | `GET /lessons/:catalogLessonId` | ders içeriği (`{ lessonId, lesson }`) |
@@ -338,6 +347,38 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
   görmek Transkript sheet'ine dokunmayı gerektiriyordu. Rıhtım aynı (ortada bas-konuş,
   solda klavye, sağda transkript). `promptMessageId` görev kartının yerini belirler,
   akış kararı DEĞİLDİR.
+- **Oyun bloğu (drills, 10 Kas 2026):** dersin `drills` beat'inde (`awaiting === "drills"`)
+  sohbet akışı + rıhtım yerini `screens/lesson/drills/DrillStage`'e bırakır, avatar küçülür
+  (`LessonStage compact`). Akış `LessonDrillController`'da (ses, kayıt, dokun-çevir, senkron);
+  puan/kuyruk kararı contracts `drillGrade`'de, ekran yalnız okur. Madde başına tek ana eylem:
+  Kontrol et → panel → Devam (`CtaButton`); eşleştirme ve konuşma kartı kendi eylemiyle kapanır.
+  Seçim/kart/dokunuş YEREL görünüm durumudur (`DrillCard`, madde anahtarıyla sıfırlanır —
+  CheckpointScreen deseni). Şık listesi ve kart dizme ünite testiyle ORTAK
+  (`components/shared/ChoiceList`, `TileBuilder`). Doğru/yanlış sesi `services/SoundService`
+  (paketlenmiş wav, expo-audio — yeni native bağımlılık yok). Blokta serbest giriş yoktur:
+  `handleUserText`/`pressMic` `drills`te hiçbir şey yapmaz; konuşma kartının mikrofonu
+  `LessonDrillController.pressSpeak/releaseSpeak`. Blok bitince özet kartı → "Rol yapmaya geç"
+  (`afterDrills`). Eski formatlı dersler (exercise beat'leri) aynen çalışır.
+- **Oyun bileşenleri ORTAK** (`components/shared/drills/`, 10 Kas 2026): ders oyun bloğu ve ünite
+  testi aynı `DrillCard` + tür bileşenlerini kullanır. Bileşenler G/Ç bilmez; ses, kontrol, ilerleme,
+  dokun-çevir, "Konuyu hatırla" ve konuşma kartı `DrillHost` bağlamından gelir — ders
+  `DrillStage`'de LessonDrillController'a, test `CheckpointScreen`'de kendi puanlamasına bağlar.
+  Opsiyonel alan yoksa özellik görünmez (testte ipucu ve konuşma kartı yok). Testin sesi oturumsuz
+  (`VoiceService.speak(null, …)` → `/v1/tts`).
+- **Ders içi rol yapmada hedef çipleri** (`screens/lesson/PracticeTargets`, 10 Kas 2026): `practice`
+  fazında avatarın altında "Bu sohbette kullan" + dersin `mustUse` kalıpları; öğrencinin
+  BİREBİR söylediği kalıp tiklenir (`practiceUsed`, contracts `usedTargetPhrases`, devamda
+  transkriptten yeniden kurulur). Yalnız gösterim — ölçüm sunucuda.
+- **ÖĞRETMEN SEÇİMİ (10 Kas 2026):** kullanıcı hocasını (yüz + ses + ad) onboarding'de
+  (`TeacherStep`, seviye ile açıklama dili arasında) ve Ayarlar → Öğretmen'de (`TeacherSheet`)
+  seçer; açıklama DİLİ ayrı sorudur (`TutorStep`/`TutorSheet`). Kartlar ortak
+  (`components/shared/TutorGrid` + `TutorCard`): paketlenmiş portre, dokunmak seçer + sesini
+  çalar (`TutorController.playSample` → `VoiceService.playClips`). Portresi bu derlemede
+  olmayan öğretmen gösterilmez (`domain/tutors.pickableTutors`); liste boşsa adım ve satır
+  hiç görünmez (eski davranış). Ad sabit yazılmaz: ekranlar `/me.tutor.name`
+  (`hooks/useTutorName`) ya da oturumun `/v1/avatar` `tutorName`'ini okur, yoksa "Emma".
+  Ada ek bağlanmaz (ünlü uyumu her adda tutmaz) — "{ad} ile", "{ad} diyor ki" gibi nötr kurgu.
+  Ses ve rol yapmadaki karakter adı sunucuda öğretmene bağlanır; istemci yalnız seçer.
 - **Rol yapma:** her zaman İngilizce; bitiren YALNIZ "Bitir" (✕ denemeyi
   kaydetmeden çıkar); hedef tikleri sunucudan (`newHits`), istemci karar vermez.
 - **Dil bağımsızlığı:** hiçbir yerde dil adı sabitlenmez; `nativeLanguage`
@@ -402,6 +443,10 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
   `didJustFinish` ya da süre sonu ya da ses başladıktan sonra 1,5 sn tamponsuz duruş
   (uzunluğu bilinmeyen akışta bazı oynatıcılar bitişi raporlamıyor) + metin uzunluğundan
   watchdog. 409 → 5 dk akış denenmez; ses 6 sn'de başlamazsa tam klip yolu (`/tts`).
+  **AĞIZ İZİ:** expo-audio uzak adresten çalarken `audioSampleUpdate` HİÇ gelmez (yalnız
+  cihazdaki dosyada) → akışta ağzın açıklığı sunucunun ağız izinden (`{path}/mouth`, 250 ms
+  yoklama, `SpeechClock.appendTrack`): ±3 kare ortalama + 40 ms önden okuma (iz sesten önce
+  geldiği için gecikmesiz yumuşatma). Uç yoksa (eski sunucu) 3 hatada vazgeçer, ağız metne düşer.
   3D köprüsü base64 klip istediği için onda tam klip yolu sürer. `onEnd` TAM BİR KEZ
   kuralı aynı `settle()`'dan geçer.
 - **2.5D avatar NATIVE, 3D avatar WebView** (5 Kas 2026). 2.5D (raven/kai/lena/theo)

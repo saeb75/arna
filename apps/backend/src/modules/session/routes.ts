@@ -1,3 +1,4 @@
+import { TranslateError } from "../translate/index.js";
 import { catalogLessonIdSchema, hasWordContent, sessionSyncBodySchema } from "@glotmate/contracts";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
@@ -12,9 +13,11 @@ import {
   syncSession,
   translate,
   tts,
+  ttsEnglish,
+  ttsEnglishStreamTicket,
   ttsStreamTicket,
 } from "./service.js";
-import { getStreamTicket, pipeStreamTicket } from "../tts/index.js";
+import { getStreamTicket, mouthTrack, pipeStreamTicket } from "../tts/index.js";
 
 const sessionParams = z.object({ sessionId: z.string().uuid() });
 const lessonParams = z.object({ catalogLessonId: catalogLessonIdSchema });
@@ -77,6 +80,7 @@ function sendError(reply: { code: (n: number) => { send: (b: unknown) => unknown
             : 502;
     return reply.code(status).send({ error: err.code });
   }
+  if (err instanceof TranslateError) return reply.code(502).send({ error: "translate_unavailable" });
   throw err;
 }
 
@@ -171,7 +175,8 @@ export default async function sessionRoutes(app: FastifyInstance) {
     "/sessions/:sessionId/translate",
     {
       preHandler: app.requireAuth,
-      config: { rateLimit: { max: 120, timeWindow: "1 hour", keyGenerator: byUser } },
+      // Oyun bloğunda dokun-çevir de bu uçtan geçer; sonuçlar önbellekli olduğu için tavan geniş
+      config: { rateLimit: { max: 300, timeWindow: "1 hour", keyGenerator: byUser } },
     },
     async (request, reply) => {
       const params = sessionParams.safeParse(request.params);
@@ -265,6 +270,43 @@ export default async function sessionRoutes(app: FastifyInstance) {
     },
   );
 
+  // OTURUMSUZ İNGİLİZCE SES — ünite testinin dinleme maddeleri. İstemci ders yoluyla AYNI
+  // gövdeyi (`runs`) yollar; yalnız İngilizce okunur, toplam en fazla 300 karakter.
+  const englishTtsBody = z.object({
+    runs: z.array(z.object({ lang: z.enum(["en", "l1"]), text: z.string().min(1) })).min(1).max(4),
+  });
+  const englishText = (runs: Array<{ text: string }>) => runs.map((r) => r.text).join(" ").trim();
+
+  app.post(
+    "/tts",
+    { preHandler: app.requireAuth, config: { rateLimit: { max: 300, timeWindow: "1 hour", keyGenerator: byUser } } },
+    async (request, reply) => {
+      const body = englishTtsBody.safeParse(request.body);
+      const text = body.success ? englishText(body.data.runs) : "";
+      if (!text || text.length > 300) return reply.code(400).send({ error: "invalid_input" });
+      try {
+        return await ttsEnglish(request.userId, text);
+      } catch (err) {
+        return sendError(reply, err);
+      }
+    },
+  );
+
+  app.post(
+    "/tts/stream",
+    { preHandler: app.requireAuth, config: { rateLimit: { max: 300, timeWindow: "1 hour", keyGenerator: byUser } } },
+    async (request, reply) => {
+      const body = englishTtsBody.safeParse(request.body);
+      const text = body.success ? englishText(body.data.runs) : "";
+      if (!text || text.length > 300) return reply.code(400).send({ error: "invalid_input" });
+      try {
+        return await ttsEnglishStreamTicket(request.userId, text);
+      } catch (err) {
+        return sendError(reply, err);
+      }
+    },
+  );
+
   app.get(
     "/tts/stream/:ticket",
     { config: { rateLimit: { max: 600, timeWindow: "1 hour" } } },
@@ -274,6 +316,21 @@ export default async function sessionRoutes(app: FastifyInstance) {
       if (!t) return reply.code(404).send({ error: "not_found" });
       reply.hijack(); // ham akış: Fastify serileştirme/sıkıştırma araya girmesin
       pipeStreamTicket(t, reply.raw);
+    },
+  );
+
+  // AĞIZ İZİ — akış çalarken istemci birkaç yüz ms'de bir yoklar (oynatıcı uzak adreste ses
+  // örneği vermediği için avatarın ağzı bu seviyelerle sürülür). Bilet kimliği yetkidir.
+  // Konuşma başına ~10-15 yoklama (üretim gerçek zamandan hızlı, `done` gelince durur).
+  app.get(
+    "/tts/stream/:ticket/mouth",
+    { config: { rateLimit: { max: 6000, timeWindow: "1 hour" } } },
+    async (request, reply) => {
+      const ticket = z.object({ ticket: z.string().regex(/^[A-Za-z0-9_-]{20,64}$/) }).safeParse(request.params);
+      const q = z.object({ from: z.coerce.number().int().min(0).max(1_000_000).default(0) }).safeParse(request.query);
+      const t = ticket.success ? getStreamTicket(ticket.data.ticket) : null;
+      if (!t || !q.success) return reply.code(404).send({ error: "not_found" });
+      return mouthTrack(t, q.data.from);
     },
   );
 

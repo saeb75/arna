@@ -1,0 +1,29 @@
+| Lesson | Item (quoted) | Category | Problem and fix |
+|---|---|---|---|
+| `b1-it-had-already-started` | “She had lost her keys at the station.” | WEAK | The past perfect is unnatural without a later past reference point. Add one: “She had lost her keys before she got home.” |
+| `b1-by-the-time-i-got-there` | “The shop had close when we got there.” | AMBIGUOUS | Either **close → closed** or **had → did** produces a grammatical sentence. Change this to a fill-the-gap item: “The shop had ___ when we got there.” |
+| `b1-setting-the-scene` | “I was walk to work at eight o'clock.” | AMBIGUOUS | Either **walk → walking** or **was → did** fixes the sentence. Test the form with a fill-the-gap item instead. |
+| `b1-what-had-happened-before` | “She hadn't went to bed when I called.” | AMBIGUOUS | **went → gone** is intended, but **hadn't → already** also gives acceptable English: “She already went to bed when I called.” Use a fill-the-gap item after “hadn't.” |
+| `b1-what-had-happened-before` | All openings ask the learner a question; the exam opening itself says, “Had you ever experienced anything like it before?” | OPENING | None invites the learner to produce the target question **“Had you ever...?”** immediately. Include an interviewer-style opening such as: “I visited Japan last year. Ask whether it was my first visit—what would you ask?” |
+| `b1-suddenly-meanwhile-later` | “The pizza was in the oven. In a meantime, we set the table.” | AMBIGUOUS | **a → the** is intended, but **meantime → moment/minute** also fixes the sentence. Make it a gap: “In ___ meantime, we set the table.” |
+| `b1-a-story-worth-telling` | “In an end, everything was fine.” | AMBIGUOUS | **an → the** is intended, but **end → instant** also creates a natural sentence. Use “In ___ end” as a fill-the-gap item. |
+| `b1-a-story-worth-telling` | “What's the strangest/funniest/most surprising/craziest thing that has happened to you...?” | OPENING | Four openings use a relatively complex, untaught superlative + present-perfect pattern and are not “very simple.” Use a direct cue such as: “You look excited! Did something surprising happen?” |
+| `b1-ive-lived-here-for-years` | “She has worked here since ten years.” | AMBIGUOUS | **since → for** is intended, but **years → o'clock** also fixes the sentence. Change it to: “She has worked here ___ ten years.” |
+| `b1-have-you-finished-yet` | “Have you finished the book this week?” | LEVEL | This is grammatically possible but unnatural as a standalone question. Use “Have you finished any books this week?” or “Have you finished the book yet?” |
+| `b1-have-you-finished-yet` | “Have you finish your lunch?” | AMBIGUOUS | Either **finish → finished** or **Have → Did** fixes the sentence. Use a fill-the-gap item to test the participle. |
+| `b1-ive-been-working-on-it` | “We've been trying since three hours.” | AMBIGUOUS | Either **since → for** or **hours → o'clock** fixes the sentence. Use: “We've been trying ___ three hours.” |
+| `b1-how-long-have-you-been-doing-that` | “p3 — for a while / since + starting point” | COVERAGE | All three p3 items practise **for a while**; none tests **since + starting point**. Replace or add an item such as “I've been working here since May.” |
+| `b1-how-long-have-you-been-doing-that` | “What would you like to know/ask...?” across the openings | OPENING | These prompts allow unrelated questions and do not reliably elicit **“How long have you been...?”** or **“Have you been...?”** immediately. Give a direct cue: “I've started a new hobby. Ask me how long I've been doing it—what's your question?” |
+| `b1-milestones-and-firsts` | “What have you just started?” | OPENING | This unnaturally presupposes that the learner has just started something. Ask: “Have you started anything new recently?” |
+| `b1-this-time-next-year` | “Tomorrow at noon we'll be eat lunch.” | AMBIGUOUS | **eat → eating** is intended, but **be → just** gives the grammatical sentence “Tomorrow at noon we'll just eat lunch.” Use a fill-the-gap item after “be.” |
+| `b1-ill-have-finished-by-then` | “Sure, I'll have sent them by tomorrow evening.” | WEAK | The future perfect sounds forced after “Can you send me the photos?” Use a matching future reference: “Will you have sent the photos by tomorrow evening?” → “Yes, I'll have sent them by then.” |
+| `b1-making-arrangements` | “Let's pen it in for next Friday.” | AMBIGUOUS | **pen → pencil** is intended, but **pen → put** also gives natural English: “Let's put it in for next Friday.” Test the fixed phrase with a gap instead. |
+| `b1-might-may-could` | “It might is cold at night.” | AMBIGUOUS | **is → be** is intended, but **might → sometimes** gives “It sometimes is cold at night.” Use “It might ___ cold at night.” |
+| `b1-the-year-ahead` | “I'd really like ___ a cooking course.” → **to take** · taking · take | AMBIGUOUS | “I'd really like taking a cooking course” can be grammatical under a hypothetical-enjoyment reading, so **taking** is not a safe distractor. Replace it with a clearly incorrect but plausible form such as **to taking**. |
+| `b1-the-year-ahead` | “Focus: talking about your plans, hopes and worries...” and “is there anything you're worried about?” | COVERAGE | Worries appear in the stated focus and exam opening but are never taught or practised. Add a teaching point such as **“I'm worried about...”** with at least three items, or remove worries from the focus and opening. |
+
+General suggestions
+
+- Replace risky “Tap the wrong word” items with fill-the-gap tasks whenever changing a different word can also create a grammatical sentence.
+- Give perfect tenses an explicit past or future reference point so the target form sounds natural rather than merely possible.
+- Make each role-play opening one simple question that strongly cues learner production of a listed target phrase.

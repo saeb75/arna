@@ -12,7 +12,7 @@
  *
  *  Gramer derslerinde 4 alıştırma, phrases/practice'te 3.
  */
-import { fill, mcq, qfill, qmcq, say, sc, type Authored } from "./dsl.js";
+import { arr, chat, err, fc, la, lc, pairs, qfill, qmcq, sc, sit, spk, type Authored } from "./dsl.js";
 
 export const A2_U6_7: Authored[] = [
   // --- Ünite 6 · Quantity and Detail -----------------------------------------
@@ -27,7 +27,7 @@ export const A2_U6_7: Authored[] = [
     target: "much, many and a lot of",
     correction: "Repeat the question with the correct word and let the learner ask it again.",
     summary: "You learned to use much with things you cannot count and many with things you can.",
-    minutes: 7,
+    minutes: 8,
     points: [
       {
         form: "how much / how many",
@@ -54,22 +54,33 @@ export const A2_U6_7: Authored[] = [
         ex: ["There isn't much bread left.", "There aren't many clean cups."],
       },
     ],
-    ex: [
-      fill("___ much sugar do we need for this? (how)", ["How"]),
-      mcq("Which question is correct?", [
-        "How many eggs are left?",
-        "How much eggs are left?",
-        "How many egg are left?",
-      ], 0),
-      fill("There isn't ___ bread left, only one slice.", ["much"]),
-      say("there / be / a lot of / milk", ["There is a lot of milk.", "There's a lot of milk."]),
+    ex: [],
+    drills: [
+      // p1 — how much / how many
+      fc("p1", "How ___ eggs are left?", ["many", "much", "a lot"]),
+      fc("p1", "How ___ money do you have?", ["much", "many", "lot"]),
+      sit("p1", "You want to know the number of people at the party. What do you ask?", [
+        "How many people are coming?",
+        "How much people are coming?",
+        "How many people is coming?",
+      ]),
+      lc("p1", "How much sugar do we need?", ["How much sugar do we have?", "How much water do we need?"]),
+      // p2 — a lot of
+      fc("p2", "There's ___ milk in the fridge.", ["a lot of", "many", "a lot"]),
+      arr("p2", "We have a lot of plates.", ["much"]),
+      spk("p2", "We have a lot of time today."),
+      // p3 — not much / not many
+      fc("p3", "There isn't ___ bread left.", ["much", "many", "many of"]),
+      chat("p3", ["Have we got any eggs?", null], ["Not many, only two.", "Not much, only two.", "Not many, only a two."]),
+      err("p3", "There aren't much chairs in the room.", "much", "many"),
+      // karışık
+      chat("mix", ["What do we need for the cake?", null], [
+        "A lot of flour and not many eggs.",
+        "A lot of flour and not much eggs.",
+        "Many flour and not many eggs.",
+      ]),
+      la("mix", "How many cups and how much tea do we need?", ["lot"]),
     ],
-    open: {
-      q: "Look in your kitchen in your mind. Say what there is a lot of and what there is not much of.",
-      must: ["how much", "how many", "not much"],
-      criteria: "The answer uses much and many with the right kind of noun.",
-      example: "There's a lot of rice, but not much milk. How much sugar is left, and how many eggs do we have?",
-    },
     success: "The learner uses much and many correctly with the right nouns at least twice.",
     quiz: [
       qmcq("Which question is correct?", [
@@ -88,23 +99,23 @@ export const A2_U6_7: Authored[] = [
       sc("Rosalind", "a flatmate making a shopping list", "to find out what the kitchen needs",
         "Two flatmates are checking the cupboards before shopping.",
         "Say what there is a lot of and what is running out.",
-        "I am writing the list now. What do we actually need?", "practical"),
+        "I'm writing the shopping list. How much milk do we have?", "practical"),
       sc("Emeka", "a colleague organising a lunch", "to order the right amounts for the team",
         "Food has to be ordered for a team lunch.",
         "Say how much of each thing is needed.",
-        "Twelve people are coming. How much should I order?", "organised"),
+        "Twelve people are coming to lunch. How many sandwiches should I order?", "organised"),
       sc("Chiara", "a host in a shared kitchen", "to plan a meal together",
         "You are cooking with a host and checking ingredients.",
         "Ask and answer about amounts.",
-        "I want to cook tonight. Shall we see what we have?", "welcoming"),
+        "I want to cook tonight. How much rice is there in your kitchen?", "welcoming"),
       sc("Mr. Achterberg", "your teacher", "to practise much and many",
         "The class is describing what is in their kitchens.",
         "Describe amounts correctly.",
-        "What is there a lot of in your kitchen right now?", "encouraging"),
+        "I'm checking what we need. How much food do you have in your kitchen?", "encouraging"),
       sc("Ms. Cardoso", "the examiner", "to check quantity words",
         "The examiner asks about your shopping habits.",
         "Describe amounts using much and many.",
-        "Could you tell me what you usually buy and how much of it?", "neutral"),
+        "What food do you usually buy? How much or how many do you get?", "neutral"),
     ],
   },
 
@@ -119,7 +130,7 @@ export const A2_U6_7: Authored[] = [
     target: "a few and a little for small amounts",
     correction: "Repeat the phrase with the right word and let the learner build a new sentence.",
     summary: "You learned to use a few with countable things and a little with uncountable ones.",
-    minutes: 7,
+    minutes: 8,
     points: [
       {
         form: "just a few",
@@ -146,22 +157,41 @@ export const A2_U6_7: Authored[] = [
         ex: ["It costs quite a lot.", "We still have quite a lot of time."],
       },
     ],
-    ex: [
-      fill("It only takes ___ few minutes.", ["a"]),
-      mcq("Which sentence is correct?", [
-        "I have only a little time today.",
-        "I have only a few time today.",
-        "I have only little a time today.",
-      ], 0),
-      fill("I invited just ___ few friends, not the whole office.", ["a"]),
-      say("it / cost / quite a lot", ["It costs quite a lot.", "It cost quite a lot."]),
+    ex: [],
+    drills: [
+      // p1 — a few
+      fc("p1", "It takes three minutes. It only takes ___ minutes.", ["a few", "a little", "much"]),
+      arr("p1", "There are a few people outside.", ["little"]),
+      sit("p1", "Three or four friends are coming. What do you say?", [
+        "Just a few friends are coming.",
+        "Just a little friends are coming.",
+        "Just a few friend are coming.",
+      ]),
+      lc("p1", "We need just a few chairs.", ["We need just a few cups.", "We need a lot of chairs."]),
+      // p2 — a little
+      fc("p2", "I have only ___ time today.", ["a little", "a few", "few of"]),
+      chat("p2", ["Do you want milk in your coffee?", null], [
+        "Yes, just a little, please.",
+        "Yes, just a few, please.",
+        "Yes, just a little milks, please.",
+      ]),
+      spk("p2", "I have only a little money."),
+      // p3 — quite a lot
+      fc("p3", "It costs quite ___.", ["a lot", "a few", "lot"]),
+      sit("p3", "The trip costs two thousand euros. You think that is a fairly large amount. What do you say?", [
+        "It costs quite a lot.",
+        "It costs quite a few.",
+        "It costs a little.",
+      ]),
+      la("p3", "We still have quite a lot of time.", ["few"]),
+      // karışık
+      chat("mix", ["How many people and how much food?", null], [
+        "A few people, but quite a lot of food.",
+        "A little people, but quite a lot of food.",
+        "A few people, but quite a few of food.",
+      ]),
+      fc("mix", "Put ___ sugar and a few lemons in the tea.", ["a little", "a few", "few"]),
     ],
-    open: {
-      q: "Think of something you are planning. Say how much time and how much money it needs.",
-      must: ["just a few", "only a little", "quite a lot"],
-      criteria: "The answer uses 'a few' and 'a little' with the right kind of noun.",
-      example: "It takes just a few days to organise, but it costs quite a lot if you book late, and I have only a little money.",
-    },
     success: "The learner uses 'a few' and 'a little' correctly at least twice.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -180,15 +210,15 @@ export const A2_U6_7: Authored[] = [
       sc("Ottoline", "a friend planning a party", "to work out what the party needs",
         "A friend is planning a small gathering and needs a reality check.",
         "Say how much time and money it will take.",
-        "I want to do this next weekend. Is that realistic?", "optimistic"),
+        "I'm planning a party. How many people should I invite?", "optimistic"),
       sc("Sebastian", "a colleague scoping a task", "to estimate the work involved",
         "A small task needs an honest estimate.",
         "Estimate the time and resources needed.",
-        "Give me an honest estimate: how big is this really?", "direct"),
+        "How much time do you need for this task?", "direct"),
       sc("Noemi", "a guide pricing a trip", "to explain what the trip costs and takes",
         "You are asking about the practical side of a trip.",
         "Ask about time and cost.",
-        "The trip is very popular. What would you like to know first?", "helpful"),
+        "How much money do you want to spend on the trip?", "helpful"),
       sc("Mrs. Ekwueme", "your teacher", "to practise small quantity words",
         "The class is estimating time and cost for plans.",
         "Describe small amounts correctly.",
@@ -196,7 +226,7 @@ export const A2_U6_7: Authored[] = [
       sc("Mr. Halvorsen", "the examiner", "to check quantity words",
         "The examiner asks about a plan of yours.",
         "Describe the amounts precisely.",
-        "Could you tell me about something you are planning and what it will take?", "neutral"),
+        "Tell me about a plan. How much time and money does it need?", "neutral"),
     ],
   },
 
@@ -211,7 +241,7 @@ export const A2_U6_7: Authored[] = [
     target: "too and enough",
     correction: "Repeat the sentence with the word in the right position and let the learner try again.",
     summary: "You learned that 'too' comes before the describing word and 'enough' comes after it.",
-    minutes: 7,
+    minutes: 8,
     points: [
       {
         form: "it's too small",
@@ -238,22 +268,38 @@ export const A2_U6_7: Authored[] = [
         ex: ["It's too expensive to buy today.", "It's warm enough to sit outside."],
       },
     ],
-    ex: [
-      fill("This jacket is ___ small for me. (more than I want)", ["too"]),
-      mcq("Which sentence is correct?", [
-        "The table isn't big enough for six.",
-        "The table isn't enough big for six.",
-        "The table isn't big too for six.",
-      ], 0),
-      fill("We don't have ___ chairs for everyone.", ["enough"]),
-      say("it / be / too expensive", ["It is too expensive.", "It's too expensive."]),
+    ex: [],
+    drills: [
+      // p1 — too + describing word
+      fc("p1", "This jacket is ___ small for me.", ["too", "to", "enough"]),
+      err("p1", "The music is to loud.", "to", "too"),
+      sit("p1", "The shoes are size 38, but you need size 40. What do you say?", [
+        "They're too small.",
+        "They're small enough.",
+        "They're too big.",
+      ]),
+      lc("p1", "It's too cold to swim.", ["It's too cold to sleep.", "It's warm enough to swim."]),
+      // p2 — describing word + enough / enough + noun
+      fc("p2", "The table isn't big ___ for six people.", ["enough", "too", "so"]),
+      arr("p2", "We don't have enough chairs.", ["too"]),
+      chat("p2", ["Can we sit outside?", null], ["No, it isn't warm enough.", "No, it isn't enough warm.", "No, it isn't warm too."]),
+      spk("p2", "The room isn't big enough."),
+      // p3 — too ... to / enough to
+      fc("p3", "It's too expensive ___ buy today.", ["to", "for", "enough"]),
+      sit("p3", "The weather is warm. You can sit outside. What do you say?", [
+        "It's warm enough to sit outside.",
+        "It's enough warm to sit outside.",
+        "It's too warm to sit outside.",
+      ]),
+      la("p3", "This bag is too heavy to carry.", ["for"]),
+      // karışık
+      chat("mix", ["Do you want this flat?", null], [
+        "No, it's too expensive and it isn't big enough.",
+        "No, it's too expensive and it isn't enough big.",
+        "No, it's to expensive and it isn't big enough.",
+      ]),
+      spk("mix", "It's too small and not warm enough."),
     ],
-    open: {
-      q: "Think of something you decided not to buy or keep. Explain why it did not work for you.",
-      must: ["it's too small", "not big enough", "too expensive"],
-      criteria: "The answer explains a problem using 'too' or 'enough' in the correct position.",
-      example: "I liked the flat, but it's too small for us. The kitchen isn't big enough for a table, and the rent is too expensive.",
-    },
     success: "The learner uses 'too' and 'enough' in the correct positions at least twice.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -272,15 +318,15 @@ export const A2_U6_7: Authored[] = [
       sc("Fabio", "a shop assistant", "to find you something that fits",
         "You are trying things on and nothing is right.",
         "Explain why each one does not work.",
-        "How did you get on with those?", "attentive"),
+        "Did the jacket fit? What was wrong with it?", "attentive"),
       sc("Greta", "a colleague viewing an office", "to judge whether the space works",
         "The team is considering a new office space.",
         "Say why the space does or does not work.",
-        "It looks nice, but will it actually work for us?", "assessing"),
+        "Is this office big enough for our team?", "assessing"),
       sc("Youssef", "a hotel manager", "to fix a problem with your room",
         "Your room has a problem you need to explain.",
         "Explain what is wrong with the room.",
-        "Reception said there was an issue with the room. What is it?", "attentive"),
+        "Is there a problem with your room?", "attentive"),
       sc("Ms. Lindholm", "your teacher", "to practise too and enough",
         "The class is explaining why things do not fit.",
         "Explain a problem with too or enough.",
@@ -306,7 +352,7 @@ export const A2_U6_7: Authored[] = [
     target: "questions about duration and distance",
     correction: "Model the question in its natural form and let the learner ask it again.",
     summary: "You learned to ask about time, distance and size, and to answer approximately.",
-    minutes: 6,
+    minutes: 7,
     points: [
       {
         form: "how long does it take",
@@ -333,21 +379,43 @@ export const A2_U6_7: Authored[] = [
         ex: ["It's about ten kilometres.", "Roughly half an hour by bus."],
       },
     ],
-    ex: [
-      fill("How ___ does it take to get to the airport?", ["long"]),
-      mcq("Which question asks about distance?", [
-        "How far is the station?",
-        "How long is the film?",
-        "How often does it run?",
-      ], 0),
-      say("it / be / about ten kilometres", ["It's about ten kilometres.", "It is about ten kilometres."]),
+    ex: [],
+    drills: [
+      // p1 — how long does it take
+      arr("p1", "How long does it take to get there?", ["far"]),
+      chat("p1", ["How long does it take by bus?", null], [
+        "It takes about forty minutes.",
+        "It's about forty kilometres.",
+        "It costs about forty euros.",
+      ]),
+      spk("p1", "How long does it take?"),
+      // p2 — how far / how big
+      fc("p2", "How ___ is the station from here?", ["far", "long", "much"]),
+      sit("p2", "You want to know the distance to the beach. What do you ask?", [
+        "How far is the beach?",
+        "How long is the beach?",
+        "How much is the beach?",
+      ]),
+      lc("p2", "How big is the room?", ["How big is the garden?", "How far is the room?"]),
+      // p3 — about / around / roughly
+      fc("p3", "It's ___ ten kilometres from here.", ["about", "around of", "roughly of"]),
+      sit("p3", "You don't know the exact time. It's maybe thirty minutes. What do you say?", [
+        "About half an hour.",
+        "Exactly half an hour.",
+        "Half an hour exactly.",
+      ]),
+      la("p3", "Roughly half an hour by bus.", ["rough"]),
+      // karışık
+      chat("mix", ["How far is the airport?", null], [
+        "About twenty kilometres, so it takes about half an hour.",
+        "About twenty minutes, so it takes about half an hour.",
+        "About twenty kilometres, so it is about half an hour far.",
+      ]),
+      lc("mix", "It's about ten kilometres and it takes twenty minutes.", [
+        "It's about ten minutes and it takes twenty kilometres.",
+        "It's about two kilometres and it takes twenty minutes.",
+      ]),
     ],
-    open: {
-      q: "You are planning a journey with a friend. Ask about the duration and distance, then give one approximate answer.",
-      must: ["how long does it", "how far is", "about ten kilometres"],
-      criteria: "The answer asks correctly about duration and distance and includes an approximate answer.",
-      example: "How long does it take by train? How far is the hotel from the station? It's about ten kilometres.",
-    },
     success: "The learner asks at least two correct practical questions.",
     quiz: [
       qmcq("Which question is correct?", [
@@ -366,23 +434,23 @@ export const A2_U6_7: Authored[] = [
       sc("Dorota", "a friend who knows the area", "to give you the practical details",
         "You are planning a trip to a place your friend knows well.",
         "Ask the practical questions you need answered.",
-        "I know that route well. What do you want to know?", "helpful"),
+        "I know the way to the lake well. What do you want to know?", "helpful"),
       sc("Anders", "a colleague arranging travel", "to book the right connections",
         "A business trip needs planning and timings.",
         "Ask about times and distances.",
-        "I am booking the tickets today. Any questions before I do?", "efficient"),
+        "I'm booking our train. Do you want to know how long the journey takes?", "efficient"),
       sc("Kemal", "a taxi driver", "to tell you about the route",
         "You are in a taxi and want to know the details of the journey.",
         "Ask about duration and distance.",
-        "We will be there soon enough. First time here?", "chatty"),
+        "Where are you going today? How far is it?", "chatty"),
       sc("Mrs. Nyberg", "your teacher", "to practise practical questions",
         "The class is planning journeys in pairs.",
         "Ask about time and distance.",
-        "You are planning a journey. What do you need to find out?", "encouraging"),
+        "You are planning a journey. Do you want to know how long it takes or how far it is?", "encouraging"),
       sc("Mr. Rossi", "the examiner", "to check practical question forms",
         "The examiner asks you to plan a journey.",
         "Ask clear practical questions.",
-        "Imagine you are travelling to a new city. What would you ask me?", "neutral"),
+        "Imagine you are travelling to a new city. What do you want to know about how far the centre is?", "neutral"),
     ],
   },
 
@@ -397,7 +465,7 @@ export const A2_U6_7: Authored[] = [
     target: "compounds with some-, any- and no-",
     correction: "Repeat the sentence with the correct compound and let the learner say it again.",
     summary: "You learned when to use something, anything and nothing, with a first look at related forms such as somebody and somewhere.",
-    minutes: 7,
+    minutes: 8,
     points: [
       {
         form: "something to eat",
@@ -424,22 +492,37 @@ export const A2_U6_7: Authored[] = [
         ex: ["There's nothing in the fridge.", "It was nothing special."],
       },
     ],
-    ex: [
-      fill("I need ___ to eat, I'm starving.", ["something"]),
-      mcq("Which sentence is correct?", [
-        "There's nothing in the fridge.",
-        "There isn't nothing in the fridge.",
-        "There's not nothing in the fridge.",
-      ], 0),
-      fill("Would you like ___ else with that?", ["anything"]),
-      say("somebody / leave / a bag / here", ["Somebody left a bag here.", "Someone left a bag here."]),
+    ex: [],
+    drills: [
+      // p1 — something / somebody / somewhere
+      fc("p1", "I'm hungry. I need ___ to eat.", ["something", "anything", "nothing"]),
+      fc("p1", "Look! ___ left a bag here.", ["Somebody", "Anybody", "Nobody"]),
+      arr("p1", "I need something to drink.", ["somethings"]),
+      spk("p1", "Let's go somewhere quiet."),
+      // p2 — anything
+      fc("p2", "I didn't buy ___ at the market.", ["anything", "nothing", "somethings"]),
+      sit("p2", "You work in a shop. You want to know if the customer needs more. What do you ask?", [
+        "Would you like anything else?",
+        "Would you like nothing else?",
+        "Would you like anythings else?",
+      ]),
+      lc("p2", "Is there anything else?", ["Is there anyone else?", "Is there anything new?"]),
+      // p3 — nothing
+      fc("p3", "The fridge is empty. There's ___ in it.", ["nothing", "anything", "something"]),
+      chat("p3", ["How was the film?", null], ["It was nothing special.", "It wasn't nothing special.", "It was anything special."]),
+      la("p3", "There's nothing to do here.", ["anything"]),
+      // karışık
+      chat("mix", ["Do you need anything from the shop?", null], [
+        "No, nothing, thanks. I bought something yesterday.",
+        "No, anything, thanks. I bought something yesterday.",
+        "No, nothing, thanks. I bought anything yesterday.",
+      ]),
+      sit("mix", "Your friend asks about your weekend. You stayed at home and it was not exciting. What do you say?", [
+        "I didn't do anything special.",
+        "I didn't do nothing special.",
+        "I did anything special.",
+      ]),
     ],
-    open: {
-      q: "You open an almost empty fridge with a friend. Say what is there, what is missing and ask whether there is anything else.",
-      must: ["something to eat", "anything else", "nothing special"],
-      criteria: "The answer uses something, anything and nothing correctly with a single negative.",
-      example: "There's nothing special in the fridge. I need something to eat. Is there anything else in the cupboard?",
-    },
     success: "The learner uses these compound words correctly at least twice.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -458,7 +541,7 @@ export const A2_U6_7: Authored[] = [
       sc("Renske", "a flatmate looking for food", "to decide whether to order in",
         "Two flatmates are staring into an empty fridge.",
         "Say what there is and is not.",
-        "Is there anything in there at all, or do we order?", "hungry"),
+        "Are you hungry? Is there anything to eat at your place?", "hungry"),
       sc("Julio", "a colleague at the end of a meeting", "to close the meeting properly",
         "The meeting is finishing and there is time for final points.",
         "Say whether there is anything left to raise.",
@@ -489,7 +572,7 @@ export const A2_U6_7: Authored[] = [
     target: "possessive pronouns and whose",
     correction: "Repeat the sentence with the pronoun alone and let the learner say it again.",
     summary: "You learned to say mine, yours and theirs, and to ask whose something is.",
-    minutes: 7,
+    minutes: 8,
     points: [
       {
         form: "it's mine",
@@ -516,22 +599,36 @@ export const A2_U6_7: Authored[] = [
         ex: ["Whose is this jacket?", "Whose keys are these?"],
       },
     ],
-    ex: [
-      fill("That bag is ___, I recognise it. (belongs to me)", ["mine"]),
-      mcq("Which sentence is correct?", [
-        "This coat is mine.",
-        "This is mine coat.",
-        "This coat is my.",
-      ], 0),
-      fill("___ keys are these? Nobody knows.", ["Whose"]),
-      say("the blue one / be / hers", ["The blue one is hers."]),
+    ex: [],
+    drills: [
+      // p1 — possessive pronouns
+      pairs("p1", [
+        ["my", "mine"],
+        ["your", "yours"],
+        ["her", "hers"],
+        ["our", "ours"],
+        ["their", "theirs"],
+      ]),
+      fc("p1", "That bag is ___.", ["mine", "my", "me"]),
+      sit("p1", "The red umbrella belongs to your sister. What do you say?", [
+        "The red umbrella is hers.",
+        "The red umbrella is her.",
+        "The red umbrella is her's.",
+      ]),
+      lc("p1", "That's yours.", ["That bag is mine.", "Those keys are his."]),
+      // p2 — my / mine
+      err("p2", "This is mine coat.", "mine", "my"),
+      fc("p2", "This is ___ coat.", ["my", "mine", "me"]),
+      arr("p2", "This coat is mine.", ["mines"]),
+      // p3 — whose
+      fc("p3", "___ is this jacket?", ["Whose", "Who's", "Who"]),
+      chat("p3", ["I found these keys.", null], ["Whose keys are they?", "Who's keys are they?", "Whose keys they are?"]),
+      lc("p3", "Whose phone is this?", ["Whose bag is this?", "Who's on the phone?"]),
+      spk("p3", "Whose is this?"),
+      // karışık
+      chat("mix", ["Whose glasses are these?", null], ["They're mine. Thanks!", "They're my. Thanks!", "They're mines. Thanks!"]),
+      la("mix", "This bag is mine, and that one is yours.", ["your"]),
     ],
-    open: {
-      q: "After a shared trip there are three items left behind. Ask whose they are and claim one.",
-      must: ["it's mine", "that's yours", "whose is this"],
-      criteria: "The answer uses possessive pronouns correctly and asks about ownership.",
-      example: "Whose is this jacket? The grey scarf is mine, and I think that's yours on the chair.",
-    },
     success: "The learner uses possessive pronouns and 'whose' correctly.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -550,19 +647,19 @@ export const A2_U6_7: Authored[] = [
       sc("Bettina", "a friend after a shared holiday", "to return the things left behind",
         "Several items are left in one bag after a group trip.",
         "Sort out what belongs to whom.",
-        "There are three things here and I have no idea who owns them. Any ideas?", "puzzled"),
+        "I have a hat and a phone from our trip. Are they yours?", "puzzled"),
       sc("Ismail", "a colleague clearing a meeting room", "to find the owners of the items left",
         "Things were left behind after a long meeting.",
         "Ask and answer about ownership.",
-        "Someone left all this in the room. Do you recognise any of it?", "practical"),
+        "Someone left a laptop in the meeting room. Is it yours?", "practical"),
       sc("Solveig", "a hostel receptionist", "to reunite lost items with guests",
         "Items have been handed in at reception.",
         "Ask about and claim items.",
-        "We have a box of lost property here. Have you lost something?", "helpful"),
+        "We have a lost umbrella here. Is it yours?", "helpful"),
       sc("Mrs. Osei", "your teacher", "to practise possessive pronouns",
         "The class is sorting out mixed-up belongings.",
         "Say what belongs to whom.",
-        "Everything got mixed up. How do you say which is yours?", "encouraging"),
+        "Imagine we have the same pens. How do you say which is yours?", "encouraging"),
       sc("Mr. Larsen", "the examiner", "to check possessive forms",
         "The examiner asks about shared belongings.",
         "Use possessive pronouns correctly.",
@@ -581,15 +678,16 @@ export const A2_U6_7: Authored[] = [
     target: "deciding quantities and necessity",
     correction: "Model the sentence about need and let the learner continue deciding.",
     summary: "You practised deciding what to take, what to leave and when enough is enough.",
-    minutes: 6,
+    minutes: 7,
     points: [
       {
-        form: "I don't need",
+        form: "I don't need / that's enough",
         claims: [
           "'I don't need' is followed by a noun or by 'to' plus a verb.",
           "It is softer than 'I won't take' when you are deciding together.",
+          "'That's enough' closes a decision politely; 'That should do it' means the same thing in a softer way.",
         ],
-        ex: ["I don't need three jumpers.", "I don't need to bring my laptop."],
+        ex: ["I don't need three jumpers.", "Two pairs are enough.", "That's enough for four days."],
       },
       {
         form: "we should take",
@@ -599,33 +697,36 @@ export const A2_U6_7: Authored[] = [
         ],
         ex: ["We should take an umbrella.", "We should take something warm."],
       },
-      {
-        form: "that's enough",
-        claims: [
-          "'That's enough' closes a decision politely.",
-          "'That should do it' means the same thing in a softer way.",
-        ],
-        ex: ["Two pairs are enough.", "That's enough for four days."],
-      },
     ],
-    ex: [
-      fill("I ___ need three jumpers for two days. (do not)", ["don't", "do not"]),
-      mcq("Which sentence suggests something?", [
-        "We should take an umbrella.",
-        "We took an umbrella.",
-        "The umbrella is here.",
-      ], 0),
-      // YALNIZ çoğul: "Two pairs is enough" konuşmada duyulur ama standart değil,
-      // A2'de öğretilecek biçim bu değil. Öğrenci yine de "is" derse deterministik
-      // eşleşme kaçırır ve girdi judge'a gider — hoşgörü orada, listede değil.
-      say("two pairs / be / enough", ["Two pairs are enough."]),
+    ex: [],
+    drills: [
+      // p1 — I don't need / that's enough
+      fc("p1", "I don't need ___ bring my laptop.", ["to", "for", "the"]),
+      sit("p1", "You have two jumpers in the bag. It's a short trip, so two is OK. What do you say?", [
+        "Two jumpers are enough.",
+        "Two jumpers are too enough.",
+        "Two jumpers is enough of.",
+      ]),
+      la("p1", "I don't need three jumpers.", ["needs"]),
+      // p2 — we should take
+      fc("p2", "It might rain. We should ___ an umbrella.", ["take", "to take", "taking"]),
+      chat("p2", ["It's cold in the mountains.", null], [
+        "Then we should take something warm.",
+        "Then we should to take something warm.",
+        "Then we should taking something warm.",
+      ]),
+      spk("p2", "We should take an umbrella."),
+      // karışık
+      chat("mix", ["Shall we take four towels?", null], [
+        "We don't need four. Two are enough.",
+        "We don't need four. Two is enoughs.",
+        "We doesn't need four. Two are enough.",
+      ]),
+      lc("mix", "We should take water, but we don't need food.", [
+        "We should take water, but we don't need shoes.",
+        "We should take food, but we don't need water.",
+      ]),
     ],
-    open: {
-      q: "You are packing one small suitcase for four days with a friend. Say what to take and what to leave.",
-      must: ["I don't need", "we should take", "that's enough"],
-      criteria: "The answer decides what is needed and what is not, and closes the decision.",
-      example: "I don't need three pairs of shoes. We should take one warm jacket, and that's enough for four days.",
-    },
     success: "The learner states needs and closes at least one decision.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -644,23 +745,23 @@ export const A2_U6_7: Authored[] = [
       sc("Konstantin", "a friend you are travelling with", "to fit everything into one case",
         "Two friends have one suitcase and too many things.",
         "Decide together what to take.",
-        "One case, four days, two people. Where do we start?", "amused"),
+        "Four days, one bag. What should we take?", "amused"),
       sc("Adaeze", "a colleague packing for a work trip", "to pack the right things for the meetings",
         "A short business trip needs careful packing.",
         "Decide what is necessary.",
-        "Two days, three meetings. What do I actually need?", "practical"),
+        "Two days of meetings. What do I need to take?", "practical"),
       sc("Lasse", "a fellow hiker", "to keep the packs light",
         "Two hikers are cutting weight from their packs.",
         "Decide what to leave behind.",
-        "Every extra kilo counts tomorrow. What can we leave?", "focused"),
+        "We walk all day tomorrow. What don't we need?", "focused"),
       sc("Ms. Villanueva", "your teacher", "to practise necessity language",
         "The class is packing an imaginary suitcase.",
         "Say what is needed and what is not.",
-        "You have one small bag for a week. What goes in?", "encouraging"),
+        "You have one small bag for a week. What should you take, and what don't you need?", "encouraging"),
       sc("Mr. Kristensen", "the examiner", "to check necessity language",
         "The examiner asks about your packing habits.",
         "Say what you need and do not need.",
-        "Could you tell me what you always take when you travel?", "neutral"),
+        "You have one small bag. What should you take, and when is it enough?", "neutral"),
     ],
   },
 
@@ -676,7 +777,7 @@ export const A2_U6_7: Authored[] = [
     target: "because and so",
     correction: "Repeat the joined sentence and let the learner build their own.",
     summary: "You learned that because introduces the reason and so introduces the result.",
-    minutes: 7,
+    minutes: 8,
     points: [
       {
         form: "because I was",
@@ -703,22 +804,46 @@ export const A2_U6_7: Authored[] = [
         ex: ["The road was closed. That's why I was late.", "That's why I called you."],
       },
     ],
-    ex: [
-      fill("I left early ___ I was tired.", ["because"]),
-      mcq("Which sentence is correct?", [
-        "The train was cancelled, so I walked.",
-        "The train was cancelled, because I walked.",
-        "So the train was cancelled, I walked.",
-      ], 0),
-      fill("The road was closed. ___ why I was late.", ["That's", "That is"]),
-      say("because / it / be / raining / we / stay / in", ["Because it was raining, we stayed in.", "We stayed in because it was raining."]),
+    ex: [],
+    drills: [
+      // p1 — because
+      fc("p1", "Why did you leave early? I left early ___ I was tired.", ["because", "so", "that's why"]),
+      sit("p1", "You missed the bus. That was the reason you were late. What do you say?", [
+        "I was late because I missed the bus.",
+        "I was late so I missed the bus.",
+        "I missed the bus because I was late.",
+      ]),
+      lc("p1", "We stayed in because it was raining.", ["We stayed in because it was snowing.", "We went out because it was raining."]),
+      spk("p1", "I left early because I was tired."),
+      // p2 — so
+      fc("p2", "The train was cancelled, ___ I decided to walk.", ["so", "because", "why"]),
+      arr("p2", "It was cold, so we stayed at home.", ["because"]),
+      chat("p2", ["Why did you take a taxi?", null], [
+        "The bus didn't come, so I took a taxi.",
+        "The bus didn't come, because I took a taxi.",
+        "I took a taxi, so the bus didn't come.",
+      ]),
+      la("p2", "I was hungry, so I made a sandwich.", ["because"]),
+      // p3 — that's why
+      fc("p3", "The road was closed. That's ___ I was late.", ["why", "because", "so"]),
+      chat("p3", ["You look tired!", null, "Oh no, poor you."], [
+        "I didn't sleep well. That's why I'm tired.",
+        "I didn't sleep well. That's why I tired.",
+        "I didn't sleep well. That's so I'm tired.",
+      ]),
+      lc("p3", "That's why I called you.", ["That's when I called you.", "That's why I told you."]),
+      // karışık
+      sit("mix", "It was raining. You took an umbrella. What do you say?", [
+        "It was raining, so I took an umbrella.",
+        "It was raining because I took an umbrella.",
+        "I took an umbrella, so it was raining.",
+      ]),
+      chat("mix", ["Why didn't you come?", null], [
+        "I was ill, so I stayed at home. That's why.",
+        "I was ill, because I stayed at home. That's why.",
+        "I was ill, so I stay at home. That's why.",
+      ]),
     ],
-    open: {
-      q: "Tell me about a decision you had to make quickly. Give the reason and the result.",
-      must: ["because I was", "so I decided", "that's why"],
-      criteria: "The answer joins a reason and a result correctly with because or so.",
-      example: "I missed the last bus because I was late, so I decided to walk home. That's why I arrived after midnight.",
-    },
     success: "The learner joins reason and result correctly at least twice.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -741,11 +866,11 @@ export const A2_U6_7: Authored[] = [
       sc("Patrick", "your manager", "to understand a decision you made alone",
         "You made a call without checking first and must explain.",
         "Give the reason and the result.",
-        "You changed the plan yesterday. Talk me through it?", "even"),
+        "You changed the plan yesterday. Why did you do that?", "even"),
       sc("Sara", "a fellow passenger", "to swap stories about the delay",
         "A cancelled connection has stranded several travellers.",
         "Explain what you did and why.",
-        "Everyone here has a story about today. What did you do?", "commiserating"),
+        "Our train was cancelled. What did you do?", "commiserating"),
       sc("Mr. Boateng", "your teacher", "to practise because and so",
         "The class is joining reasons and results.",
         "Explain a decision fully.",
@@ -768,7 +893,7 @@ export const A2_U6_7: Authored[] = [
     target: "if plus present, will plus base verb",
     correction: "Repeat the whole sentence with the correct tenses and let the learner build another.",
     summary: "You learned to talk about a likely future situation with if plus the present and will.",
-    minutes: 7,
+    minutes: 8,
     points: [
       {
         form: "if it rains, we'll stay",
@@ -795,22 +920,41 @@ export const A2_U6_7: Authored[] = [
         ex: ["I'll book it if you want.", "We'll go ahead unless it snows."],
       },
     ],
-    ex: [
-      fill("If it ___ tomorrow, we'll stay inside. (rain)", ["rains"]),
-      mcq("Which sentence is correct?", [
-        "If she calls, I'll tell her.",
-        "If she will call, I'll tell her.",
-        "If she calls, I tell her will.",
-      ], 0),
-      fill("I'll call you if there ___ a problem. (be)", ["is", "'s"]),
-      say("I / book / it / if you want", ["I'll book it if you want.", "I will book it if you want."]),
+    ex: [],
+    drills: [
+      // p1 — if + present, will + verb
+      fc("p1", "If it ___, we'll stay inside.", ["rains", "will rain", "rain"]),
+      fc("p1", "If she calls, ___ her.", ["I'll tell", "I told", "I will telling"]),
+      sit("p1", "Maybe it will rain tomorrow. Then you will stay at home. What do you say?", [
+        "If it rains tomorrow, I'll stay at home.",
+        "If it will rain tomorrow, I'll stay at home.",
+        "If it rains tomorrow, I staying at home.",
+      ]),
+      lc("p1", "If it rains, we'll stay inside.", ["If it rains, we'll play inside.", "If it snows, we'll stay inside."]),
+      // p2 — either half first, no will after if
+      fc("p2", "I'll call you if there ___ a problem.", ["is", "will be", "be"]),
+      arr("p2", "I'll call you if you're late.", ["will"]),
+      spk("p2", "I'll call you if there's a problem."),
+      // p3 — if you want / unless
+      chat("p3", ["I can book the restaurant.", null], [
+        "Great, book it if you want.",
+        "Great, book it if you will want.",
+        "Great, book it unless you want.",
+      ]),
+      sit("p3", "You will go to the beach. The only problem is snow. What do you say?", [
+        "We'll go unless it snows.",
+        "We'll go if it snows.",
+        "We'll go unless it will snow.",
+      ]),
+      la("p3", "I'll help you if you like.", ["will"]),
+      // karışık
+      chat("mix", ["What's the plan for Saturday?", null], [
+        "If it's sunny, we'll go to the park. I'll call you if you want.",
+        "If it will be sunny, we'll go to the park. I'll call you if you want.",
+        "If it's sunny, we go to the park will. I'll call you if you want.",
+      ]),
+      lc("mix", "If you want, I'll call you tonight.", ["If you want, I'll call you tomorrow.", "If you want, I'll visit you tonight."]),
     ],
-    open: {
-      q: "You are planning an outdoor event next week. Say what you will do if the weather is bad.",
-      must: ["if it rains", "I'll call you", "if you want"],
-      criteria: "The answer uses the present after 'if' and will in the other half of the sentence.",
-      example: "If it rains, we'll move everything indoors. I'll call you the evening before, and I'll book an indoor room if you want.",
-    },
     success: "The learner produces at least two correct if-sentences about the future.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -829,15 +973,15 @@ export const A2_U6_7: Authored[] = [
       sc("Ingrid", "a friend organising a picnic", "to have a backup plan for bad weather",
         "A picnic is planned and the forecast is uncertain.",
         "Agree what happens if the weather turns.",
-        "The forecast keeps changing. What is our plan B?", "practical"),
+        "The weather might change. What will we do if it rains?", "practical"),
       sc("Cormac", "a colleague running an outdoor event", "to prepare for every weather outcome",
         "A company event is outdoors next week.",
         "Plan for each possible outcome.",
-        "Half of this is outside. What do we do if the weather turns?", "planning"),
+        "What will we do if it rains during the event?", "planning"),
       sc("Talia", "a trek leader", "to prepare the group for changing conditions",
         "The group is setting off and conditions may change.",
         "Ask and answer about what happens if things change.",
-        "Mountain weather is unpredictable. What questions do you have?", "steady"),
+        "The weather here changes fast. What will you do if it rains?", "steady"),
       sc("Mr. Anand", "your teacher", "to practise if-sentences",
         "The class is making plans with conditions.",
         "Make plans that depend on a condition.",
@@ -860,7 +1004,7 @@ export const A2_U6_7: Authored[] = [
     target: "if and when for general truths",
     correction: "Repeat the sentence with both halves in the present and let the learner explain again.",
     summary: "You learned to describe things that are always true with the present tense in both halves.",
-    minutes: 7,
+    minutes: 8,
     points: [
       {
         form: "if you heat",
@@ -887,22 +1031,41 @@ export const A2_U6_7: Authored[] = [
         ex: ["It always happens at the same time.", "The light usually comes on first."],
       },
     ],
-    ex: [
-      fill("If you heat water to a hundred degrees, it ___. (boil)", ["boils"]),
-      mcq("Which sentence is correct?", [
-        "When it gets cold, the pipes freeze.",
-        "When it will get cold, the pipes freeze.",
-        "When it gets cold, the pipes will froze.",
-      ], 0),
-      fill("If you press this button, the machine ___. (stop)", ["stops"]),
-      say("the light / usually / come on / first", ["The light usually comes on first."]),
+    ex: [],
+    drills: [
+      // p1 — if + present, present (always true)
+      fc("p1", "If you heat water, it ___.", ["boils", "will boils", "boiling"]),
+      sit("p1", "Mixing red and white always gives pink. What do you say?", [
+        "If you mix red and white, you get pink.",
+        "If you will mix red and white, you get pink.",
+        "If you mix red and white, you getting pink.",
+      ]),
+      arr("p1", "If you press this, the machine stops.", ["stop"]),
+      lc("p1", "If you heat ice, it melts.", ["If you heat milk, it boils.", "If you cool water, it freezes."]),
+      // p2 — when
+      fc("p2", "When it ___ cold, the pipes freeze.", ["gets", "will get", "getting"]),
+      chat("p2", ["What happens when you press start?", null], [
+        "When you press start, it beeps.",
+        "When you press start, it will beeps.",
+        "When you will press start, it beeps.",
+      ]),
+      spk("p2", "When it gets cold, I wear a coat."),
+      // p3 — always / usually / never
+      fc("p3", "The light ___ comes on first.", ["usually", "usual", "use"]),
+      sit("p3", "The bus is late every day. What do you say?", [
+        "The bus is always late.",
+        "The bus are always late.",
+        "The bus is always lately.",
+      ]),
+      la("p3", "It always happens at the same time.", ["happen"]),
+      // karışık
+      chat("mix", ["Why is the floor wet?", null], [
+        "When it rains, the roof always leaks.",
+        "When it will rain, the roof always leaks.",
+        "When it rains, the roof always leak.",
+      ]),
+      lc("mix", "When I'm tired, I always drink coffee.", ["When I'm tired, I never drink coffee.", "When I'm tired, I always drink tea."]),
     ],
-    open: {
-      q: "Explain how something you use every day works. Use two steps that are always true.",
-      must: ["if you heat", "when it gets", "it always happens"],
-      criteria: "The answer describes a general truth with the present tense in both halves.",
-      example: "If you heat the room, it gets warmer. When it gets dark, the light comes on automatically. It always happens at the same time.",
-    },
     success: "The learner produces at least two correct general-truth sentences.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -921,19 +1084,19 @@ export const A2_U6_7: Authored[] = [
       sc("Aurelio", "a neighbour with a broken heater", "to understand how the heating works",
         "A neighbour cannot work out the building's heating.",
         "Explain how it works step by step.",
-        "This thing makes no sense to me. How is it supposed to work?", "frustrated"),
+        "My heater is strange. How does yours work?", "frustrated"),
       sc("Nkechi", "a new colleague", "to learn how a machine at work operates",
         "A new colleague needs to use a machine safely.",
         "Explain the steps that always happen.",
-        "Nobody has shown me this yet. What happens when I switch it on?", "attentive"),
+        "What happens when I switch on the coffee machine?", "attentive"),
       sc("Ferran", "a host explaining the flat", "to show you how things work in the flat",
         "You are staying somewhere and need to know how things work.",
         "Ask and explain how the appliances work.",
-        "A few things here are unusual. Shall I show you?", "friendly"),
+        "Tell me about the shower in your home. What happens when you turn it on?", "friendly"),
       sc("Mrs. Iversen", "your teacher", "to practise general truths",
         "The class is explaining everyday processes.",
         "Explain a process that is always true.",
-        "Explain something everyday. What happens if you do the first step?", "encouraging"),
+        "Explain something everyday. What happens if you heat water?", "encouraging"),
       sc("Mr. Sasaki", "the examiner", "to check general-truth forms",
         "The examiner asks how something works.",
         "Explain with the present tense in both halves.",
@@ -952,7 +1115,7 @@ export const A2_U6_7: Authored[] = [
     target: "as soon as, when, before and until with future meaning",
     correction: "Repeat the sentence with the present tense after the time word and let the learner try again.",
     summary: "You learned to use the present tense after as soon as, when, before and until when talking about the future.",
-    minutes: 7,
+    minutes: 8,
     points: [
       {
         form: "as soon as",
@@ -979,22 +1142,47 @@ export const A2_U6_7: Authored[] = [
         ex: ["I'll finish it before I leave.", "We won't start until everyone arrives."],
       },
     ],
-    ex: [
-      fill("I'll call you as soon as I ___. (arrive)", ["arrive"]),
-      mcq("Which sentence is correct?", [
-        "I'll do it when I get home.",
-        "I'll do it when I will get home.",
-        "I do it when I will get home.",
-      ], 0),
-      fill("We won't start ___ everyone arrives.", ["until"]),
-      say("I / finish / it / before I leave", ["I'll finish it before I leave.", "I will finish it before I leave."]),
+    ex: [],
+    drills: [
+      // p1 — as soon as
+      fc("p1", "I'll call you as soon as I ___.", ["arrive", "will arrive", "arriving"]),
+      arr("p1", "I'll text you as soon as I land.", ["will"]),
+      sit("p1", "You will tell your friend the news immediately after you hear it. What do you say?", [
+        "I'll tell you as soon as I hear.",
+        "I'll tell you as soon as I will hear.",
+        "I tell you as soon as I'll hear.",
+      ]),
+      lc("p1", "As soon as she replies, I'll let you know.", [
+        "As soon as she replies, I'll let him know.",
+        "As soon as she arrives, I'll let you know.",
+      ]),
+      // p2 — when
+      fc("p2", "I'll send the notes when the meeting ___.", ["finishes", "will finish", "finish"]),
+      chat("p2", ["When will you do the dishes?", null], [
+        "I'll do them when I get home.",
+        "I'll do them when I will get home.",
+        "I do them when I'll get home.",
+      ]),
+      spk("p2", "I'll call you when I get home."),
+      // p3 — before / until
+      fc("p3", "I'll finish it before I ___.", ["leave", "will leave", "leaving"]),
+      sit("p3", "The meeting starts only after everyone arrives. What do you say?", [
+        "We won't start until everyone arrives.",
+        "We won't start until everyone will arrive.",
+        "We start until everyone arrives.",
+      ]),
+      la("p3", "Wait here until I come back.", ["will"]),
+      // karışık
+      chat("mix", ["What's your plan for tonight?", null], [
+        "I'll cook as soon as I get home, before the film starts.",
+        "I'll cook as soon as I will get home, before the film starts.",
+        "I'll cook as soon as I get home, before the film will start.",
+      ]),
+      lc("mix", "I'll call you before I leave and when I arrive.", [
+        "I'll call you after I leave and when I arrive.",
+        "I'll call you before I leave and when I drive.",
+      ]),
     ],
-    open: {
-      q: "You are travelling tomorrow. Explain what you will do before you leave, when you arrive and when you get home.",
-      must: ["as soon as", "when I get home", "before I leave"],
-      criteria: "The answer uses the present tense after each future time expression.",
-      example: "I'll check my ticket before I leave. As soon as I arrive, I'll call my friend. I'll unpack when I get home.",
-    },
     success: "The learner uses future time links correctly at least twice.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -1013,15 +1201,15 @@ export const A2_U6_7: Authored[] = [
       sc("Zofia", "a friend meeting you later", "to know when you will arrive",
         "You are travelling and your friend is waiting for news.",
         "Say what you will do and when.",
-        "Just tell me the plan so I know when to leave. When will you get in?", "waiting"),
+        "Tell me the plan. When will you call me?", "waiting"),
       sc("Rahim", "a colleague depending on your work", "to know when the next step can start",
         "Your colleague cannot start until you finish.",
         "Explain the order of what happens.",
-        "I am blocked until your part is done. What is the sequence?", "patient"),
+        "I need your part of the report. When will you send it?", "patient"),
       sc("Elke", "a hotel receptionist", "to arrange your late arrival",
         "You are arriving after reception closes.",
         "Explain when you will arrive and what you will do.",
-        "You are arriving late tonight. What time do you expect to get here?", "accommodating"),
+        "You arrive late tonight. When will you call us?", "accommodating"),
       sc("Mr. Otieno", "your teacher", "to practise future time links",
         "The class is sequencing future plans.",
         "Say what happens first and next.",
@@ -1044,7 +1232,7 @@ export const A2_U6_7: Authored[] = [
     target: "expressing degrees of certainty",
     correction: "Model the phrase with its natural certainty level and let the learner answer again.",
     summary: "You learned to show how sure you are, from 'definitely' down to 'probably not'.",
-    minutes: 6,
+    minutes: 7,
     points: [
       {
         form: "I'm not sure",
@@ -1071,21 +1259,36 @@ export const A2_U6_7: Authored[] = [
         ex: ["I'll definitely be there.", "She's almost certainly right."],
       },
     ],
-    ex: [
-      fill("I'm not ___ yet, I need to check my diary.", ["sure"]),
-      mcq("Which sentence is correct?", [
-        "I'll probably come on Friday.",
-        "I'll come probably not on Friday.",
-        "Probably I will not come definitely.",
-      ], 0),
-      say("I / definitely / be / there", ["I'll definitely be there.", "I will definitely be there."]),
+    ex: [],
+    drills: [
+      // p1 — I'm not sure
+      chat("p1", ["Will you come to the party?", null], ["I'm not sure yet.", "I'm not sure already.", "I not sure yet."]),
+      spk("p1", "I'm not sure, I need to check first."),
+      lc("p1", "I'm not sure yet.", ["I'm not sure, sorry.", "I'm sure, yes."]),
+      // p2 — probably / probably not
+      fc("p2", "I'll ___ come, but I'm not sure.", ["probably", "definitely", "not"]),
+      sit("p2", "You think you will not go this week, but you are not certain. What do you say?", [
+        "Probably not this week.",
+        "Not probably this week.",
+        "Definitely not this week.",
+      ]),
+      la("p2", "She'll probably call tonight.", ["probable"]),
+      // p3 — definitely / almost certainly
+      fc("p3", "I'll ___ be there. I promise.", ["definitely", "probably", "maybe"]),
+      chat("p3", ["Is she right?", null], ["She's almost certainly right.", "She's almost certainly rightly.", "She's almost certain right."]),
+      lc("p3", "He's almost certainly at home.", ["He's almost certainly at work.", "He's probably at home."]),
+      // karışık
+      chat("mix", ["Are you coming on Friday and Saturday?", null], [
+        "Friday, definitely. Saturday, probably not.",
+        "Friday, definitely. Saturday, not probably.",
+        "Friday, definite. Saturday, probably not.",
+      ]),
+      sit("mix", "You are certain about Monday, but not about Tuesday. What do you say?", [
+        "I'll definitely come on Monday, but I'm not sure about Tuesday.",
+        "I'll definitely come on Monday, but I'm sure about Tuesday.",
+        "I'll definite come on Monday, but I'm not sure about Tuesday.",
+      ]),
     ],
-    open: {
-      q: "Someone invites you to three events. Answer each one with a different level of certainty.",
-      must: ["I'm not sure", "probably not", "almost certainly"],
-      criteria: "The answer shows different degrees of certainty using the right expressions.",
-      example: "I'll almost certainly come on Friday. Saturday is probably not possible, and I'm not sure about Sunday.",
-    },
     success: "The learner expresses three different levels of certainty appropriately.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -1100,15 +1303,15 @@ export const A2_U6_7: Authored[] = [
       sc("Marta", "a friend planning three events", "to get an answer for each date",
         "A friend needs answers about several invitations.",
         "Answer each one honestly.",
-        "Three dates, three questions. Can you give me an answer for each?", "hopeful"),
+        "Are you free on Friday, Saturday and Sunday?", "hopeful"),
       sc("Dimitri", "a colleague chasing confirmations", "to fill in a schedule",
         "Your colleague needs commitments for a planning sheet.",
         "Answer with honest certainty levels.",
-        "I need something on this sheet even if it is not final. Where are you on each?", "practical"),
+        "Will you come to the meeting next week?", "practical"),
       sc("Yuki", "a tour organiser", "to know which activities you will join",
         "The group must confirm which activities they want.",
         "Answer with different levels of certainty.",
-        "I need rough numbers for four activities. Which are you thinking about?", "flexible"),
+        "Do you want to join the boat trip tomorrow?", "flexible"),
       sc("Mrs. Larsson", "your teacher", "to practise certainty expressions",
         "The class is answering questions with different certainty.",
         "Answer with different levels of certainty.",
@@ -1131,7 +1334,7 @@ export const A2_U6_7: Authored[] = [
     target: "to plus verb for purpose",
     correction: "Repeat the purpose phrase and let the learner explain again.",
     summary: "You learned to explain why you do something with 'to' plus a verb.",
-    minutes: 7,
+    minutes: 8,
     points: [
       {
         form: "to learn English",
@@ -1158,22 +1361,41 @@ export const A2_U6_7: Authored[] = [
         ex: ["I came here to find work.", "He moved to be closer to his family."],
       },
     ],
-    ex: [
-      fill("I came here ___ learn English.", ["to"]),
-      mcq("Which sentence is correct?", [
-        "She called to ask about the flat.",
-        "She called for ask about the flat.",
-        "She called to asking about the flat.",
-      ], 0),
-      fill("We stopped ___ a coffee on the way.", ["for"]),
-      say("I / practise / every day / to get better", ["I practise every day to get better."]),
+    ex: [],
+    drills: [
+      // p1 — to + verb for purpose
+      fc("p1", "I came here ___ learn English.", ["to", "for", "for to"]),
+      sit("p1", "You call the shop because you want to ask about a price. What do you say?", [
+        "I'm calling to ask about the price.",
+        "I'm calling for ask about the price.",
+        "I'm calling for to ask about the price.",
+      ]),
+      arr("p1", "She called to ask about the flat.", ["for"]),
+      spk("p1", "I came here to find a better job."),
+      // p2 — for + noun
+      fc("p2", "We stopped ___ a coffee.", ["for", "to", "for to"]),
+      fc("p2", "I practise every day ___ get better.", ["to", "for", "for to"]),
+      lc("p2", "I study at night to get better.", ["I study at night to get better grades.", "I study at night for a test."]),
+      // p3 — main action first, then purpose
+      chat("p3", ["Why did you move to London?", null], [
+        "I moved to London to find work.",
+        "I moved to London for find work.",
+        "I moved to London to finding work.",
+      ]),
+      la("p3", "I came here to see my friends.", ["for"]),
+      sit("p3", "You went to the station because you wanted to meet your sister. What do you say?", [
+        "I went to the station to meet my sister.",
+        "I went to the station for meet my sister.",
+        "I went to the station to meeting my sister.",
+      ]),
+      // karışık
+      chat("mix", ["Why are you learning English?", null], [
+        "To get a better job, and for fun.",
+        "For get a better job, and for fun.",
+        "To get a better job, and to fun.",
+      ]),
+      spk("mix", "I came here to work and to make new friends."),
     ],
-    open: {
-      q: "Explain why you came to your current city or started learning English.",
-      must: ["to learn English", "to get better", "I came here to"],
-      criteria: "The answer explains purpose with 'to' plus a base verb.",
-      example: "I came here to study. I joined an evening course to learn English, and I practise every day to get better.",
-    },
     success: "The learner explains purpose with 'to' plus a verb at least twice.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -1192,15 +1414,15 @@ export const A2_U6_7: Authored[] = [
       sc("Larissa", "a new neighbour", "to learn why you moved here",
         "A neighbour is getting to know you.",
         "Explain why you made the change.",
-        "You are new to the building, aren't you? What brought you here?", "warm"),
+        "You're new in the building. Why did you come here?", "warm"),
       sc("Mr. Ferreira", "an interviewer", "to understand your motivation",
         "You are explaining a career move in an interview.",
         "Explain your purpose clearly.",
-        "You changed direction two years ago. What was behind that?", "professional"),
+        "Why did you change jobs two years ago?", "professional"),
       sc("Ayaan", "a fellow student abroad", "to compare reasons for coming here",
         "Two people abroad are comparing why they came.",
         "Explain your reasons.",
-        "Everyone here has a different story. Why did you come?", "curious"),
+        "Why did you come to this city?", "curious"),
       sc("Ms. Karlsson", "your teacher", "to practise purpose clauses",
         "The class is explaining their reasons for studying.",
         "Explain your purpose.",
@@ -1208,7 +1430,7 @@ export const A2_U6_7: Authored[] = [
       sc("Mr. Adebayo", "the examiner", "to check purpose forms",
         "The examiner asks about a decision you made.",
         "Explain the purpose behind it.",
-        "Could you tell me about a decision you made and what you hoped to achieve?", "neutral"),
+        "Tell me about a decision you made. Why did you do it?", "neutral"),
     ],
   },
 
@@ -1223,7 +1445,7 @@ export const A2_U6_7: Authored[] = [
     target: "verb plus to versus verb plus -ing",
     correction: "Repeat the phrase with the correct form and let the learner build another.",
     summary: "You learned which common verbs are followed by 'to' and which by -ing.",
-    minutes: 7,
+    minutes: 8,
     points: [
       {
         form: "I want to",
@@ -1250,22 +1472,42 @@ export const A2_U6_7: Authored[] = [
         ex: ["I'd like to see that film.", "She's good at explaining things."],
       },
     ],
-    ex: [
-      fill("I want ___ travel more next year.", ["to"]),
-      mcq("Which sentence is correct?", [
-        "I enjoy cooking at the weekend.",
-        "I enjoy to cook at the weekend.",
-        "I enjoy cook at the weekend.",
-      ], 0),
-      fill("I don't mind ___ for ten minutes. (wait)", ["waiting"]),
-      say("I / would like / to see / that film", ["I'd like to see that film.", "I would like to see that film."]),
+    ex: [],
+    drills: [
+      // p1 — want / need / hope + to
+      fc("p1", "I hope ___ you soon.", ["to see", "seeing", "see"]),
+      fc("p1", "I need ___ some milk.", ["to buy", "buying", "buy"]),
+      arr("p1", "I want to travel more next year.", ["travelling"]),
+      lc("p1", "I want to go home.", ["I want to go out.", "I don't want to go home."]),
+      // p2 — enjoy / finish / mind + -ing
+      fc("p2", "I enjoy ___ at the weekend.", ["cooking", "to cook", "cook"]),
+      sit("p2", "You stopped working on your report. It is done. What do you say?", [
+        "I finished writing my report.",
+        "I finished to write my report.",
+        "I finished write my report.",
+      ]),
+      chat("p2", ["Do you like your new job?", null], [
+        "Yes, I really enjoy working there.",
+        "Yes, I really enjoy to work there.",
+        "Yes, I really enjoy work there.",
+      ]),
+      spk("p2", "I enjoy cooking at the weekend."),
+      // p3 — would like to / preposition + -ing
+      fc("p3", "I'd like ___ that film.", ["to see", "seeing", "see"]),
+      fc("p3", "He's good at ___ games.", ["playing", "to play", "play"]),
+      la("p3", "I'd like to learn Spanish.", ["learning"]),
+      // karışık
+      chat("mix", ["What are your plans?", null], [
+        "I want to travel because I enjoy meeting people.",
+        "I want travelling because I enjoy meeting people.",
+        "I want to travel because I enjoy to meet people.",
+      ]),
+      sit("mix", "You like swimming, and you want to swim tomorrow. What do you say?", [
+        "I enjoy swimming, so I'd like to swim tomorrow.",
+        "I enjoy to swim, so I'd like to swim tomorrow.",
+        "I enjoy swimming, so I'd like swimming tomorrow.",
+      ]),
     ],
-    open: {
-      q: "Say two things you want to do this year and two things you enjoy doing already.",
-      must: ["I want to", "I enjoy", "I'd like to"],
-      criteria: "The answer uses 'to' and -ing after the correct verbs.",
-      example: "I want to learn to drive this year, and I'd like to travel more. I enjoy cooking and reading.",
-    },
     success: "The learner uses both patterns correctly at least twice.",
     quiz: [
       qmcq("Which sentence is correct?", [
@@ -1284,15 +1526,15 @@ export const A2_U6_7: Authored[] = [
       sc("Pia", "a friend making plans for the year", "to compare your hopes for the year",
         "Two friends are talking about the year ahead.",
         "Say what you want to do and enjoy doing.",
-        "It is a new year and I have a list. What is on yours?", "upbeat"),
+        "It's a new year! What do you want to do this year?", "upbeat"),
       sc("Nathan", "a manager discussing development", "to understand what you want to work on",
         "A development conversation at work.",
         "Say what you want to do and enjoy.",
-        "Let us talk about what you would like to develop. Where do you want to go?", "supportive"),
+        "What would you like to learn at work this year?", "supportive"),
       sc("Rania", "a language exchange partner", "to plan how you will practise together",
         "Two people are agreeing how to practise together.",
         "Say what you want to practise and enjoy doing.",
-        "We can do this any way you like. What do you want to focus on?", "flexible"),
+        "What do you enjoy talking about?", "flexible"),
       sc("Mr. Jankowski", "your teacher", "to practise verb patterns",
         "The class is talking about hopes and hobbies.",
         "Use both verb patterns correctly.",
@@ -1315,7 +1557,7 @@ export const A2_U6_7: Authored[] = [
     target: "weighing options and announcing a decision",
     correction: "Model the contrast sentence and let the learner continue weighing.",
     summary: "You practised presenting both sides of a decision and announcing your choice.",
-    minutes: 6,
+    minutes: 7,
     points: [
       {
         form: "on the other hand",
@@ -1326,37 +1568,44 @@ export const A2_U6_7: Authored[] = [
         ex: ["On the other hand, the rent is much higher.", "On the one hand it pays better."],
       },
       {
-        form: "if I do that",
+        form: "if I do that / I've decided to",
         claims: [
           "'If I do that' names the consequence of one option.",
           "With 'if' plus the present tense, the result usually uses 'will' plus the base verb.",
+          "'I've decided to' plus the base verb announces your conclusion after the weighing.",
         ],
-        ex: ["If I do that, I'll have to move.", "If I stay, I'll save money."],
-      },
-      {
-        form: "I've decided to",
-        claims: [
-          "'I've decided to' announces the conclusion after the weighing.",
-          "It is followed by 'to' plus the base verb.",
-        ],
-        ex: ["I've decided to take the job.", "I've decided to wait a month."],
+        ex: ["If I do that, I'll have to move.", "If I stay, I'll save money.", "I've decided to take the job."],
       },
     ],
-    ex: [
-      fill("On the ___ hand, the rent is much higher there.", ["other"]),
-      mcq("Which sentence is correct?", [
+    ex: [],
+    drills: [
+      // p1 — on the other hand
+      fc("p1", "The job pays well. ___, it's far from home.", ["On the other hand", "On another hand", "In the other hand"]),
+      lc("p1", "On the other hand, the rent is much higher.", [
+        "On the other hand, the rent is much lower.",
+        "On one hand, the rent is much higher.",
+      ]),
+      la("p1", "On the one hand it pays better.", ["another"]),
+      // p2 — if I do that / I've decided to
+      fc("p2", "If I do that, ___ have to move.", ["I'll", "I will to", "I'm"]),
+      chat("p2", ["So, what's your answer?", null], [
         "I've decided to take the job.",
         "I've decided taking the job.",
         "I've decided take the job.",
-      ], 0),
-      say("if I do that / I / have to / move", ["If I do that, I'll have to move.", "If I do that, I will have to move."]),
+      ]),
+      spk("p2", "If I stay, I'll save money."),
+      // karışık
+      chat("mix", ["Will you move to Berlin?", null], [
+        "The pay is better. On the other hand, it's far. I've decided to stay.",
+        "The pay is better. On the other hand, it's far. I've decided staying.",
+        "The pay is better. In the other hand, it's far. I've decided to stay.",
+      ]),
+      sit("mix", "If you buy the car, you'll have no money. So you decide to wait. What do you say?", [
+        "If I buy it, I'll have no money, so I've decided to wait.",
+        "If I will buy it, I'll have no money, so I've decided to wait.",
+        "If I buy it, I have no money will, so I've decided to wait.",
+      ]),
     ],
-    open: {
-      q: "You are thinking about moving to another city. Talk through both sides and say what you have decided.",
-      must: ["on the other hand", "if I do that", "I've decided to"],
-      criteria: "The answer presents two sides, names a consequence and announces a decision.",
-      example: "The job pays more. On the other hand, if I do that, I'll be far from my family. I've decided to stay.",
-    },
     success: "The learner presents both sides and announces a clear decision.",
     quiz: [
       qmcq("Which phrase introduces the second side?", [
@@ -1375,15 +1624,15 @@ export const A2_U6_7: Authored[] = [
       sc("Georgios", "a close friend", "to help you think the move through",
         "You are considering moving to another city and need to talk.",
         "Weigh both sides out loud and decide.",
-        "You have been going back and forth for weeks. Talk me through it?", "patient"),
+        "You can't decide about the new job. What are the good and bad sides?", "patient"),
       sc("Helena", "your mentor at work", "to help you weigh a career choice",
         "A career decision has to be made this week.",
         "Present both sides and reach a conclusion.",
-        "Two paths, one week to decide. What are the arguments?", "thoughtful"),
+        "You have two job offers. Which one will you take?", "thoughtful"),
       sc("Emre", "a friend who moved abroad", "to share experience of the same decision",
         "Someone who made the same move is offering perspective.",
         "Weigh the decision with their input.",
-        "I made that exact move five years ago. What is holding you back?", "understanding"),
+        "Do you want to move abroad or stay here?", "understanding"),
       sc("Mrs. Petrenko", "your teacher", "to practise weighing options",
         "The class is discussing difficult decisions.",
         "Present both sides and decide.",

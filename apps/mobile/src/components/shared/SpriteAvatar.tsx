@@ -175,7 +175,8 @@ export function SpriteAvatar({
       // Zaman damgası olmayan sesde (Gemini, akış) şekil ailesi "konuşma" — açıklığı enerji sürer
       const family = t === null ? "REST" : spans.length ? shapeAt(spans, t * 1000) : "talk";
       const energy = stepEnvelope(envelope, rms ?? 0, dt);
-      stepMouth(mouth, family, rms === null ? null : energy, t !== null, dt, rig.mouthAmplitude);
+      // Şekil metin tahmininden (Gemini) ise geçişler kısık ve yavaş — sert "resim değişimi" olmasın
+      stepMouth(mouth, family, rms === null ? null : energy, t !== null, dt, rig.mouthAmplitude, SpeechClock.isEstimated());
 
       setAxis(nA, nB, axes.neutral, mouth.open);
       if (mouth.round > 0.01) setAxis(rA, rB, axes.round, Math.min(rig.roundMax ?? 0.8, mouth.open / 0.7));

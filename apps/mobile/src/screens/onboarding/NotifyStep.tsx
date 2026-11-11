@@ -7,6 +7,7 @@ import { CtaButton } from "../../components/ui/CtaButton";
 import { ScreenGlow } from "../../components/ui/ScreenGlow";
 import { TextButton } from "../../components/ui/TextButton";
 import { OnboardingController } from "../../controllers/OnboardingController";
+import { useDraftTutorName } from "../../hooks/useTutorName";
 import { tr } from "../../i18n/tr";
 import { useOnboardingStore } from "../../stores/useOnboardingStore";
 import { enter } from "../../theme/motion";
@@ -17,6 +18,7 @@ export function NotifyStep() {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
   const goal = useOnboardingStore((s) => s.dailyGoal ?? 10);
+  const tutorName = useDraftTutorName();
   const [busy, setBusy] = useState(false);
   return (
     // Güvenli alan ÇALIŞMA ZAMANI değeri — gerekçeli inline stil
@@ -38,7 +40,7 @@ export function NotifyStep() {
           </View>
           <View className="flex-1">
             <Text className="text-[15px] font-bold text-foreground">{tr.onboarding.notify.previewTitle(goal)}</Text>
-            <Text className="text-sm text-muted-foreground">{tr.onboarding.notify.previewBody}</Text>
+            <Text className="text-sm text-muted-foreground">{tr.onboarding.notify.previewBody(tutorName)}</Text>
           </View>
         </Animated.View>
         <View className="gap-2">

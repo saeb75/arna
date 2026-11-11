@@ -1,7 +1,14 @@
+import { FALLBACK_TUTOR_NAME } from "../domain/tutors";
 import { tr } from "../i18n/tr";
+import { useMeStore } from "../stores/useMeStore";
 import { NotificationsService } from "../services/NotificationsService";
 import { useSettingsStore } from "../stores/useSettingsStore";
 import { ToastController } from "./ToastController";
+
+/** Hatırlatma metni öğretmenin adıyla (zamanlama anındaki ad; açılışta `resync` tazeler) */
+function reminderBody(): string {
+  return tr.reminder.body(useMeStore.getState().me?.tutor?.name ?? FALLBACK_TUTOR_NAME);
+}
 
 /**
  * Günlük YEREL hatırlatıcı — izin, zamanlama ve tercih tek yerde. Metin
@@ -17,7 +24,7 @@ export class NotificationController {
       settings.set({ reminderOn: false });
       return false;
     }
-    const ok = await NotificationsService.scheduleDaily(at, tr.reminder.title, tr.reminder.body);
+    const ok = await NotificationsService.scheduleDaily(at, tr.reminder.title, reminderBody());
     settings.set({ reminderOn: ok, reminderTime: at });
     return ok;
   }
@@ -37,7 +44,7 @@ export class NotificationController {
   static async setTime(time: string): Promise<void> {
     const settings = useSettingsStore.getState();
     settings.set({ reminderTime: time });
-    if (settings.reminderOn) await NotificationsService.scheduleDaily(time, tr.reminder.title, tr.reminder.body);
+    if (settings.reminderOn) await NotificationsService.scheduleDaily(time, tr.reminder.title, reminderBody());
   }
 
   /** Açılışta: tercih açıksa ve izin hâlâ varsa zamanlamayı tazele (yeniden kurulumdan sonra kaybolmasın) */
@@ -48,6 +55,6 @@ export class NotificationController {
       useSettingsStore.getState().set({ reminderOn: false });
       return;
     }
-    await NotificationsService.scheduleDaily(reminderTime, tr.reminder.title, tr.reminder.body);
+    await NotificationsService.scheduleDaily(reminderTime, tr.reminder.title, reminderBody());
   }
 }
