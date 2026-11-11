@@ -27,16 +27,62 @@ export type NodeState = "completed" | "current" | "ready" | "upcoming";
 export type LevelState = "completed" | "active" | "upcoming";
 
 /**
- * YUMUŞAK DALGA (3 Kas 2026, kullanıcı kararı — keskin zikzak emekli; düğüm
- * yapısı Duolingo'ya benzer, renkler bizim): düğümler ünite içi sıralarına göre
- * bir sinüs üstünde durur. `step` ünitedeki sıradır (0'dan, test dahil); yatay
- * kayma `waveX(step)`. Etiket YOK — dokununca düğümün altında kart açılır.
+ * KIVRIMLI YOL (11 Kas 2026, kullanıcı kararı — dalga + ünite kapakları emekli):
+ * yol her ünitede AYNI kalıbı tekrar eder, kendi kafasına göre yön değiştirmez.
+ * Sıra 0 ortada TEK düğüm, yol sağa akar → sağ kenarda yarım daire → sıra 1'de
+ * sağ + sol ÇİFT düğüm, yol sola akar → sol kenarda yarım daire → sıra 2 yine
+ * ortada tek düğüm… Çift sıralar sağa, tek sıralar sola akar. Ünite testi her
+ * zaman kendi sırasında, ortada, BÜYÜK düğümdür ve ünitenin yolu orada biter.
+ *
+ * Yarım daire iki sıraya bölünür: üst çeyreği çıkan sıranın, alt çeyreği giren
+ * sıranın içinde çizilir. Bu yüzden her sırada yol çizgisi tepeden `ROAD_R`
+ * aşağıdadır ve çıkışı olan sıranın yüksekliği tam `2 * ROAD_R`'dir.
  */
-export const WAVE_AMPLITUDE = 72;
-const WAVE_PERIOD = 8;
+export const ROAD_R = 80;
+/** Ders sırası: yol çizgisi ortada, yarım daire tam sığar */
+export const TRACK_H = 2 * ROAD_R;
+/** Test sırası: büyük düğüm + iki satır etiket; çıkışı olmadığı için daha uzun olabilir */
+export const TEST_TRACK_H = 224;
+/** Ders düğümü renkleri sırayla döner (`path-1…6` token'ları) */
+export const PATH_TINTS = 6;
 
-export function waveX(step: number): number {
-  return Math.round(WAVE_AMPLITUDE * Math.sin((2 * Math.PI * step) / WAVE_PERIOD) * 10) / 10;
+/** Yolun tek durağı — ders ya da ünite testi */
+export type PathStop =
+  | {
+      kind: "lesson";
+      key: string;
+      lesson: CurriculumLesson;
+      state: NodeState;
+      /** Ünitedeki sıra (0'dan) — kartta "Ders 3 / 6" */
+      indexInUnit: number;
+      unitSize: number;
+      /** Renk sırası, 0…PATH_TINTS-1 */
+      tint: number;
+    }
+  | {
+      kind: "test";
+      key: string;
+      level: CefrLevel;
+      unitIndex: number;
+      unitTitle: string;
+      state: NodeState;
+    };
+
+export interface TrackRow {
+  kind: "track";
+  key: string;
+  /** Duraklar YOLDAKİ sırayla (sola akan çift sırada önce sağdaki) */
+  stops: PathStop[];
+  /** 1: sağa akar, -1: sola akar */
+  dir: 1 | -1;
+  /** Ünitenin ilk sırası değilse yukarıdan yarım daireyle girer */
+  hasEntry: boolean;
+  /** Test sırası değilse aşağıya yarım daireyle çıkar */
+  hasExit: boolean;
+  /** Çıkış parçası boyalı mı: sonraki sıranın ilk durağına varıldı mı */
+  exitReached: boolean;
+  /** Ünite testinin sırası */
+  test: boolean;
 }
 
 export type PathRow =
@@ -51,38 +97,114 @@ export type PathRow =
       done: number;
       total: number;
     }
-  | {
-      kind: "lesson";
-      key: string;
-      lesson: CurriculumLesson;
-      state: NodeState;
-      step: number;
-      /** Ünitedeki ders sayısı — kartta "Ders 3 / 6" */
-      unitSize: number;
-    }
-  | {
-      kind: "test";
-      key: string;
-      level: CefrLevel;
-      unitIndex: number;
-      unitTitle: string;
-      state: NodeState;
-      step: number;
-    };
+  | TrackRow;
 
 /** Satır yükseklikleri SABİT — FlatList `getItemLayout` bunlarla ölçüm yapmadan kaydırır. */
 export const LEVEL_ROW_H = 96;
-/** Ünite kartı: illüstrasyon + üstünde başlık/`goal` + ilerleme (kart 184 + boşluklar) */
-export const UNIT_ROW_H = 232;
-/** Düğüm (72 yüz + 8 dudak) + boşluk */
-export const NODE_ROW_H = 104;
-/** Kaldığın dersin üstündeki "BAŞLA" balonu için ek yükseklik */
-export const CURRENT_EXTRA_H = 48;
+/** Ünite başlığı: ayraç + başlık + `goal` (görsel YOK) */
+export const UNIT_ROW_H = 124;
 
 export function rowHeight(row: PathRow): number {
   if (row.kind === "level") return LEVEL_ROW_H;
   if (row.kind === "unit") return UNIT_ROW_H;
-  return row.state === "current" ? NODE_ROW_H + CURRENT_EXTRA_H : NODE_ROW_H;
+  return row.test ? TEST_TRACK_H : TRACK_H;
+}
+
+/** Yol bu durağa vardı mı (bitmiş, kaldığın ders ya da sırası gelmiş test) — yolu boyar */
+export function reached(stop: PathStop): boolean {
+  return stop.state !== "upcoming";
+}
+
+/**
+ * Bir ünitenin durakları → sıralar. Dersler 1, 2, 1, 2… paketlenir; test her
+ * zaman ayrı ve son sıradır. Yön sıra numarasından gelir — kalıp hiç bozulmaz.
+ */
+export function packUnit(unitKey: string, lessons: PathStop[], test: PathStop): TrackRow[] {
+  const groups: PathStop[][] = [];
+  let i = 0;
+  while (i < lessons.length) {
+    const size = groups.length % 2 === 0 ? 1 : 2;
+    groups.push(lessons.slice(i, i + size));
+    i += size;
+  }
+  groups.push([test]);
+  return groups.map((stops, r) => {
+    const next = groups[r + 1];
+    const isTest = r === groups.length - 1;
+    return {
+      kind: "track",
+      key: `${unitKey}-r${r}`,
+      stops,
+      dir: r % 2 === 0 ? 1 : -1,
+      hasEntry: r > 0,
+      hasExit: !isTest,
+      exitReached: next ? reached(next[0]!) : false,
+      test: isTest,
+    };
+  });
+}
+
+/** Düğümün ekrandaki yeri — açılan kart onun altında (yer yoksa üstünde) durur */
+export interface NodeRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface TrackGeometry {
+  /** Durakların yatay merkezleri — `stops` ile aynı sırada */
+  xs: number[];
+  /** Yolun tamamı (SVG path) */
+  road: string;
+  /** Varılmış parçalar */
+  done: string;
+  /** Çift sırada iki etiket çakışmasın: etiket genişliği */
+  labelWidth: number;
+}
+
+/**
+ * Sıranın geometrisi — SAF: ekran genişliği girer, düğüm konumları ve yol çıkar.
+ * Yatay koşu merkezden `run` kadar uzanır, yarım daire ROAD_R yarıçapla kenara
+ * taşar; dar ekranda koşu kısalır ki daire ekrandan taşmasın.
+ */
+export function trackGeometry(row: TrackRow, width: number): TrackGeometry {
+  const R = ROAD_R;
+  const cx = width / 2;
+  const run = Math.max(40, Math.min(100, cx - R - 14));
+  const d = run - 20;
+  const pair = row.stops.length === 2;
+  const xs = pair ? (row.dir === -1 ? [cx + d, cx - d] : [cx - d, cx + d]) : [cx];
+  const last = xs[xs.length - 1]!;
+  const pieces: { d: string; done: boolean }[] = [];
+
+  if (row.hasEntry) {
+    // Üstteki sıranın yarım dairesinin alt çeyreği: sağa akan sıra soldan, sola akan sağdan girer
+    const edge = row.dir === 1 ? cx - run : cx + run;
+    const from = row.dir === 1 ? edge - R : edge + R;
+    const sweep = row.dir === 1 ? 0 : 1;
+    pieces.push({ d: `M${from},0 A${R},${R} 0 0 ${sweep} ${edge},${R} H${xs[0]}`, done: reached(row.stops[0]!) });
+  }
+  for (let i = 1; i < xs.length; i++) {
+    pieces.push({ d: `M${xs[i - 1]},${R} H${xs[i]}`, done: reached(row.stops[i]!) });
+  }
+  if (row.hasExit) {
+    // Alttaki sıraya inen yarım dairenin üst çeyreği
+    const edge = row.dir === 1 ? cx + run : cx - run;
+    const to = row.dir === 1 ? edge + R : edge - R;
+    const sweep = row.dir === 1 ? 1 : 0;
+    pieces.push({ d: `M${last},${R} H${edge} A${R},${R} 0 0 ${sweep} ${to},${2 * R}`, done: row.exitReached });
+  }
+
+  return {
+    xs,
+    road: pieces.map((p) => p.d).join(" "),
+    done: pieces
+      .filter((p) => p.done)
+      .map((p) => p.d)
+      .join(" "),
+    labelWidth: Math.min(136, 2 * d - 16),
+  };
 }
 
 /** Profil seviyesinin dilimi — odak ve "kaldığı ders" YALNIZ burada aranır. */
@@ -113,7 +235,7 @@ export function currentPlacement(
   return { lesson, unitTitle: unit?.title ?? "" };
 }
 
-/** Seviye başlığı + ünite pilleri + ders/test düğümleri — A1→C2 tek düz liste. */
+/** Seviye başlığı + ünite başlıkları + yol sıraları — A1→C2 tek düz liste. */
 export function buildPathRows(curriculum: CurriculumResponse): PathRow[] {
   const currentId = currentLesson(curriculum)?.id ?? null;
   const profileIdx = CEFR_LEVELS.indexOf(curriculum.level);
@@ -126,7 +248,7 @@ export function buildPathRows(curriculum: CurriculumResponse): PathRow[] {
     const forceDone = cls === "completed";
 
     const unitRows = lvl.units.flatMap<PathRow>((unit) => {
-      const lessons = unit.lessons.map<PathRow>((lesson, i) => ({
+      const lessons = unit.lessons.map<PathStop>((lesson, i) => ({
         kind: "lesson",
         key: lesson.id, // katalog id'si global tekil (seviye slug'ın içinde)
         lesson,
@@ -137,14 +259,15 @@ export function buildPathRows(curriculum: CurriculumResponse): PathRow[] {
             : lesson.id === currentId
               ? "current"
               : "upcoming",
-        step: i,
+        indexInUnit: i,
         unitSize: unit.lessons.length,
+        tint: i % PATH_TINTS,
       }));
 
       // Ünitenin kapanış düğümü. ASLA "current" olmaz: test ilerlemenin önünde durmaz.
-      // Yeşil onay "test geçildi" demek (alt seviyelerde "geçilmiş müfredat" stili hariç).
+      // Onay "test geçildi" demek (alt seviyelerde "geçilmiş müfredat" stili hariç).
       const allLessonsDone = unit.lessons.every((l) => l.status === "completed");
-      const test: PathRow = {
+      const test: PathStop = {
         kind: "test",
         key: `test-${lvl.level}-${unit.index}`, // unitIndex seviyeler arası çakışır — önek şart
         level: lvl.level,
@@ -157,13 +280,13 @@ export function buildPathRows(curriculum: CurriculumResponse): PathRow[] {
             : allLessonsDone
               ? "ready"
               : "upcoming",
-        step: unit.lessons.length,
       };
 
+      const unitKey = `${lvl.level}-u${unit.index}`;
       const done = forceDone ? unit.lessons.length : unit.lessons.filter((l) => l.status === "completed").length;
       const header: PathRow = {
         kind: "unit",
-        key: `${lvl.level}-u${unit.index}`,
+        key: unitKey,
         level: lvl.level,
         unitIndex: unit.index,
         title: unit.title,
@@ -171,7 +294,7 @@ export function buildPathRows(curriculum: CurriculumResponse): PathRow[] {
         done,
         total: unit.lessons.length,
       };
-      return [header, ...lessons, test];
+      return [header, ...packUnit(unitKey, lessons, test)];
     });
 
     return [
@@ -192,7 +315,7 @@ export interface PathContext {
  * Her satır için o anda geçerli seviye/ünite bağlamı — başlık kartı kaydırma
  * ofsetinden bulunan satırın bağlamını gösterir. Seviye satırı bağlamı yeniler
  * (ünite adı boşalır: henüz üniteye girilmedi), ünite satırı ünite adını
- * günceller, ders/test satırları miras alır.
+ * günceller, yol sıraları miras alır.
  */
 export function rowContexts(rows: PathRow[]): PathContext[] {
   const out: PathContext[] = [];
@@ -237,12 +360,12 @@ export function rowOffsets(rows: PathRow[]): number[] {
 }
 
 /**
- * Açılışta hangi satıra kaydırılacak: kaldığı düğümün BİR ÜSTÜ (ünite pili
- * görünsün, bağlam kaybolmasın); current yoksa profil seviyesinin başlığı.
+ * Açılışta hangi satıra kaydırılacak: kaldığı dersin sırasının BİR ÜSTÜ (bağlam
+ * kaybolmasın); current yoksa profil seviyesinin başlığı.
  * "Ne olursa olsun uygulama girdiğinde olduğu seviyede gelecek" — çıpa profil.
  */
 export function initialRowIndex(rows: PathRow[], profileLevel: CefrLevel): number {
-  const i = rows.findIndex((r) => r.kind === "lesson" && r.state === "current");
+  const i = rows.findIndex((r) => r.kind === "track" && r.stops.some((s) => s.state === "current"));
   if (i >= 0) return Math.max(0, i - 1);
   const header = rows.findIndex((r) => r.kind === "level" && r.level === profileLevel);
   return header < 0 ? 0 : header;

@@ -15,8 +15,10 @@ import {
   rowContexts,
   rowHeight,
   rowOffsets,
+  type NodeRect,
   type PathContext,
   type PathRow,
+  type PathStop,
 } from "../../lib/lessonPath";
 import { useCurriculumStore } from "../../stores/useCurriculumStore";
 import { useMeStore } from "../../stores/useMeStore";
@@ -25,18 +27,18 @@ import { useThemeColors } from "../../theme/useThemeColors";
 import { HomeHeader } from "./HomeHeader";
 import { LevelBanner } from "./LevelBanner";
 import { NodePopover } from "./NodePopover";
-import { PathNode, type NodeRect } from "./PathNode";
+import { PathTrack } from "./PathTrack";
 import { TodayCard } from "./TodayCard";
-import { UnitCard } from "./UnitCard";
+import { UnitHeader } from "./UnitHeader";
 
 /**
  * ANA EKRAN — MOBİL UI KURALI: kategori/jargon YOK, düz ders yolu.
  *
  * Yerleşim: üst katman (selam + seri + bugün kartı [+ kota]) SABİT; ders yolu
- * onun ALTINDAN kayar. Yol (3 Kas 2026, kullanıcı kararı): her ünite soft 3D
- * illüstrasyonlu kapak kartıyla açılır; altındaki düğümlerin YAPISI Duolingo'ya
- * benzer (dudaklı düz düğümler yumuşak dalgada, etiket yok, dokununca kart),
- * renkler bizim. Başlık yükseklikleri SABİT (52/84/52): yolun
+ * onun ALTINDAN kayar. Yol (11 Kas 2026, kullanıcı kararı): KIVRIMLI YOL — her
+ * ünitede aynı kalıp (tek düğüm → yarım daire → çift düğüm → yarım daire …),
+ * renkli dudaklı düğümler, adları altlarında; ünite testi büyük altın düğüm.
+ * Ünite görselsiz bir başlıkla açılır; dokununca düğüm kartı. Başlık yükseklikleri SABİT (52/84/52): yolun
  * üst boşluğu = başlık yüksekliği olduğundan getItemLayout ölçüm beklemeden
  * kaldığı düğüme açılır.
  */
@@ -54,7 +56,7 @@ export function LessonsScreen() {
   const stats = useMeStore((s) => s.stats);
 
   // Sunumsal yerel durum: açık düğüm kartı (hangi satır, ekranda nerede)
-  const [popover, setPopover] = useState<{ row: PathRow; rect: NodeRect } | null>(null);
+  const [popover, setPopover] = useState<{ stop: PathStop; rect: NodeRect } | null>(null);
 
   // ODAKLANMADA tazele: sekme ekranı üstüne ders itildiğinde sökülmüyor — dönüşte
   // biten ders yeşile dönsün, bugünkü dakika güncellensin.
@@ -129,31 +131,9 @@ export function LessonsScreen() {
           item.kind === "level" ? (
             <LevelBanner level={item.level} label={item.label} state={item.state} />
           ) : item.kind === "unit" ? (
-            <UnitCard
-              level={item.level}
-              unitIndex={item.unitIndex}
-              title={item.title}
-              goal={item.goal}
-              done={item.done}
-              total={item.total}
-            />
-          ) : item.kind === "lesson" ? (
-            <PathNode
-              kind={item.lesson.kind}
-              title={item.lesson.title}
-              state={item.state}
-              step={item.step}
-              inProgress={item.lesson.status === "in_progress"}
-              onPress={(rect) => setPopover({ row: item, rect })}
-            />
+            <UnitHeader unitIndex={item.unitIndex} title={item.title} goal={item.goal} done={item.done} total={item.total} />
           ) : (
-            <PathNode
-              kind="test"
-              title={tr.home.unitTest(item.unitIndex)}
-              state={item.state}
-              step={item.step}
-              onPress={(rect) => setPopover({ row: item, rect })}
-            />
+            <PathTrack row={item} onPress={(stop, rect) => setPopover({ stop, rect })} />
           )
         }
       />
@@ -180,35 +160,35 @@ export function LessonsScreen() {
         </View>
       </View>
 
-      {popover?.row.kind === "lesson" ? (
+      {popover?.stop.kind === "lesson" ? (
         <NodePopover
           rect={popover.rect}
-          title={popover.row.lesson.title}
-          subtitle={tr.home.lessonOf(popover.row.step + 1, popover.row.unitSize)}
+          title={popover.stop.lesson.title}
+          subtitle={tr.home.lessonOf(popover.stop.indexInUnit + 1, popover.stop.unitSize)}
           action={
-            popover.row.lesson.status === "completed"
+            popover.stop.lesson.status === "completed"
               ? tr.home.actionReview
-              : popover.row.lesson.status === "in_progress"
+              : popover.stop.lesson.status === "in_progress"
                 ? tr.home.actionContinue
                 : tr.home.actionStart
           }
           onAction={() => {
-            const id = popover.row.kind === "lesson" ? popover.row.lesson.id : "";
+            const id = popover.stop.kind === "lesson" ? popover.stop.lesson.id : "";
             setPopover(null);
             router.push(`/lesson/${id}`);
           }}
           onClose={() => setPopover(null)}
         />
-      ) : popover?.row.kind === "test" ? (
+      ) : popover?.stop.kind === "test" ? (
         <NodePopover
           rect={popover.rect}
-          title={tr.home.unitTest(popover.row.unitIndex)}
+          title={tr.home.unitTest(popover.stop.unitIndex)}
           subtitle={tr.home.testSub}
-          action={popover.row.state === "completed" ? tr.home.actionReview : tr.home.actionStart}
+          action={popover.stop.state === "completed" ? tr.home.actionReview : tr.home.actionStart}
           onAction={() => {
-            const r = popover.row;
+            const s = popover.stop;
             setPopover(null);
-            if (r.kind === "test") router.push(`/checkpoint/${r.level}/${r.unitIndex}`);
+            if (s.kind === "test") router.push(`/checkpoint/${s.level}/${s.unitIndex}`);
           }}
           onClose={() => setPopover(null)}
         />

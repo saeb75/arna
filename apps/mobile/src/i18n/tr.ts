@@ -283,6 +283,7 @@ export const tr = {
     bubbleContinue: "DEVAM",
     lessonOf: (i: number, n: number) => `Ders ${i} / ${n}`,
     testSub: "Ünitede öğrendiklerini sına",
+    testReady: "Hazır — kendini dene",
     actionStart: "BAŞLA",
     actionContinue: "DEVAM ET",
     actionReview: "TEKRAR ET",

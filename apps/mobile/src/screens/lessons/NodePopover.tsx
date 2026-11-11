@@ -2,7 +2,7 @@ import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut } from "react-native-reanimated";
 import { HapticsService } from "../../services/HapticsService";
 import { useTabBarSpace } from "../../theme/layout";
-import type { NodeRect } from "./PathNode";
+import type { NodeRect } from "../../lib/lessonPath";
 
 /** Kartın yaklaşık yüksekliği — altta yer yoksa düğümün ÜSTÜNDE açılır */
 const CARD_H = 132;

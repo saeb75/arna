@@ -325,19 +325,22 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
 ## Ürün kuralları (kök CLAUDE.md'den taşınan, mobilde de bağlayıcı)
 
 - **Mobil UI:** kategori/jargon ekranda YOK ("beat", "core", "checkpoint" gibi
-  iç terimler kullanıcıya gösterilmez). Ders yolu (3 Kas 2026, kullanıcı kararı —
-  46fe195 zikzağı emekli): her ünite soft 3D illüstrasyonlu kapak kartıyla açılır
-  (`UnitCard`, görsel `domain/unitArt.ts` — ÜRETİLMİŞ harita). Altındaki düğümlerin
-  YAPISI Duolingo'ya benzer, RENKLERİ bizim (kullanıcı açıkça istedi; kil sikke
-  düğümler ve aralarındaki taşlar beğenilmedi, kaldırıldı): düz yüz + koyu dudak
-  (`node-*` token'ları), basınca yüz dudağa iner; yumuşak SİNÜS dalgası
-  (`lessonPath.waveX(step)`); bitmiş ve kaldığın ders ember (bitmişte beyaz onay),
-  başlanmamış gri; kaldığın derste halka + süzülen "BAŞLA/DEVAM" balonu. Etiket
-  YOK — dokununca düğümün altında (yer yoksa üstünde) `NodePopover` açılır: ad,
-  "Ders 3 / 6", tek eylem (Başla / Devam et / Tekrar et). Kaydırma kartı kapatır.
-  Görseller `scripts/unit-art/` hattıyla üretilir: `dump-units.mts` → `generate.py`
-  (Gemini 3 Pro Image, A1-1 stil çapası, `GEMINI_API_KEY` `.env.local`'de) →
-  `write-map.mjs`. Düzen kullanıcı açıkça istemeden değişmez.
+  iç terimler kullanıcıya gösterilmez). Ders yolu — KIVRIMLI YOL (11 Kas 2026,
+  kullanıcı kararı; soft 3D ünite kapakları + sinüs dalgası emekli, görseller ve
+  `scripts/unit-art/` silindi): yol her ünitede AYNI kalıbı tekrar eder, kendi
+  kafasına göre yön değiştirmez — sıra 0 ortada tek düğüm, yol sağa akar → sağ
+  kenarda yarım daire → sıra 1'de sağ + sol çift düğüm, yol sola akar → sol kenarda
+  yarım daire → tek düğüm… (`lessonPath.packUnit` + saf `trackGeometry`; yarım
+  daire iki sıraya bölünür, yol çizgisi her sırada tepeden `ROAD_R`). Bir FlatList
+  satırı = bir yol sırası (`PathTrack`: SVG yol + `LessonStop`/`TestStop`). Ders
+  düğümleri sırayla dönen altı renk (`path-1…6` + `-lip` + `-ink` token'ları), ikon
+  ders tipinden, ders ADI düğümün altında; bitmişte köşede onay rozeti, kaldığın
+  derste renkli halka + "BAŞLA/DEVAM"; varılmış yol `path-road-done` ile boyanır.
+  ÜNİTE TESTİ yolun en belirgin durağıdır: her zaman kendi sırasında, ortada, büyük
+  altın düğüm + kupa (`test-*` token'ları), dersler bitince halka nefes alır; yol
+  orada biter. Ünite görselsiz başlıkla açılır (`UnitHeader`: ayraç + no/ilerleme +
+  başlık + `goal`). Dokununca `NodePopover` (ad, "Ders 3 / 6", tek eylem). Düzen
+  kullanıcı açıkça istemeden değişmez.
 - **Ders ekranı düzeni (5 Kas 2026, kullanıcı kararı):** avatar SOLDA küçük 2:3 kart
   (120×180) + yanında ad/durum (`LessonStage`); altında dersin TÜM konuşması
   kaydırılabilir akış (`CaptionCard` hoca, `MessageBubble` öğrenci). O anki görevin
