@@ -1,20 +1,23 @@
 import { useMemo } from "react";
 import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { ChevronRight } from "lucide-react-native";
+import { Check, ChevronRight, Trophy } from "lucide-react-native";
 import { tr } from "../../../i18n/tr";
 import { JOURNEY_CARD_RIGHT, JOURNEY_COLS, journeyLink, journeyRowHeight, type JourneyRow } from "../../../lib/journeyPath";
 import { HapticsService } from "../../../services/HapticsService";
 import { useThemeColors } from "../../../theme/useThemeColors";
-import { CURRENT_NODE_SIZE, JourneyNode, NODE_SIZE } from "./JourneyNode";
 
 const ROAD_W = 14;
 const CARD_H = 50;
+/** Kartın sol kenarı yolun girdiği noktanın bu kadar solunda (yol kartın arkasında biter) */
+const CARD_LEAD = 24;
 
 /**
- * Yolculuğun bir satırı: arkada yol parçası (SVG, saf geometri `journeyLink`), önde
- * düğüm + ondan sağa uzanan hap kart (ad, "Ders 3/6 · B1", ok). Kartın tamamı
- * dokunulur ve DOĞRUDAN derse/teste girer. Kaldığın derste kartın üstünde rozet.
+ * Yolculuğun bir satırı: arkada yol parçası (SVG, saf geometri `journeyLink`), önde hap
+ * kart (ad, "Ders 3/6 · B1", ok). Yuvarlak düğüm YOK (13 Kas 2026, kullanıcı kararı) —
+ * durum kartın kendisinde: kaldığın ders marka çerçevesi + üstte rozet, bitmiş ders okun
+ * yerinde yeşil onay, ünite testi altın çerçeve + kupa. Kartın tamamı dokunulur ve
+ * DOĞRUDAN derse/teste girer.
  * Yükseklik lib'den (getItemLayout ile BİREBİR).
  */
 export function JourneyStop({
@@ -33,10 +36,11 @@ export function JourneyStop({
   const { stop } = row;
   const isTest = stop.kind === "test";
   const current = stop.state === "current";
-  const node = current ? CURRENT_NODE_SIZE : NODE_SIZE;
   const x = width * JOURNEY_COLS[row.col];
   const cardRight = width * JOURNEY_CARD_RIGHT[row.col];
   const dim = stop.state === "upcoming";
+  const done = stop.state === "completed";
+  const left = x - CARD_LEAD;
 
   const title = stop.kind === "lesson" ? stop.lesson.title : tr.home.unitTest(stop.unitIndex);
   const meta =
@@ -73,35 +77,38 @@ export function JourneyStop({
           HapticsService.tap();
           onPress();
         }}
-        className="absolute active:opacity-80"
+        className={`absolute flex-row items-center gap-2 rounded-full border bg-card pl-4 pr-2.5 shadow-sm shadow-scrim/5 active:opacity-80 ${
+          current ? "border-brand/60" : isTest ? "border-test-face/70" : "border-border"
+        } ${dim && !current ? "opacity-90" : ""}`}
         // Konum ekran genişliğinden ÇALIŞMA ZAMANI değeri — gerekçeli inline stil
-        style={{ left: x - node / 2, top: (height - node) / 2, width: cardRight - (x - node / 2), height: node }}
+        style={{ left, top: (height - CARD_H) / 2, width: cardRight - left, height: CARD_H }}
       >
-        {/* Hap kart: düğümün merkezinden başlar, düğümün arkasında kalır */}
-        <View
-          className={`absolute flex-row items-center rounded-full border border-border bg-card pr-2.5 shadow-sm shadow-scrim/5 ${dim ? "opacity-90" : ""}`}
-          style={{ left: node / 2, right: 0, top: (node - CARD_H) / 2, height: CARD_H, paddingLeft: node / 2 + 10 }}
-        >
-          <View className="flex-1 gap-0.5 pr-1.5">
-            <Text
-              numberOfLines={2}
-              className={`text-[13px] leading-4 ${current || isTest ? "font-bold" : "font-semibold"} ${dim ? "text-foreground/70" : "text-foreground"}`}
-            >
-              {title}
-            </Text>
-            <Text numberOfLines={1} className={`text-[10.5px] ${isTest && stop.state === "ready" ? "text-test-ink" : "text-muted-foreground"}`}>
-              {meta}
-            </Text>
-          </View>
-          <View className="size-6 items-center justify-center rounded-full bg-muted">
-            <ChevronRight color={colors["muted-foreground"]} size={13} strokeWidth={2.4} />
-          </View>
+        {isTest ? <Trophy color={colors["test-ink"]} size={16} strokeWidth={2.2} /> : null}
+        <View className="flex-1 gap-0.5">
+          <Text
+            numberOfLines={2}
+            className={`text-[13px] leading-4 ${current || isTest ? "font-bold" : "font-semibold"} ${
+              current ? "text-brand" : dim ? "text-foreground/70" : "text-foreground"
+            }`}
+          >
+            {title}
+          </Text>
+          <Text numberOfLines={1} className={`text-[10.5px] ${isTest && stop.state === "ready" ? "text-test-ink" : "text-muted-foreground"}`}>
+            {meta}
+          </Text>
         </View>
-
-        <JourneyNode kind={stop.kind === "lesson" ? stop.lesson.kind : null} state={stop.state} test={isTest} />
+        {done ? (
+          <View className="size-6 items-center justify-center rounded-full bg-positive">
+            <Check color={colors["on-brand"]} size={13} strokeWidth={3.2} />
+          </View>
+        ) : (
+          <View className={`size-6 items-center justify-center rounded-full ${current ? "bg-brand" : "bg-muted"}`}>
+            <ChevronRight color={current ? colors["on-brand"] : colors["muted-foreground"]} size={13} strokeWidth={2.4} />
+          </View>
+        )}
 
         {badge ? (
-          <View className="absolute rounded-full bg-brand/15 px-2 py-0.5" style={{ left: node / 2 + 6, top: (node - CARD_H) / 2 - 18 }}>
+          <View className="absolute left-4 rounded-full bg-brand/15 px-2 py-0.5" style={{ top: -18 }}>
             <Text className="text-[10px] font-bold text-brand">{badge}</Text>
           </View>
         ) : null}
