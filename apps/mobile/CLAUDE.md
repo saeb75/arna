@@ -184,7 +184,7 @@ apps/mobile/src/
 │   ├── index.tsx               # auth kapısı: session varsa /lessons, yoksa /login
 │   ├── login.tsx
 │   ├── (tabs)/                 # SEKME KABUĞU — grup, URL'e segment EKLEMEZ
-│   │   ├── _layout.tsx         #   auth kapısı + <Tabs tabBar={<TabBar/>}>
+│   │   ├── _layout.tsx         #   auth kapısı + <AppTabs/> (NativeTabs)
 │   │   ├── lessons.tsx         #   → /lessons (ders yolu, ana ekran)
 │   │   ├── practice.tsx        #   → /practice
 │   │   └── profile.tsx         #   → /profile
@@ -260,10 +260,13 @@ testiyle doğrulandı).
 
 **Sekme kabuğu:** üç sekme `(tabs)` grubunda yaşar; grup parantezli olduğu için
 `/lessons` gibi URL'ler DEĞİŞMEZ. Auth kapısı artık her rotada tekrarlanmaz, tek
-yerde — `(tabs)/_layout.tsx`. Barın tamamı `components/shared/TabBar.tsx`'te;
-layout dosyası stil taşımaz (ince rota kuralı). Tam ekran akışlar (ders, ünite
-testi) grubun DIŞINDA durur, böylece bar onları bölemez. Bar içeriğin üstünde
-yüzdüğü için sekme ekranları alt boşluk bırakır.
+yerde — `(tabs)/_layout.tsx`. Bar NATIVE (13 Kas 2026, kullanıcı kararı; yüzen JS bar
+emekli): `screens/root/AppTabs.tsx` → `expo-router/unstable-native-tabs` (iOS 26 cam bar,
+Android Material 3; yerel kod react-native-screens'te — yeni paket yok, OTA ile gider).
+Otomatik içerik boşluğu KAPALI (`disableAutomaticContentInsets`): ekranlar üst/alt
+boşluğu kendisi verir, yoksa iOS üst boşluğu ikinci kez ekliyor. iOS'ta bar içeriğin
+üstünde durduğu için sekme ekranları alt boşluğu `useTabBarSpace()` kadar bırakır.
+Tam ekran akışlar (ders, ünite testi) grubun DIŞINDA durur, böylece bar onları bölemez.
 
 **Güvenli alan (`useSafeAreaInsets`) ve yüzde genişlik gibi ÇALIŞMA ZAMANI
 değerleri** NativeWind sınıfıyla ifade edilemez; bunlar `style={{…}}` ile ve
