@@ -343,7 +343,9 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
   kullanıcı açıkça istemeden değişmez.
 - **Ders ekranı düzeni (5 Kas 2026, kullanıcı kararı; 12 Kas 2026 güncellemesi):** avatar
   SAĞ ÜST köşede yüzen 2:3 kart (120×180, `LessonStage`) — ad/durum satırı YOK; ilk söz
-  avatarın yanına sığar, sonrakiler altından tam genişlik akar; hoca yazısı 17px. Avatar
+  avatarın yanına sığar, sonrakiler altından tam genişlik akar; hoca yazısı 17px. İngilizce
+  ÖRNEK CÜMLE kendi satırında durur (`domain/richText.separateExamples` — vurgulu + cümle
+  sonu noktalamalı `en` parçası; kalıp adı satır içinde kalır; yalnız gösterim). Avatar
   ağaçta tek yerde (oyun bloğunda küçülür, yeniden bağlanmaz); altında dersin TÜM konuşması
   kaydırılabilir akış (`CaptionCard` hoca, `MessageBubble` öğrenci). O anki görevin
   sorusu akışta `TaskCard` olarak durur (MCQ şıkları içinde, dokunmak ANINDA gönderir);
@@ -364,6 +366,9 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
   `handleUserText`/`pressMic` `drills`te hiçbir şey yapmaz; konuşma kartının mikrofonu
   `LessonDrillController.pressSpeak/releaseSpeak`. Blok bitince özet kartı → "Rol yapmaya geç"
   (`afterDrills`). Eski formatlı dersler (exercise beat'leri) aynen çalışır.
+  Her madde açılınca hoca maddenin başlığını (`tr.drill.instruction`, `l1` etiketli) sesli okur,
+  dinleme maddesi / konuşma kartının İngilizce sesi ARDINDAN çalar (13 Kas 2026, kullanıcı isteği).
+  Ünite testinde okunmaz: testin oturumsuz `/v1/tts`'i yalnız İngilizce okur.
 - **Oyun bileşenleri ORTAK** (`components/shared/drills/`, 10 Kas 2026): ders oyun bloğu ve ünite
   testi aynı `DrillCard` + tür bileşenlerini kullanır. Bileşenler G/Ç bilmez; ses, kontrol, ilerleme,
   dokun-çevir, "Konuyu hatırla" ve konuşma kartı `DrillHost` bağlamından gelir — ders

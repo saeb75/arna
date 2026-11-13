@@ -1,5 +1,6 @@
 import { Text } from "react-native";
 import type { RichText } from "@glotmate/contracts";
+import { separateExamples } from "../../domain/richText";
 
 /**
  * Ardışık parçalar bitişik yazılmasın ("başlayalım.Today" canlı hatası) — ama
@@ -20,7 +21,7 @@ function needsSpace(prev: string | undefined, cur: string): boolean {
  * <bdi>) RN'de kendiliğinden sağlanır.
  */
 export function RunsText({
-  runs,
+  runs: input,
   onPrimary = false,
   plain = false,
   size = "md",
@@ -35,6 +36,7 @@ export function RunsText({
   size?: "md" | "lg";
   className?: string;
 }) {
+  const runs = separateExamples(input); // örnek cümle kendi satırında
   const body = onPrimary ? "text-primary-foreground" : "text-foreground";
   const en = onPrimary ? "text-primary-foreground" : "text-brand";
   return (

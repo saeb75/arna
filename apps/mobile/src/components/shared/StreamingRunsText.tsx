@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { View } from "react-native";
 import Animated, { Easing, FadeIn } from "react-native-reanimated";
 import type { RichText } from "@glotmate/contracts";
+import { separateExamples } from "../../domain/richText";
 
 /**
  * AKAN YAZI — hocanın sözü kelime kelime yumuşak solmayla belirir (5 Kas 2026, kullanıcı
@@ -33,7 +34,8 @@ function needsSpace(prev: string | undefined, cur: string): boolean {
 
 type Token = { kind: "word"; text: string; en: boolean; bold: boolean } | { kind: "break"; blank: boolean };
 
-function tokenize(runs: RichText): Token[] {
+function tokenize(input: RichText): Token[] {
+  const runs = separateExamples(input); // örnek cümle kendi satırında
   const out: Token[] = [];
   let glued = false; // önceki kelimeye yapışacak (boşluksuz devam)
   runs.forEach((r, i) => {

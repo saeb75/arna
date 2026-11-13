@@ -93,25 +93,50 @@ export class LessonDrillController {
   }
 
   /**
-   * Yeni madde ekranda: dinleme maddesi ve konuşma kartı sesi kendiliğinden çalar —
-   * konuşma kartında öğrenci önce doğru telaffuzu duyar ("Tekrar dinle" adı da buradan).
+   * Yeni madde ekranda: hoca önce maddenin BAŞLIĞINI okur ("Boşluğu doldur" — 13 Kas 2026,
+   * kullanıcı isteği), ardından dinleme maddesi ve konuşma kartında İngilizce ses çalar
+   * (konuşma kartında öğrenci önce doğru telaffuzu duyar). Başlık istemcinin sabit metni
+   * (i18n) — ekrandakiyle AYNI, `l1` etiketli. Öğrenci bu arada cevaplar, kayda basar ya
+   * da sonraki maddeye geçerse İngilizce ses çalmaz (stopPlayback onEnd'i çalıştırmaz;
+   * yine de madde anahtarıyla doğrulanır).
    */
   private static onItemShown(): void {
     const item = this.current();
-    if (item?.type === "listen_choose" || item?.type === "listen_arrange") this.play(item.audio);
-    else if (item?.type === "speak") this.play(item.sentence);
+    const { drill } = this.store();
+    if (!item || !drill) return;
+    const key = drillItemKey(item, drill);
+    const audio =
+      item.type === "listen_choose" || item.type === "listen_arrange"
+        ? item.audio
+        : item.type === "speak"
+          ? item.sentence
+          : null;
+    this.say([{ lang: "l1", text: tr.drill.instruction[item.type] }], () => {
+      if (!audio) return;
+      const now = this.current();
+      const { drill: d, drillVerdict, recording, busy } = this.store();
+      if (!now || !d || drillItemKey(now, d) !== key || drillVerdict || recording || busy) return;
+      this.play(audio);
+    });
   }
 
   /** İngilizce cümleyi seslendir (dinleme maddesi, konuşma kartı örneği) — avatar ağzı da oynar */
   static play(text: string): void {
+    this.say([{ lang: "en", text }]);
+  }
+
+  /** Hocanın sesiyle oku; bitince (ya da TTS düşünce) `after` — TAM BİR KEZ (VoiceService settle) */
+  private static say(runs: RichText, after?: () => void): void {
     const { sessionId, stopped } = this.store();
     if (!sessionId || stopped) return;
-    const runs: RichText = [{ lang: "en", text }];
     this.store().set({ speaking: true });
     void VoiceService.speak(
       sessionId,
       runs,
-      () => this.store().set({ speaking: false }),
+      () => {
+        this.store().set({ speaking: false });
+        after?.();
+      },
       () => LessonSync.notify(tr.notice.audioFailed),
     );
   }
