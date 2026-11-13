@@ -90,7 +90,7 @@ export function StreamingRunsText({
 }) {
   const tokens = useMemo(() => tokenize(runs), [runs]);
   const step = stepFor(tokens.filter((t) => t.kind === "word").length);
-  const text = size === "lg" ? "text-[19px] leading-[27px]" : "text-[16px] leading-6";
+  const text = size === "lg" ? "text-[17px] leading-[25px]" : "text-[15px] leading-[22px]";
 
   let w = 0;
   return (

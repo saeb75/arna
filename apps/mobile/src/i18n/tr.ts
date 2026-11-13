@@ -319,9 +319,6 @@ export const tr = {
     taskEyebrow: (i: number, n: number) => `ALIŞTIRMA ${i}/${n}`,
     taskSayOrType: "Cevabını söyle ya da yaz",
     taskChooseOrSay: "Bir şık seç ya da cevabı söyle",
-    listening: "dinliyor",
-    waiting: "cevabını bekliyor",
-    talking: "konuşuyor",
     practiceTargets: "Bu sohbette kullan",
   },
 

@@ -10,11 +10,11 @@ import { LoadFailed } from "../../components/ui/LoadFailed";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { LessonSessionController } from "../../controllers/LessonSessionController";
 import { tr } from "../../i18n/tr";
-import { useLessonSessionStore } from "../../stores/useLessonSessionStore";
+import { useLessonSessionStore, type LessonMessage } from "../../stores/useLessonSessionStore";
 import { CaptionCard } from "./CaptionCard";
 import { HintCard } from "./HintCard";
 import { LessonDock } from "./LessonDock";
-import { LessonStage } from "./LessonStage";
+import { LessonStage, STAGE_SIZE } from "./LessonStage";
 import { LessonStart } from "./LessonStart";
 import { LessonTopBar } from "./LessonTopBar";
 import { lessonProgress } from "./lessonProgress";
@@ -30,8 +30,8 @@ import { DrillStage } from "./drills/DrillStage";
  * basılı mikrofon asla disabled, MCQ yalnız `exercise+choice`, "Dersi Bitir"
  * yalnız wrapup, ✕ = exit() (bitirme DEĞİL).
  *
- * Düzen (5 Kas 2026, kullanıcı kararı): avatar solda küçük 2:3 kart, altında
- * dersin TÜM konuşması kaydırılabilir akış — eski "yalnız o anki söz" düzeninde
+ * Düzen (5 Kas 2026; 12 Kas 2026'da avatar sağ üst köşeye yüzen karta geçti, ad/durum
+ * satırı kalktı, ilk söz avatarın yanına sığar, gerisi altından akar): dersin TÜM konuşması kaydırılabilir akış — eski "yalnız o anki söz" düzeninde
  * geçmişi görmek için Transkript sheet'ine dokunmak gerekiyordu. O anki görev
  * kartı akışta kendi sorusunun yerinde durur (MCQ şıkları içinde). Yeni söz
  * düşünce akış yalnız kullanıcı zaten en alttaysa kayar — geçmişi okurken
@@ -123,6 +123,33 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
   const taskBeats = lesson.lecture.beats.filter((b) => b.kind === "exercise" || b.kind === "open_response");
   const ordinal = lesson.lecture.beats.slice(0, beatIndex + 1).filter((b) => b.kind === "exercise" || b.kind === "open_response").length;
 
+  const isTaskPrompt = (m: LessonMessage) =>
+    !!task && !!beat && (beat.kind === "exercise" || beat.kind === "open_response") && m.id === promptMessageId;
+  // Ekranda bir şey çizen sözler — ilki avatarın yanına yerleşir
+  const visible = messages.filter(
+    (m) => isTaskPrompt(m) || m.role === "user" || m.text.trim() || m.points?.length || m.runs?.length,
+  );
+  const renderMessage = (m: LessonMessage) => {
+    // O anki görevin sorusu: görev kartı (MCQ şıkları dahil) — geçmiş görevler düz söz
+    if (isTaskPrompt(m) && beat && (beat.kind === "exercise" || beat.kind === "open_response")) {
+      return (
+        <TaskCard
+          key={m.id}
+          ordinal={ordinal}
+          total={taskBeats.length}
+          prompt={beat.runs}
+          options={choice}
+          // MCQ yalnız soru sorulduktan SONRA dokunulur (awaiting exercise) — eski kural
+          locked={inputLocked || awaiting !== "exercise"}
+          onSelect={(opt) => LessonSessionController.submitOption(opt)}
+        />
+      );
+    }
+    if (m.role === "user") return <MessageBubble key={m.id} role="user" text={m.text} runs={m.runs} />;
+    // Akan yazı yalnız EN YENİ sözde (geçmiş anında görünür; animate bağlanışta okunur)
+    return <CaptionCard key={m.id} message={m} animate={m.id === lastId} />;
+  };
+
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1 bg-canvas">
       {/* Üst güvenli alan ÇALIŞMA ZAMANI değeri — gerekçeli inline stil */}
@@ -134,59 +161,60 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
         />
       </View>
 
-      <LessonStage
-        speaking={speaking}
-        avatarId={avatarId}
-        tutorName={tutorName}
-        activity={recording ? "listening" : busy && !speaking ? "thinking" : "idle"}
-        compact={!!drills}
-      />
-
       {phase === "practice" && <PracticeTargets phrases={lesson.practice.mustUse} used={practiceUsed} />}
 
-      {drills ? (
-        // Alt güvenli alan ÇALIŞMA ZAMANI değeri — gerekçeli inline stil (rıhtım yokken CTA'yı korur)
-        <Animated.View key="drills" entering={FadeInDown.duration(380)} className="flex-1" style={{ paddingBottom: insets.bottom + 8 }}>
-          <DrillStage items={drills} />
-          {notice && <NoticeBar text={notice} />}
-        </Animated.View>
-      ) : (
-        <>
-        <ScrollView
-          ref={scrollRef}
-          className="flex-1"
-          contentContainerClassName="gap-3 px-4 pb-4"
-          showsVerticalScrollIndicator={false}
-          onScroll={onScroll}
-          scrollEventThrottle={64}
-          // İçerik büyüdüğünde (yeni söz, uzun anlatım) en alttaysak altta kal
-          onContentSizeChange={() => {
-            if (atBottomRef.current) scrollRef.current?.scrollToEnd({ animated: true });
-          }}
-        >
-          {messages.map((m) => {
-            // O anki görevin sorusu: görev kartı (MCQ şıkları dahil) — geçmiş görevler düz söz
-            if (task && beat && (beat.kind === "exercise" || beat.kind === "open_response") && m.id === promptMessageId) {
-              return (
-                <TaskCard
-                  key={m.id}
-                  ordinal={ordinal}
-                  total={taskBeats.length}
-                  prompt={beat.runs}
-                  options={choice}
-                  // MCQ yalnız soru sorulduktan SONRA dokunulur (awaiting exercise) — eski kural
-                  locked={inputLocked || awaiting !== "exercise"}
-                  onSelect={(opt) => LessonSessionController.submitOption(opt)}
-                />
+      <View className="flex-1">
+        {drills ? (
+          // Alt güvenli alan ÇALIŞMA ZAMANI değeri — gerekçeli inline stil (rıhtım yokken CTA'yı korur).
+          // Üst boşluk = köşedeki küçük avatar (96) + aralık
+          <Animated.View key="drills" entering={FadeInDown.duration(380)} className="flex-1 pt-[108px]" style={{ paddingBottom: insets.bottom + 8 }}>
+            <DrillStage items={drills} />
+            {notice && <NoticeBar text={notice} />}
+          </Animated.View>
+        ) : (
+          <ScrollView
+            ref={scrollRef}
+            className="flex-1"
+            contentContainerClassName="gap-3 px-4 pb-4 pt-1"
+            showsVerticalScrollIndicator={false}
+            onScroll={onScroll}
+            scrollEventThrottle={64}
+            // İçerik büyüdüğünde (yeni söz, uzun anlatım) en alttaysak altta kal
+            onContentSizeChange={() => {
+              if (atBottomRef.current) scrollRef.current?.scrollToEnd({ animated: true });
+            }}
+          >
+            {visible.map((m, i) => {
+              const el = renderMessage(m);
+              // İlk söz sağ üstteki avatarın YANINA sığar; sonraki sözler avatarın altından tam genişlik akar.
+              // Ölçü avatar kartından gelir — gerekçeli inline stil
+              return i === 0 ? (
+                <View key={m.id} style={{ marginRight: STAGE_SIZE.width + 12, minHeight: STAGE_SIZE.height }}>
+                  {el}
+                </View>
+              ) : (
+                el
               );
-            }
-            if (m.role === "user") return <MessageBubble key={m.id} role="user" text={m.text} runs={m.runs} />;
-            if (!m.text.trim() && !m.points?.length && !m.runs?.length) return null;
-            // Akan yazı yalnız EN YENİ sözde (geçmiş anında görünür; animate bağlanışta okunur)
-            return <CaptionCard key={m.id} message={m} animate={m.id === lastId} />;
-          })}
-        </ScrollView>
+            })}
+          </ScrollView>
+        )}
 
+        {/* Avatar SAĞ ÜST köşede yüzer (12 Kas 2026, kullanıcı kararı) — ad/durum satırı yok, yanındaki
+            alan konuşmaya kalır. Ağaçta TEK yerde: oyun bloğuna geçişte yeniden bağlanmaz (3D WebView yeniden yüklenmesin).
+            Dokunuşu yutmaz — altından kaydırma çalışır */}
+        <View pointerEvents="none" className="absolute right-4 top-1">
+          <LessonStage
+            speaking={speaking}
+            avatarId={avatarId}
+            tutorName={tutorName}
+            activity={recording ? "listening" : busy && !speaking ? "thinking" : "idle"}
+            compact={!!drills}
+          />
+        </View>
+      </View>
+
+      {!drills && (
+        <>
         {hint && <HintCard hint={hint} label={lesson.ui.labels.hint} />}
         {notice && <NoticeBar text={notice} />}
         {phase === "wrapup" && (

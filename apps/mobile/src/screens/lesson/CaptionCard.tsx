@@ -18,7 +18,7 @@ export function CaptionCard({ message, animate = false }: { message: LessonMessa
         <View className="gap-3">
           {message.points.map((p, i) => (
             <View key={i} className="flex-row gap-3">
-              <View className="mt-3 size-1.5 rounded-full bg-brand" />
+              <View className="mt-2.5 size-1.5 rounded-full bg-brand" />
               <StreamingRunsText runs={p} animate={animate} className="flex-1" />
             </View>
           ))}
@@ -26,7 +26,7 @@ export function CaptionCard({ message, animate = false }: { message: LessonMessa
       ) : message.runs?.length ? (
         <StreamingRunsText runs={message.runs} animate={animate} />
       ) : (
-        <Text className="text-[19px] leading-[27px] text-foreground">{message.text}</Text>
+        <Text className="text-[17px] leading-[25px] text-foreground">{message.text}</Text>
       )}
     </Animated.View>
   );

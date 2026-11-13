@@ -341,8 +341,10 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
   orada biter. Ünite görselsiz başlıkla açılır (`UnitHeader`: ayraç + no/ilerleme +
   başlık + `goal`). Dokununca `NodePopover` (ad, "Ders 3 / 6", tek eylem). Düzen
   kullanıcı açıkça istemeden değişmez.
-- **Ders ekranı düzeni (5 Kas 2026, kullanıcı kararı):** avatar SOLDA küçük 2:3 kart
-  (120×180) + yanında ad/durum (`LessonStage`); altında dersin TÜM konuşması
+- **Ders ekranı düzeni (5 Kas 2026, kullanıcı kararı; 12 Kas 2026 güncellemesi):** avatar
+  SAĞ ÜST köşede yüzen 2:3 kart (120×180, `LessonStage`) — ad/durum satırı YOK; ilk söz
+  avatarın yanına sığar, sonrakiler altından tam genişlik akar; hoca yazısı 17px. Avatar
+  ağaçta tek yerde (oyun bloğunda küçülür, yeniden bağlanmaz); altında dersin TÜM konuşması
   kaydırılabilir akış (`CaptionCard` hoca, `MessageBubble` öğrenci). O anki görevin
   sorusu akışta `TaskCard` olarak durur (MCQ şıkları içinde, dokunmak ANINDA gönderir);
   geçmiş görevler düz söz. Yeni söz yalnız kullanıcı zaten en alttaysa akışı kaydırır.
