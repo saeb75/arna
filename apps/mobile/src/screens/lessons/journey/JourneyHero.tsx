@@ -59,7 +59,7 @@ export function JourneyHero({
         </Text>
       </View>
 
-      <View className="absolute inset-x-4 bottom-3">
+      <View className="absolute inset-x-4 bottom-6">
         <JourneyTodayCard {...today} />
       </View>
     </View>

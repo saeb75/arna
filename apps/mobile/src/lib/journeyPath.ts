@@ -8,14 +8,15 @@ import { buildPathRows, LEVEL_ROW_H, UNIT_ROW_H, type LevelState, type PathStop 
  * SAF dönüşüm: `buildPathRows`un durumları (completed/current/ready/upcoming, alt
  * seviyede "geçilmiş müfredat") AYNEN kullanılır — yalnız çizim değişir: her satırda
  * TEK durak (düğüm + hap kart), iki sütun arasında zikzak, ünite içinde düğümleri
- * yumuşak S eğrisiyle bağlayan yol. Kaldığın ünitenin başlığı yerine büyük başlık
- * bölümü (hero) durur ve ekran oraya açılır.
+ * yılankavi yolla bağlanır. Büyük başlık bölümü (hero) ekranın ÜSTÜNDE SABİTTİR (liste
+ * satırı değil — 13 Kas 2026, kullanıcı: "yukarıdaki alan sabit olacak"); başlığı o an
+ * ekranın tepesindeki ünitedir (`journeyContexts`), ekran kaldığın üniteye açılır.
  */
 
 // Ölçüler referans görselden (küçük, sade; ekrana ~7 durak sığar): düğüm 46, kart 50, satır 72
 export const JOURNEY_STOP_H = 72;
 export const JOURNEY_TEST_H = 72;
-export const JOURNEY_HERO_H = 304;
+export const JOURNEY_HERO_H = 316;
 /** Düğümün yatay konumu — ekran genişliğinin oranı (sol / sağ sütun) */
 export const JOURNEY_COLS = [0.2, 0.45] as const;
 /** Hap kartın sağ kenarı — ekran genişliğinin oranı (sütun başına) */
@@ -26,7 +27,6 @@ const TURN_X = [0.07, 0.8] as const;
 export type JourneyRow =
   | { kind: "level"; key: string; level: CefrLevel; label: string; state: LevelState }
   | { kind: "unit"; key: string; unitIndex: number; title: string; goal: string; done: number; total: number }
-  | { kind: "hero"; key: string; level: CefrLevel; levelLabel: string; unitIndex: number; title: string; goal: string }
   | {
       kind: "stop";
       key: string;
@@ -48,8 +48,6 @@ export function journeyRowHeight(row: JourneyRow): number {
       return LEVEL_ROW_H;
     case "unit":
       return UNIT_ROW_H;
-    case "hero":
-      return JOURNEY_HERO_H;
     case "stop":
       return row.stop.kind === "test" ? JOURNEY_TEST_H : JOURNEY_STOP_H;
   }
@@ -58,7 +56,6 @@ export function journeyRowHeight(row: JourneyRow): number {
 export function buildJourneyRows(curriculum: CurriculumResponse): JourneyRow[] {
   const out: JourneyRow[] = [];
   let level: CefrLevel = curriculum.level;
-  let levelLabel = curriculum.label;
   // Bir ünitenin durakları toplanır, ünite bitince satırlara dökülür (komşu sütun bilgisi için)
   let pending: PathStop[] = [];
 
@@ -89,7 +86,6 @@ export function buildJourneyRows(curriculum: CurriculumResponse): JourneyRow[] {
     flush();
     if (row.kind === "level") {
       level = row.level;
-      levelLabel = row.label;
       out.push(row);
     } else {
       out.push({ kind: "unit", key: row.key, unitIndex: row.unitIndex, title: row.title, goal: row.goal, done: row.done, total: row.total });
@@ -97,33 +93,6 @@ export function buildJourneyRows(curriculum: CurriculumResponse): JourneyRow[] {
   }
   flush();
 
-  // Hero: kaldığın dersin ünitesi; yoksa profil seviyesinin ilk ünitesi. Ünite başlığının YERİNİ alır.
-  let heroAt = -1;
-  const cur = out.findIndex((r) => r.kind === "stop" && r.stop.state === "current");
-  if (cur >= 0) {
-    for (let i = cur; i >= 0; i--) if (out[i]!.kind === "unit") { heroAt = i; break; }
-  } else {
-    const lv = out.findIndex((r) => r.kind === "level" && r.level === curriculum.level);
-    heroAt = out.findIndex((r, i) => i > lv && r.kind === "unit");
-  }
-  const unit = out[heroAt];
-  if (unit?.kind === "unit") {
-    // Ünitenin seviyesi: yukarıdaki en yakın seviye başlığı
-    let lv: Extract<JourneyRow, { kind: "level" }> | null = null;
-    for (let i = heroAt; i >= 0; i--) {
-      const r = out[i]!;
-      if (r.kind === "level") { lv = r; break; }
-    }
-    out[heroAt] = {
-      kind: "hero",
-      key: `hero-${unit.key}`,
-      level: lv?.level ?? level,
-      levelLabel: lv?.label ?? levelLabel,
-      unitIndex: unit.unitIndex,
-      title: unit.title,
-      goal: unit.goal,
-    };
-  }
   return out;
 }
 
@@ -137,8 +106,73 @@ export function journeyOffsets(rows: JourneyRow[]): number[] {
   return offsets;
 }
 
-export function journeyHeroIndex(rows: JourneyRow[]): number {
-  return Math.max(0, rows.findIndex((r) => r.kind === "hero"));
+/**
+ * Açılışta listenin tepesine gelecek satır: kaldığın dersin ünitesinin İLK DURAĞI (ünite
+ * başlığı sabit başlık bölümünde zaten yazıyor — satır tekrar görünmesin); kaldığın ders
+ * yoksa profil seviyesinin ilk ünitesi.
+ */
+export function journeyStartIndex(rows: JourneyRow[], profileLevel: CefrLevel): number {
+  const cur = rows.findIndex((r) => r.kind === "stop" && r.stop.state === "current");
+  if (cur >= 0) {
+    for (let i = cur; i >= 0; i--) if (rows[i]!.kind === "unit") return Math.min(i + 1, rows.length - 1);
+    return cur;
+  }
+  const lv = rows.findIndex((r) => r.kind === "level" && r.level === profileLevel);
+  const unit = rows.findIndex((r, i) => i > lv && r.kind === "unit");
+  return unit >= 0 ? Math.min(unit + 1, rows.length - 1) : Math.max(0, lv);
+}
+
+/** Sabit başlık bölümünün gösterdiği ünite */
+export interface JourneyContext {
+  level: CefrLevel;
+  levelLabel: string;
+  title: string;
+  goal: string;
+}
+
+/**
+ * Her satır için başlıkta görünecek ünite: satırın ait olduğu ünite; seviye başlığında
+ * (henüz üniteye girilmedi) o seviyenin ilk ünitesi. Ardışık satırlar AYNI nesneyi paylaşır
+ * (kaydırırken gereksiz yeniden çizim olmasın).
+ */
+export function journeyContexts(rows: JourneyRow[]): JourneyContext[] {
+  const out: JourneyContext[] = new Array(rows.length);
+  let level: CefrLevel = "A1";
+  let levelLabel = "";
+  let ctx: JourneyContext | null = null;
+  rows.forEach((r, i) => {
+    if (r.kind === "level") {
+      level = r.level;
+      levelLabel = r.label;
+      const next = rows.slice(i + 1).find((x) => x.kind === "unit");
+      ctx = next?.kind === "unit" ? { level, levelLabel, title: next.title, goal: next.goal } : ctx;
+    } else if (r.kind === "unit") {
+      ctx = { level, levelLabel, title: r.title, goal: r.goal };
+    }
+    out[i] = ctx ?? { level, levelLabel, title: "", goal: "" };
+  });
+  // Seviye başlığı ile ilk ünitesi aynı bağlamı paylaşsın
+  for (let i = 0; i < rows.length - 1; i++) {
+    const a = out[i]!;
+    const b = out[i + 1]!;
+    if (a !== b && a.title === b.title && a.level === b.level) out[i + 1] = a;
+  }
+  return out;
+}
+
+/** `offset <= y` olan SON satır — ikili arama */
+export function journeyIndexAt(offsets: number[], y: number): number {
+  let lo = 0;
+  let hi = offsets.length - 1;
+  let ans = 0;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (offsets[mid]! <= y) {
+      ans = mid;
+      lo = mid + 1;
+    } else hi = mid - 1;
+  }
+  return ans;
 }
 
 /**

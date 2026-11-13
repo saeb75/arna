@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -12,7 +12,17 @@ import { MeController } from "../../../controllers/MeController";
 import { tutorHero } from "../../../domain/tutorHero";
 import { tutorPortrait } from "../../../domain/tutors";
 import { tr } from "../../../i18n/tr";
-import { buildJourneyRows, journeyHeroIndex, journeyOffsets, journeyRowHeight, type JourneyRow } from "../../../lib/journeyPath";
+import {
+  buildJourneyRows,
+  journeyContexts,
+  journeyIndexAt,
+  journeyOffsets,
+  journeyRowHeight,
+  journeyStartIndex,
+  JOURNEY_HERO_H,
+  type JourneyContext,
+  type JourneyRow,
+} from "../../../lib/journeyPath";
 import { currentPlacement } from "../../../lib/lessonPath";
 import { useCurriculumStore } from "../../../stores/useCurriculumStore";
 import { useMeStore } from "../../../stores/useMeStore";
@@ -29,9 +39,10 @@ import { JourneyStop } from "./JourneyStop";
  * rotada tek satır (`app/(tabs)/lessons.tsx`).
  *
  * Aynı veri, aynı durumlar (`buildPathRows`); yalnız çizim farklı: A1→C2 tek liste,
- * seviye/ünite başlıkları, satır başına tek durak (düğüm + hap kart) zikzak, ünite içinde
- * S eğrili yol. Kaldığın ünitenin başlığı yerine büyük başlık bölümü (öğretmen portresi +
- * bugünkü ders) durur ve ekran ORAYA açılır; yukarı kaydırınca önceki üniteler/seviyeler.
+ * seviye/ünite başlıkları, satır başına tek durak (düğüm + hap kart) zikzak, yılankavi yol.
+ * Büyük başlık bölümü (selam + seri, ünite adı, öğretmen, bugünkü ders) ÜSTTE SABİT, yol onun
+ * altından kayar (13 Kas 2026, kullanıcı); başlık o an tepedeki üniteyi gösterir. Ekran
+ * kaldığın ünitenin ilk durağına açılır.
  */
 export function JourneyScreen() {
   const colors = useThemeColors();
@@ -41,17 +52,42 @@ export function JourneyScreen() {
   const me = useMeStore((s) => s.me);
   const stats = useMeStore((s) => s.stats);
 
+  const rows = useMemo<JourneyRow[]>(() => (curriculum ? buildJourneyRows(curriculum) : []), [curriculum]);
+  const offsets = useMemo(() => journeyOffsets(rows), [rows]);
+  const contexts = useMemo(() => journeyContexts(rows), [rows]);
+  const startIndex = curriculum ? journeyStartIndex(rows, curriculum.level) : 0;
+  // Sunumsal yerel durum: başlıkta görünen ünite (kaydırmayı izler)
+  const [scrollCtx, setScrollCtx] = useState<JourneyContext | null>(null);
+
+  /**
+   * Kaldığın üniteye KONUMLAMA: `initialScrollIndex` yalnız ilk çizimde okunur. Ekran önbellekteki
+   * (eski) müfredatla açılıp taze veri gelince başlık birkaç satır kayıyordu ve ekran önceki
+   * seviyenin ortasında açılıyordu (canlı, 13 Kas 2026). Kullanıcı kendisi kaydırmadıkça her veri
+   * değişiminde ve her odaklanmada başlığa yeniden konumlanır.
+   */
+  const listRef = useRef<FlatList<JourneyRow>>(null);
+  const userScrolled = useRef(false);
+  const startRef = useRef(startIndex);
+  startRef.current = startIndex;
+  const scrollToHero = useCallback(() => {
+    if (userScrolled.current || !listRef.current) return;
+    listRef.current.scrollToIndex({ index: startRef.current, animated: false });
+    setScrollCtx(null); // başlık kaldığın üniteye döner
+  }, []);
+  useEffect(() => {
+    if (rows.length) requestAnimationFrame(scrollToHero);
+  }, [startIndex, rows.length, scrollToHero]);
+
   // ODAKLANMADA tazele: dersten dönüşte biten ders yeşile dönsün, dakika güncellensin
   useFocusEffect(
     useCallback(() => {
+      userScrolled.current = false;
+      requestAnimationFrame(scrollToHero);
       void CurriculumController.getCurriculum();
       void MeController.loadStats();
       void MeController.load();
-    }, []),
+    }, [scrollToHero]),
   );
-
-  const rows = useMemo<JourneyRow[]>(() => (curriculum ? buildJourneyRows(curriculum) : []), [curriculum]);
-  const offsets = useMemo(() => journeyOffsets(rows), [rows]);
 
   if (error && !curriculum) {
     return (
@@ -77,7 +113,6 @@ export function JourneyScreen() {
     );
   }
 
-  const heroIndex = journeyHeroIndex(rows);
   const placement = currentPlacement(curriculum);
   const goal = me?.profile?.dailyGoalMinutes ?? 10;
   const avatarId = me?.tutor?.avatarId ?? DEFAULT_AVATAR_ID;
@@ -85,18 +120,31 @@ export function JourneyScreen() {
   const hero = tutorHero(avatarId);
   const openLesson = (id: string) => router.push(`/lesson/${id}`);
 
+  const ctx = scrollCtx ?? contexts[startIndex] ?? null;
+  const headerH = insets.top + JOURNEY_HERO_H;
+
   return (
     <View className="flex-1 bg-canvas">
-      <ScreenGlow height={420} />
       <FlatList
+        ref={listRef}
         data={rows}
         keyExtractor={(row) => row.key}
         showsVerticalScrollIndicator={false}
-        // Güvenli alan + sekme barı ÇALIŞMA ZAMANI değerleri — gerekçeli inline stil
-        contentContainerStyle={{ paddingTop: insets.top, paddingBottom: bottom }}
+        // Sabit başlık + sekme barı ÇALIŞMA ZAMANI değerleri — gerekçeli inline stil
+        contentContainerStyle={{ paddingTop: headerH, paddingBottom: bottom }}
         getItemLayout={(_, index) => ({ length: journeyRowHeight(rows[index]!), offset: offsets[index] ?? 0, index })}
-        initialScrollIndex={heroIndex}
+        initialScrollIndex={startIndex}
         onScrollToIndexFailed={() => {}}
+        // Kullanıcı kendisi kaydırdıysa veri tazelenince yerinden oynatılmaz
+        onScrollBeginDrag={() => {
+          userScrolled.current = true;
+        }}
+        // Başlık, sabit bölümün hemen altındaki satırın ünitesini gösterir (satır uzayında contentOffset.y)
+        scrollEventThrottle={32}
+        onScroll={(e) => {
+          const next = contexts[journeyIndexAt(offsets, e.nativeEvent.contentOffset.y + 8)];
+          if (next) setScrollCtx((prev) => (prev === next ? prev : next));
+        }}
         initialNumToRender={12}
         windowSize={11}
         renderItem={({ item, index }) => {
@@ -105,25 +153,6 @@ export function JourneyScreen() {
               return <LevelBanner level={item.level} label={item.label} state={item.state} />;
             case "unit":
               return <UnitHeader unitIndex={item.unitIndex} title={item.title} goal={item.goal} done={item.done} total={item.total} />;
-            case "hero":
-              return (
-                <JourneyHero
-                  name={me?.profile?.displayName ?? ""}
-                  streak={stats?.streak ?? 0}
-                  title={item.title}
-                  goal={item.goal}
-                  portrait={portrait}
-                  hero={hero}
-                  today={{
-                    minutes: stats?.todayMinutes ?? 0,
-                    goal,
-                    title: placement?.lesson.title ?? tr.journey.levelDone,
-                    subtitle: `${item.level} · ${item.levelLabel}`,
-                    action: placement ? (placement.lesson.status === "in_progress" ? tr.journey.continue : tr.journey.start) : null,
-                    onPress: () => placement && openLesson(placement.lesson.id),
-                  }}
-                />
-              );
             case "stop": {
               const next = rows[index + 1];
               const { stop } = item;
@@ -141,11 +170,31 @@ export function JourneyScreen() {
         }}
       />
 
-      {/* Durum çubuğu zemini: içerik saatin altından geçerken okunur kalsın */}
-      <View pointerEvents="none" className="absolute inset-x-0 top-0" style={{ height: insets.top + 18 }}>
-        <View className="bg-canvas" style={{ height: insets.top }} />
-        <View style={{ height: 18 }}>
+      {/* SABİT BAŞLIK: opak zemin + marka ışığı; alttan yolun içine yumuşak solma */}
+      <View pointerEvents="box-none" className="absolute inset-x-0 top-0" style={{ height: headerH + 24 }}>
+        <View pointerEvents="none" className="absolute inset-x-0 top-0 overflow-hidden bg-canvas" style={{ height: headerH }}>
+          <ScreenGlow height={420} />
+        </View>
+        <View pointerEvents="none" className="absolute inset-x-0" style={{ top: headerH, height: 24 }}>
           <FadeFill color={colors.canvas} from={1} to={0} />
+        </View>
+        <View pointerEvents="box-none" style={{ paddingTop: insets.top }}>
+          <JourneyHero
+            name={me?.profile?.displayName ?? ""}
+            streak={stats?.streak ?? 0}
+            title={ctx?.title ?? ""}
+            goal={ctx?.goal ?? ""}
+            portrait={portrait}
+            hero={hero}
+            today={{
+              minutes: stats?.todayMinutes ?? 0,
+              goal,
+              title: placement?.lesson.title ?? tr.journey.levelDone,
+              subtitle: `${curriculum.level} · ${curriculum.label}`,
+              action: placement ? (placement.lesson.status === "in_progress" ? tr.journey.continue : tr.journey.start) : null,
+              onPress: () => placement && openLesson(placement.lesson.id),
+            }}
+          />
         </View>
       </View>
     </View>
