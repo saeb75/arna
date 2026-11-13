@@ -8,11 +8,12 @@ import { JOURNEY_CARD_RIGHT, JOURNEY_COLS, journeyLink, journeyRowHeight, type J
 import { HapticsService } from "../../../services/HapticsService";
 import { useThemeColors } from "../../../theme/useThemeColors";
 import { GLASS, GlassFill } from "./JourneyGlass";
+import { lessonIcon } from "../../../domain/lessonIcon";
 
 const ROAD_W = 14;
 const CARD_H = 50;
 /** Kartın sol kenarı yolun girdiği noktanın bu kadar solunda (yol kartın arkasında biter) */
-const CARD_LEAD = 24;
+const CARD_LEAD = 36;
 
 /**
  * Yolculuğun bir satırı: arkada yol parçası (SVG, saf geometri `journeyLink`), önde hap
@@ -24,6 +25,7 @@ const CARD_LEAD = 24;
  * kurulu derlemede zaten var → OTA): yol camın arkasından kırılarak görünür, dokunuşta
  * sistemin etkileşimli parlaması. Kaldığın ders marka, ünite testi altın tonlu cam. Cam
  * yoksa (Android, iOS ≤ 18) bugünkü dolu kart.
+ * Kartın solunda dersin KONU ikonu (14 Kas 2026, kullanıcı referansı; elle seçilmiş tablo).
  * Yükseklik lib'den (getItemLayout ile BİREBİR).
  */
 export function JourneyStop({
@@ -47,6 +49,7 @@ export function JourneyStop({
   const dim = stop.state === "upcoming";
   const done = stop.state === "completed";
   const left = x - CARD_LEAD;
+  const Icon = stop.kind === "lesson" ? lessonIcon(stop.lesson.id, stop.lesson.kind) : Trophy;
 
   const title = stop.kind === "lesson" ? stop.lesson.title : tr.home.unitTest(stop.unitIndex);
   const meta =
@@ -83,7 +86,7 @@ export function JourneyStop({
           HapticsService.tap();
           onPress();
         }}
-        className={`absolute flex-row items-center gap-2 rounded-full pl-4 pr-2.5 ${
+        className={`absolute flex-row items-center gap-2 rounded-full pl-2.5 pr-2.5 ${
           GLASS
             ? current
               ? "border border-brand/50"
@@ -100,7 +103,14 @@ export function JourneyStop({
           interactive
           tint={current ? withAlpha(colors.brand, 0.18) : isTest ? withAlpha(colors["test-face"], 0.22) : undefined}
         />
-        {isTest ? <Trophy color={colors["test-ink"]} size={16} strokeWidth={2.2} /> : null}
+        {/* Konu ikonu kutucuğu (ders başına elle seçilmiş — domain/lessonIcon); test kupa */}
+        <View
+          className={`size-8 items-center justify-center rounded-[10px] border ${
+            current ? "border-brand/30 bg-brand/15" : isTest ? "border-test-face/40 bg-test-face/15" : "border-border bg-muted/60"
+          }`}
+        >
+          <Icon color={current ? colors.brand : isTest ? colors["test-ink"] : colors["muted-foreground"]} size={15} strokeWidth={2.2} />
+        </View>
         <View className="flex-1 gap-0.5">
           <Text
             numberOfLines={2}

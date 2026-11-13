@@ -344,6 +344,18 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
   orada biter. Ünite görselsiz başlıkla açılır (`UnitHeader`: ayraç + no/ilerleme +
   başlık + `goal`). Dokununca `NodePopover` (ad, "Ders 3 / 6", tek eylem). Düzen
   kullanıcı açıkça istemeden değişmez.
+- **YOLCULUK GÖRÜNÜMÜ (13–14 Kas 2026, DENEME — `(tabs)/lessons.tsx` şu an bunu çizer;
+  tek satırla kıvrımlı yola dönülür, o kod dokunulmadan duruyor):** `screens/lessons/journey/`
+  + saf `lib/journeyPath.ts`. Üstte SABİT başlık: selam + seri, altında TEK cam kart (solda
+  kaldığın ders + Başla/Devam, sağda öğretmenin kulaklıklı figürü — `domain/tutorHero`);
+  ayrı "bugünkü ders" kartı yok, başlık kaydırmayla değişmez. Işık başlığın alt kenarında
+  TAM söner (kesilirse yolla arasında çizgi belirir). Altında yılankavi yol, satır başına
+  TEK hap kart (yuvarlak düğüm yok; durum kartta: marka çerçeve + rozet / yeşil onay / altın
+  test), satır 108 (kıvrımlar kartlar arasında görünsün). Kartın solunda dersin KONU ikonu:
+  `domain/lessonIcon.ts`, 395 dersin her biri için ELLE seçilmiş tablo (yeni ders → satır
+  ekle; yoksa ders tipine göre yedek), ardışık iki ders aynı ikonu almaz. Kartlar ve başlık
+  iOS 26'da NATIVE Liquid Glass (`JourneyGlass`, `expo-glass-effect` derlemede var → OTA);
+  cam yoksa dolu kart.
 - **Ders ekranı düzeni (5 Kas 2026, kullanıcı kararı; 12 Kas 2026 güncellemesi):** avatar
   SAĞ ÜST köşede yüzen 2:3 kart (120×180, `LessonStage`) — ad/durum satırı YOK; ilk söz
   avatarın yanına sığar, sonrakiler altından tam genişlik akar; hoca yazısı 17px. İngilizce
