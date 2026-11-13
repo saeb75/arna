@@ -9,8 +9,8 @@ import { buildPathRows, LEVEL_ROW_H, UNIT_ROW_H, type LevelState, type PathStop 
  * seviyede "geçilmiş müfredat") AYNEN kullanılır — yalnız çizim değişir: her satırda
  * TEK durak (düğüm + hap kart), iki sütun arasında zikzak, ünite içinde düğümleri
  * yılankavi yolla bağlanır. Büyük başlık bölümü (hero) ekranın ÜSTÜNDE SABİTTİR (liste
- * satırı değil — 13 Kas 2026, kullanıcı: "yukarıdaki alan sabit olacak"); başlığı o an
- * ekranın tepesindeki ünitedir (`journeyContexts`), ekran kaldığın üniteye açılır.
+ * satırı değil — 13 Kas 2026, kullanıcı: "yukarıdaki alan sabit olacak"); başlığı HEP kaldığın
+ * dersin ünitesidir, kaydırmayla değişmez (`journeyContexts[journeyStartIndex]`).
  */
 
 // Ölçüler referans görselden (küçük, sade; ekrana ~7 durak sığar): düğüm 46, kart 50, satır 72
@@ -131,7 +131,7 @@ export interface JourneyContext {
 }
 
 /**
- * Her satır için başlıkta görünecek ünite: satırın ait olduğu ünite; seviye başlığında
+ * Her satırın ünitesi (başlık kaldığın yerinkini okur): satırın ait olduğu ünite; seviye başlığında
  * (henüz üniteye girilmedi) o seviyenin ilk ünitesi. Ardışık satırlar AYNI nesneyi paylaşır
  * (kaydırırken gereksiz yeniden çizim olmasın).
  */
@@ -160,20 +160,6 @@ export function journeyContexts(rows: JourneyRow[]): JourneyContext[] {
   return out;
 }
 
-/** `offset <= y` olan SON satır — ikili arama */
-export function journeyIndexAt(offsets: number[], y: number): number {
-  let lo = 0;
-  let hi = offsets.length - 1;
-  let ans = 0;
-  while (lo <= hi) {
-    const mid = (lo + hi) >> 1;
-    if (offsets[mid]! <= y) {
-      ans = mid;
-      lo = mid + 1;
-    } else hi = mid - 1;
-  }
-  return ans;
-}
 
 /**
  * Bu düğümden ALTTAKİ düğüme giden yol (SVG `d`), satırın kendi kutusunda — YILANKAVİ

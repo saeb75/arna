@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { FlatList, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,12 +15,10 @@ import { tr } from "../../../i18n/tr";
 import {
   buildJourneyRows,
   journeyContexts,
-  journeyIndexAt,
   journeyOffsets,
   journeyRowHeight,
   journeyStartIndex,
   JOURNEY_HERO_H,
-  type JourneyContext,
   type JourneyRow,
 } from "../../../lib/journeyPath";
 import { currentPlacement } from "../../../lib/lessonPath";
@@ -41,8 +39,8 @@ import { JourneyStop } from "./JourneyStop";
  * Aynı veri, aynı durumlar (`buildPathRows`); yalnız çizim farklı: A1→C2 tek liste,
  * seviye/ünite başlıkları, satır başına tek durak (düğüm + hap kart) zikzak, yılankavi yol.
  * Büyük başlık bölümü (selam + seri, ünite adı, öğretmen, bugünkü ders) ÜSTTE SABİT, yol onun
- * altından kayar (13 Kas 2026, kullanıcı); başlık o an tepedeki üniteyi gösterir. Ekran
- * kaldığın ünitenin ilk durağına açılır.
+ * altından kayar (13 Kas 2026, kullanıcı). Başlık HEP kaldığın yeri gösterir — kaydırmayla
+ * DEĞİŞMEZ (kullanıcı: "her scroll yaptıkça değişmesin"). Ekran kaldığın ünitenin ilk durağına açılır.
  */
 export function JourneyScreen() {
   const colors = useThemeColors();
@@ -56,8 +54,6 @@ export function JourneyScreen() {
   const offsets = useMemo(() => journeyOffsets(rows), [rows]);
   const contexts = useMemo(() => journeyContexts(rows), [rows]);
   const startIndex = curriculum ? journeyStartIndex(rows, curriculum.level) : 0;
-  // Sunumsal yerel durum: başlıkta görünen ünite (kaydırmayı izler)
-  const [scrollCtx, setScrollCtx] = useState<JourneyContext | null>(null);
 
   /**
    * Kaldığın üniteye KONUMLAMA: `initialScrollIndex` yalnız ilk çizimde okunur. Ekran önbellekteki
@@ -72,7 +68,6 @@ export function JourneyScreen() {
   const scrollToHero = useCallback(() => {
     if (userScrolled.current || !listRef.current) return;
     listRef.current.scrollToIndex({ index: startRef.current, animated: false });
-    setScrollCtx(null); // başlık kaldığın üniteye döner
   }, []);
   useEffect(() => {
     if (rows.length) requestAnimationFrame(scrollToHero);
@@ -120,7 +115,8 @@ export function JourneyScreen() {
   const hero = tutorHero(avatarId);
   const openLesson = (id: string) => router.push(`/lesson/${id}`);
 
-  const ctx = scrollCtx ?? contexts[startIndex] ?? null;
+  // Kaldığın dersin ünitesi — sabit
+  const ctx = contexts[startIndex] ?? null;
   const headerH = insets.top + JOURNEY_HERO_H;
 
   return (
@@ -138,12 +134,6 @@ export function JourneyScreen() {
         // Kullanıcı kendisi kaydırdıysa veri tazelenince yerinden oynatılmaz
         onScrollBeginDrag={() => {
           userScrolled.current = true;
-        }}
-        // Başlık, sabit bölümün hemen altındaki satırın ünitesini gösterir (satır uzayında contentOffset.y)
-        scrollEventThrottle={32}
-        onScroll={(e) => {
-          const next = contexts[journeyIndexAt(offsets, e.nativeEvent.contentOffset.y + 8)];
-          if (next) setScrollCtx((prev) => (prev === next ? prev : next));
         }}
         initialNumToRender={12}
         windowSize={11}
