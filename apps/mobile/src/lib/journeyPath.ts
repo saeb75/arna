@@ -13,10 +13,10 @@ import { buildPathRows, LEVEL_ROW_H, UNIT_ROW_H, type LevelState, type PathStop 
  * dersin ünitesidir, kaydırmayla değişmez (`journeyContexts[journeyStartIndex]`).
  */
 
-// Ölçüler referans görselden (küçük, sade; ekrana ~7 durak sığar): düğüm 46, kart 50, satır 72
-export const JOURNEY_STOP_H = 72;
-export const JOURNEY_TEST_H = 72;
-export const JOURNEY_HERO_H = 316;
+// Kart 50, satır 108: duraklar arasında yolun kıvrımı açıkça görünsün (14 Kas 2026, kullanıcı: "box'lar çok iç içe" — sayfada daha az durak görünmesi kabul)
+export const JOURNEY_STOP_H = 108;
+export const JOURNEY_TEST_H = 108;
+export const JOURNEY_HERO_H = 248;
 /** Düğümün yatay konumu — ekran genişliğinin oranı (sol / sağ sütun) */
 export const JOURNEY_COLS = [0.2, 0.45] as const;
 /** Hap kartın sağ kenarı — ekran genişliğinin oranı (sütun başına) */

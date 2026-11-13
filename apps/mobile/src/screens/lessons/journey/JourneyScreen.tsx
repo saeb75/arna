@@ -97,8 +97,7 @@ export function JourneyScreen() {
       // Güvenli alan ÇALIŞMA ZAMANI değeri — gerekçeli inline stil
       <View className="flex-1 gap-3 bg-canvas px-4" style={{ paddingTop: insets.top + 8 }}>
         <Skeleton className="h-12 w-2/3 rounded-xl" />
-        <Skeleton className="h-[120px] w-3/5 rounded-2xl" />
-        <Skeleton className="h-[112px] rounded-[28px]" />
+        <Skeleton className="h-[160px] w-3/5 rounded-2xl" />
         <View className="gap-6 pt-8">
           <Skeleton className="h-[78px] w-4/5 self-start rounded-full" />
           <Skeleton className="h-[78px] w-4/5 self-end rounded-full" />
@@ -109,7 +108,6 @@ export function JourneyScreen() {
   }
 
   const placement = currentPlacement(curriculum);
-  const goal = me?.profile?.dailyGoalMinutes ?? 10;
   const avatarId = me?.tutor?.avatarId ?? DEFAULT_AVATAR_ID;
   const portrait = tutorPortrait(avatarId);
   const hero = tutorHero(avatarId);
@@ -163,7 +161,8 @@ export function JourneyScreen() {
       {/* SABİT BAŞLIK: opak zemin + marka ışığı; alttan yolun içine yumuşak solma */}
       <View pointerEvents="box-none" className="absolute inset-x-0 top-0" style={{ height: headerH + 24 }}>
         <View pointerEvents="none" className="absolute inset-x-0 top-0 overflow-hidden bg-canvas" style={{ height: headerH }}>
-          <ScreenGlow height={420} />
+          {/* Işık başlığın alt kenarında TAM söner — kesilirse yolla arasında çizgi belirir */}
+          <ScreenGlow height={headerH} />
         </View>
         <View pointerEvents="none" className="absolute inset-x-0" style={{ top: headerH, height: 24 }}>
           <FadeFill color={colors.canvas} from={1} to={0} />
@@ -172,18 +171,12 @@ export function JourneyScreen() {
           <JourneyHero
             name={me?.profile?.displayName ?? ""}
             streak={stats?.streak ?? 0}
-            title={ctx?.title ?? ""}
-            goal={ctx?.goal ?? ""}
+            title={placement?.lesson.title ?? tr.journey.levelDone}
+            subtitle={ctx?.title ? `${curriculum.level} · ${ctx.title}` : `${curriculum.level} · ${curriculum.label}`}
+            action={placement ? (placement.lesson.status === "in_progress" ? tr.journey.continue : tr.journey.start) : null}
+            onPress={() => placement && openLesson(placement.lesson.id)}
             portrait={portrait}
             hero={hero}
-            today={{
-              minutes: stats?.todayMinutes ?? 0,
-              goal,
-              title: placement?.lesson.title ?? tr.journey.levelDone,
-              subtitle: `${curriculum.level} · ${curriculum.label}`,
-              action: placement ? (placement.lesson.status === "in_progress" ? tr.journey.continue : tr.journey.start) : null,
-              onPress: () => placement && openLesson(placement.lesson.id),
-            }}
           />
         </View>
       </View>

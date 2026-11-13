@@ -2,10 +2,12 @@ import { useMemo } from "react";
 import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { Check, ChevronRight, Trophy } from "lucide-react-native";
+import { withAlpha } from "../../../../colors";
 import { tr } from "../../../i18n/tr";
 import { JOURNEY_CARD_RIGHT, JOURNEY_COLS, journeyLink, journeyRowHeight, type JourneyRow } from "../../../lib/journeyPath";
 import { HapticsService } from "../../../services/HapticsService";
 import { useThemeColors } from "../../../theme/useThemeColors";
+import { GLASS, GlassFill } from "./JourneyGlass";
 
 const ROAD_W = 14;
 const CARD_H = 50;
@@ -18,6 +20,10 @@ const CARD_LEAD = 24;
  * durum kartın kendisinde: kaldığın ders marka çerçevesi + üstte rozet, bitmiş ders okun
  * yerinde yeşil onay, ünite testi altın çerçeve + kupa. Kartın tamamı dokunulur ve
  * DOĞRUDAN derse/teste girer.
+ * Kart iOS 26'da NATIVE Liquid Glass'tır (14 Kas 2026, kullanıcı isteği; `expo-glass-effect`
+ * kurulu derlemede zaten var → OTA): yol camın arkasından kırılarak görünür, dokunuşta
+ * sistemin etkileşimli parlaması. Kaldığın ders marka, ünite testi altın tonlu cam. Cam
+ * yoksa (Android, iOS ≤ 18) bugünkü dolu kart.
  * Yükseklik lib'den (getItemLayout ile BİREBİR).
  */
 export function JourneyStop({
@@ -77,12 +83,23 @@ export function JourneyStop({
           HapticsService.tap();
           onPress();
         }}
-        className={`absolute flex-row items-center gap-2 rounded-full border bg-card pl-4 pr-2.5 shadow-sm shadow-scrim/5 active:opacity-80 ${
-          current ? "border-brand/60" : isTest ? "border-test-face/70" : "border-border"
-        } ${dim && !current ? "opacity-90" : ""}`}
+        className={`absolute flex-row items-center gap-2 rounded-full pl-4 pr-2.5 ${
+          GLASS
+            ? current
+              ? "border border-brand/50"
+              : ""
+            : `border bg-card shadow-sm shadow-scrim/5 active:opacity-80 ${
+                current ? "border-brand/60" : isTest ? "border-test-face/70" : "border-border"
+              } ${dim && !current ? "opacity-90" : ""}`
+        }`}
         // Konum ekran genişliğinden ÇALIŞMA ZAMANI değeri — gerekçeli inline stil
         style={{ left, top: (height - CARD_H) / 2, width: cardRight - left, height: CARD_H }}
       >
+        <GlassFill
+          radius={CARD_H / 2}
+          interactive
+          tint={current ? withAlpha(colors.brand, 0.18) : isTest ? withAlpha(colors["test-face"], 0.22) : undefined}
+        />
         {isTest ? <Trophy color={colors["test-ink"]} size={16} strokeWidth={2.2} /> : null}
         <View className="flex-1 gap-0.5">
           <Text

@@ -292,13 +292,11 @@ export const tr = {
 
   /** Ders yolu — YOLCULUK görünümü (13 Kas 2026 denemesi) */
   journey: {
-    chip: "Öğrenme yolun",
     todayLesson: "Bugünkü ders",
     inProgress: "Devam ediyor",
     upNext: "Sıradaki",
     continue: "Devam",
     start: "Başla",
-    minutesDone: "dk tamam",
     lessonMeta: (i: number, n: number, level: string) => `Ders ${i}/${n} · ${level}`,
     levelDone: "Bu seviyeyi bitirdin",
   },
