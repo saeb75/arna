@@ -32,7 +32,7 @@ function needsSpace(prev: string | undefined, cur: string): boolean {
   return !/[(\[{¿¡«“]$/.test(prev);
 }
 
-type Token = { kind: "word"; text: string; en: boolean; bold: boolean } | { kind: "break"; blank: boolean };
+type Token = { kind: "word"; text: string; en: boolean; bold: boolean; source: string } | { kind: "break"; blank: boolean };
 
 function tokenize(input: RichText): Token[] {
   const runs = separateExamples(input); // örnek cümle kendi satırında
@@ -57,7 +57,7 @@ function tokenize(input: RichText): Token[] {
       const en = r.lang === "en";
       // Boşluksuz devam (ek, noktalama) aynı kelimeye eklenir ama rengi kendi parçasının
       if (glued && last?.kind === "word" && last.en === en) last.text += part;
-      else out.push({ kind: "word", text: part, en, bold: Boolean(r.emphasis) });
+      else out.push({ kind: "word", text: part, en, bold: Boolean(r.emphasis), source: r.text });
       glued = true;
     }
     glued = !/\s$/.test(text);
@@ -82,7 +82,10 @@ export function StreamingRunsText({
   size = "lg",
   strong = false,
   className = "",
+  onWord,
 }: {
+  /** Verilirse İngilizce kelimeler dokunulur (anlamı gösterilir) */
+  onWord?: (word: string, sentence: string) => void;
   runs: RichText;
   animate: boolean;
   size?: "md" | "lg";
@@ -103,9 +106,14 @@ export function StreamingRunsText({
           return <View key={i} className={t.blank ? "h-3 w-full" : "h-0 w-full"} />;
         }
         const delay = Math.round(w++ * step);
+        // Parça noktalama taşıyabilir ("name.") — dokunulan şey içindeki kelimedir
+        const word = onWord && t.en ? t.text.match(/[A-Za-z][A-Za-z'’-]*/)?.[0] : undefined;
         return (
           <Animated.Text
             key={i}
+            // Bağlam = kelimenin kendi İngilizce parçası (ana dil düzyazısı çeviriye girmez)
+            onPress={word ? () => onWord?.(word, t.source.trim()) : undefined}
+            suppressHighlighting
             entering={animate ? FadeIn.duration(FADE_MS).delay(delay).easing(Easing.inOut(Easing.quad)) : undefined}
             className={`${text} ${t.en ? `${t.bold ? "font-bold" : "font-semibold"} text-brand` : `text-foreground ${strong ? "font-semibold" : ""}`}`}
           >

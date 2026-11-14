@@ -3,12 +3,15 @@ import { KeyboardAvoidingView, Platform, ScrollView, View, type NativeScrollEven
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MessageBubble } from "../../components/shared/MessageBubble";
 import { NoticeBar } from "../../components/shared/NoticeBar";
+import { ReviewSheet } from "../../components/shared/ReviewSheet";
+import { UserTurn } from "../../components/shared/UserTurn";
+import { WordCard } from "../../components/shared/WordCard";
 import { CtaButton } from "../../components/ui/CtaButton";
 import { LoadFailed } from "../../components/ui/LoadFailed";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { LessonSessionController } from "../../controllers/LessonSessionController";
+import { NotebookController } from "../../controllers/NotebookController";
 import { tr } from "../../i18n/tr";
 import { useLessonSessionStore, type LessonMessage } from "../../stores/useLessonSessionStore";
 import { CaptionCard } from "./CaptionCard";
@@ -145,9 +148,11 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
         />
       );
     }
-    if (m.role === "user") return <MessageBubble key={m.id} role="user" text={m.text} runs={m.runs} />;
-    // Akan yazı yalnız EN YENİ sözde (geçmiş anında görünür; animate bağlanışta okunur)
-    return <CaptionCard key={m.id} message={m} animate={m.id === lastId} />;
+    // Öğrencinin sözü + (serbest konuşmada) inceleme rozeti
+    if (m.role === "user") return <UserTurn key={m.id} messageId={m.id} text={m.text} />;
+    // Akan yazı yalnız EN YENİ sözde (geçmiş anında görünür; animate bağlanışta okunur).
+    // İngilizce kelimeye dokununca anlamı rıhtımın üstündeki kartta
+    return <CaptionCard key={m.id} message={m} animate={m.id === lastId} onWord={(w, sentence) => void NotebookController.lookup(w, sentence)} />;
   };
 
   return (
@@ -216,6 +221,7 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
       {!drills && (
         <>
         {hint && <HintCard hint={hint} label={lesson.ui.labels.hint} />}
+        <WordCard />
         {notice && <NoticeBar text={notice} />}
         {phase === "wrapup" && (
           <Animated.View entering={FadeInDown.duration(320)} className="px-4 pb-1 pt-2">
@@ -237,6 +243,7 @@ export function LessonScreen({ catalogLessonId }: { catalogLessonId: string }) {
         </>
       )}
 
+      <ReviewSheet />
       <TranscriptSheet visible={transcriptOpen} messages={messages} onClose={() => setTranscriptOpen(false)} />
     </KeyboardAvoidingView>
   );

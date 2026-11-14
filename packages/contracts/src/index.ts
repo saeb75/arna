@@ -405,6 +405,7 @@ export * from "./targetPhrases.js";
 export * from "./drillTurn.js";
 export * from "./checkpoint.js";
 export * from "./answerReview.js";
+export * from "./notebook.js";
 export * from "./roleplay.js";
 export * from "./avatarProtocol.js";
 export * from "./avatars.js";

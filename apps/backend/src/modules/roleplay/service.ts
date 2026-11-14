@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   activeComplications,
@@ -74,10 +74,12 @@ export async function openRoleplaySession(userId: string, slug: string): Promise
 
   // Önceki açık roleplay oturumları TERK EDİLMİŞ sayılır (ders `openSession`
   // deseni): kapatılır ki yetim açık oturum birikmesin. Debrief/hafıza koşmaz —
-  // öğrenci "Bitir"e basmadı.
+  // öğrenci "Bitir"e basmadı. `state.abandoned` İŞARETİ ŞART (14 Kas 2026): yalnız
+  // `ended_at` yazılınca ✕ ile çıkılan sahne "oynandı" sayılıyordu (kartta "0/4",
+  // profilde tamamlanan rol yapma sayısı, admin istatistiği). Sayan sorgular işaretliyi eler.
   await db
     .update(sessions)
-    .set({ endedAt: new Date() })
+    .set({ endedAt: new Date(), state: sql`coalesce(${sessions.state}, '{}'::jsonb) || '{"abandoned": true}'::jsonb` })
     .where(and(eq(sessions.userId, userId), eq(sessions.sessionKind, "roleplay"), isNull(sessions.endedAt)));
 
   // CHECK kısıtının istediği şekil: kind='roleplay' → revizyon DOLU, katalog NULL.
@@ -271,7 +273,12 @@ export async function roleplayTurn(
       maxTokens: 300,
       temperature: 0.6,
     }),
-    detectObjectiveHits({ openObjectives, personaLastLine, studentTurn: text, userId, sessionId }),
+    // Dedektör düşerse TUR DÜŞMEZ (14 Kas 2026): tik bu turda gelmez, karakter yine
+    // cevap verir. Eskiden tespit hatası Promise.all'ı reddediyor, öğrenci cevapsız kalıyordu.
+    detectObjectiveHits({ openObjectives, personaLastLine, studentTurn: text, userId, sessionId }).catch((err) => {
+      console.error(`[roleplay] ${sessionId} t${turnIndex}: hedef tespiti düştü`, err);
+      return [];
+    }),
   ]);
   const latencyMs = Date.now() - t0;
 

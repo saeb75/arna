@@ -1,6 +1,6 @@
 import { languageName } from "../../../lib/language.js";
 
-export const ANSWER_REVIEW_VERSION = "answer-review.v1";
+export const ANSWER_REVIEW_VERSION = "answer-review.v2";
 
 export interface AnswerReviewContext {
   /** BCP-47 ana dil kodu — SABİT DİL ADI YAZILMAZ, buradan çözülür */
@@ -39,7 +39,7 @@ export function buildAnswerReviewPrompt(ctx: AnswerReviewContext): {
     `- "correct": grammatical AND something a native speaker would naturally say. Set "corrected" to "".`,
     `- "error": a real mistake — word order, tense, agreement, article, preposition, wrong word.`,
     `- "unnatural": grammatically defensible but not what a native speaker would say ("I am agree", "I want that you help me").`,
-    `- "other_language": they wrote in ${l1} (or another language) instead of English. "corrected" is the English they meant.`,
+    `- "other_language": they wrote in ${l1} (or another language) instead of English. "corrected" is the English they meant; "explanation" is one short friendly line about how that English sentence works (never a remark that they did not use English).`,
     ``,
     `HARD RULES:`,
     `- Judge ONLY general English. You do not know what the lesson was teaching, so never mark something wrong for missing a target structure.`,
@@ -47,6 +47,7 @@ export function buildAnswerReviewPrompt(ctx: AnswerReviewContext): {
     `- Casual, contracted and spoken English is correct English. Do not "upgrade" natural speech into formal writing.`,
     `- Do not invent errors. If you cannot name a concrete problem, the answer is "correct".`,
     `- Missing capitalisation or a final full stop is NOT an error — this may be speech transcribed to text.`,
+    `- Speak TO the learner in the second person. Never write "the student", "the learner" or describe what they did ("you wrote in ...").`,
     `- NEVER say the learner is wrong or bad. Explain what happens in English and what to say instead.`,
     `- "corrected" is ONE English sentence, as close to their own words as possible — fix it, do not rewrite it into a different sentence.`,
     `- The explanation names the reason in plain words (word order, article, tense…). Keep it under 300 characters.`,

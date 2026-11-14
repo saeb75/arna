@@ -51,6 +51,7 @@ import { extractSessionMemory } from "../memory/extract.js";
 import { buildMemoryBlock, MEMORY_RECALL_ENABLED } from "../memory/retrieve.js";
 import { renderSessionScript } from "./script.js";
 import { translateCached } from "../translate/index.js";
+import { findReview, saveReview, toAnswerReview } from "../notebook/service.js";
 import { isPromptEcho } from "./sttEcho.js";
 import { appendToBeatLog, historyFor, runLectureTurn, type BeatLog, type Learner, type TurnLlm } from "./turn/index.js";
 import { runConversationTurn } from "./turn/conversation.js";
@@ -1197,6 +1198,10 @@ export async function reviewAnswer(
   const triaged = triageAnswer(text);
   if (triaged) return { kind: triaged, corrected: "", runs: [], pronunciation: null };
 
+  // Katman 2 — bu oturumda bu söz zaten incelendi (rozet → sheet, yeniden açılış): LLM yok
+  const cached = await findReview(sessionId, text);
+  if (cached) return toAnswerReview(cached);
+
   const [profile] = await db
     .select()
     .from(userProfiles)
@@ -1228,23 +1233,63 @@ export async function reviewAnswer(
     maxTokens: 800,
   });
 
-  const corrected = verdict.corrected.trim();
+  const corrected = verdict.kind === "correct" ? "" : verdict.corrected.trim();
   const explanation = verdict.explanation.trim();
-
   // DİL ETİKETİNİ SUNUCU KOYAR — modele bırakılsaydı İngilizce metin `l1`
   // etiketiyle gelip TTS tarafından ana dil sesiyle okunabilirdi.
-  const runs: RichText = explanation
-    ? [{ lang: explainInNative ? "l1" : "en", text: explanation }]
-    : [];
+  const explanationLang = explainInNative ? "l1" : "en";
+
+  // KALICI KAYIT: önbellek (aynı söz yeniden LLM'e gitmez) + "Hatalarım" sayfası.
+  // Yazım düşerse inceleme yine döner — kayıt, cevabın önüne geçmez.
+  const saved = await saveReview({
+    userId,
+    sessionId,
+    text,
+    kind: verdict.kind,
+    corrected,
+    explanation,
+    explanationLang,
+    origin: await reviewOrigin(owned),
+  }).catch((err) => {
+    console.error(`[review] ${sessionId}: inceleme kaydedilemedi`, err);
+    return null;
+  });
+  if (saved) return toAnswerReview(saved);
 
   return {
     // `correct` hükmünde düzeltme gösterilmez: model yine de bir cümle
     // yazdıysa ekranda "düzeltildim" izlenimi bırakmasın diye kodda kesilir.
     kind: verdict.kind,
-    corrected: verdict.kind === "correct" ? "" : corrected,
-    runs,
+    corrected,
+    runs: explanation ? [{ lang: explanationLang, text: explanation }] : [],
     pronunciation: null,
   };
+}
+
+/** İncelemenin kaynağı — "Hatalarım" kartındaki ders/senaryo adı (yazım anında dondurulur) */
+async function reviewOrigin(
+  owned: NonNullable<Awaited<ReturnType<typeof getOwnedSession>>>,
+): Promise<{ kind: "lesson" | "roleplay"; title: string; ref: string | null }> {
+  const { session, roleplaySpec } = owned;
+  if (session.sessionKind === "roleplay") {
+    let ref: string | null = null;
+    if (session.roleplayRevisionId) {
+      const [rev] = await db
+        .select({ roleplayId: roleplayRevisions.roleplayId })
+        .from(roleplayRevisions)
+        .where(eq(roleplayRevisions.id, session.roleplayRevisionId))
+        .limit(1);
+      ref = rev?.roleplayId ?? null;
+    }
+    return { kind: "roleplay", title: roleplaySpec?.title ?? "", ref };
+  }
+  if (!session.catalogLessonId) return { kind: "lesson", title: "", ref: null };
+  const [lesson] = await db
+    .select({ title: catalogLessons.title })
+    .from(catalogLessons)
+    .where(eq(catalogLessons.id, session.catalogLessonId))
+    .limit(1);
+  return { kind: "lesson", title: lesson?.title ?? "", ref: session.catalogLessonId };
 }
 
 // ---------------------------------------------------------------------------

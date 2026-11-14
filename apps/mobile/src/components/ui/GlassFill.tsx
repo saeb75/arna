@@ -1,11 +1,11 @@
 import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from "expo-glass-effect";
-import { useScheme } from "../../../theme/useScheme";
+import { useScheme } from "../../theme/useScheme";
 
 /** iOS 26 Liquid Glass var mı (bazı beta'larda API yoktu — ikisi birden denetlenir); süreç boyunca değişmez */
 export const GLASS = isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
 
 /**
- * Yolculuk yüzeylerinin (başlık kartı, durak kartları) NATIVE Liquid Glass zemini
+ * Cam yüzeylerin (yolculuk başlığı + durakları, rol yap kartları) NATIVE Liquid Glass zemini
  * (14 Kas 2026, kullanıcı isteği): ebeveyni tamamen kaplar, köşe yarıçapını ebeveynle
  * aynı alır. `expo-glass-effect` kurulu derlemede zaten var → OTA ile gider. Cam yoksa
  * (Android, iOS ≤ 18) hiçbir şey çizmez — çağıran dolu kart sınıflarına düşer (`GLASS`).

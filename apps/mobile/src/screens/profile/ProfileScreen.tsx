@@ -17,13 +17,12 @@ import { AppSettings } from "./AppSettings";
 import { LearningSettings } from "./LearningSettings";
 import { ProActiveCard } from "./ProActiveCard";
 import { ProfileFooter } from "./ProfileFooter";
-import { StatsGrid } from "./StatsGrid";
 import { SubscriptionSettings } from "./SubscriptionSettings";
 import { SupportSettings } from "./SupportSettings";
 
 /**
  * Profil: kim öğreniyor (misafirse "ilerlemeni kaydet"), Pro (giriş ya da
- * aktif), ilerleme rakamları, sonra ayarlar — öğrenme, uygulama, abonelik,
+ * aktif), sonra ayarlar (ilerleme rakamları 14 Kas 2026'da İlerleme sekmesine taşındı) — öğrenme, uygulama, abonelik,
  * destek, hesap — ve sürüm.
  */
 export function ProfileScreen() {
@@ -63,9 +62,6 @@ export function ProfileScreen() {
           <AccountCard />
           {/* Her şey ücretsiz (5 Kas 2026): Pro afişi yok; admin'in tanıdığı Pro yalnız gösterilir */}
           {pro ? <ProActiveCard /> : null}
-        </Animated.View>
-        <Animated.View entering={enter(i++)}>
-          <StatsGrid />
         </Animated.View>
         <Animated.View entering={enter(i++)}>
           <LearningSettings />

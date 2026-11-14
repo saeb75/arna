@@ -15,6 +15,7 @@ import { VoiceService } from "../lib/voice";
 import { HapticsService } from "../services/HapticsService";
 import { useRoleplaySessionStore } from "../stores/useRoleplaySessionStore";
 import { MeController } from "./MeController";
+import { NotebookController } from "./NotebookController";
 import { RoleplayController } from "./RoleplayController";
 
 /**
@@ -95,11 +96,14 @@ export class RoleplaySessionController {
 
   /**
    * "Başla" (brief ekranı): oturumu aç, oyun ekranına geç, açılışı seslendir.
-   * 402 → bugünkü ücretsiz hak bitti: paywall.
+   * `inPlace`: oyun ekranı ZATEN açık ("Tekrar oyna") — gezinme yok, aynı ekranda
+   * yeni oturum. Açılamazsa hata store'a yazılır; brief ekranı gösterir.
    */
-  static async start(slug: string): Promise<void> {
+  static async start(slug: string, inPlace = false): Promise<void> {
+    if (this.store().busy) return; // çift dokunuş ikinci oturum açmasın
     const store = this.store();
     store.reset();
+    NotebookController.resetSession(); // önceki sahnenin rozetleri bu sahneye taşınmasın
     store.set({ slug, phase: "opening", busy: true });
     await VoiceService.init();
     try {
@@ -116,13 +120,13 @@ export class RoleplaySessionController {
         phase: "playing",
         done: Object.fromEntries(session.objectives.map((o) => [o.id, false])),
       });
-      router.push(`/roleplay/${slug}/play`);
+      if (!inPlace) router.push(`/roleplay/${slug}/play`);
       const opening: RichText = [{ lang: "en", text: session.opening }];
       this.pushPersona(opening);
       this.speak(opening);
     } catch (err) {
-      this.store().set({ phase: "idle" });
-      this.store().set({ error: errorCode(err) });
+      // GÖRÜNÜR HATA: eskiden "Başla" sessizce eski hâline dönüyordu
+      this.store().set({ phase: "idle", error: errorCode(err) });
     } finally {
       this.store().set({ busy: false });
     }
@@ -136,8 +140,13 @@ export class RoleplaySessionController {
     if (!hasWordContent(t) || !session || busy || stopped || phase !== "playing") return;
     this.clearNotice();
     if (this.store().speaking) VoiceService.skipSpeaking(); // söz kesme
-    this.store().push({ id: nextId(), role: "user", text: t });
+    // İnceleme bağlamı: karakterin az önce söylediği (parça cevap hata sayılmasın)
+    const said = this.store().messages.filter((m) => m.role === "teacher").at(-1)?.text;
+    const messageId = nextId();
+    this.store().push({ id: messageId, role: "user", text: t });
     this.store().set({ busy: true, awaiting: false });
+    // Arka planda incelenir: balonun yanına rozet, hatalar Defter'e. Sohbete dokunmaz.
+    NotebookController.review(session.sessionId, messageId, t, said);
     try {
       const res = await api.post(`/v1/sessions/${session.sessionId}/chat`, { text: t, phase: "practice" });
       const reply = chatResponseSchema.parse(res.data);
@@ -228,11 +237,15 @@ export class RoleplaySessionController {
     VoiceService.stopAll();
   }
 
-  /** Debrief'ten "Tekrar oyna": aynı senaryo bugün yeniden açılır (kota hak yakmaz) */
+  /**
+   * Debrief'ten "Tekrar oyna": aynı senaryo AYNI EKRANDA yeniden açılır.
+   * Eskiden `router.back()` + `start()` idi: kapanan ekranın `leave()`'i yeni
+   * oturumun store'una `stopped: true` yazıyor, yeni sahne ölü doğuyordu
+   * (karakter açılışı okumuyor, söz gönderilemiyordu — 14 Kas 2026).
+   */
   static async again(): Promise<void> {
     const slug = this.store().slug;
     if (!slug) return;
-    router.back();
-    await this.start(slug);
+    await this.start(slug, true);
   }
 }

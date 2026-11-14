@@ -59,6 +59,11 @@ export type AnswerReviewModelOutput = z.infer<typeof answerReviewModelSchema>;
 // ---------------------------------------------------------------------------
 
 export const answerReviewSchema = z.object({
+  /**
+   * Kalıcı kaydın kimliği (`answer_reviews`) — "bunu ben söylemedim" bununla siler.
+   * Deterministik ön elemede (kayıt yok) ve eski sunucuda yoktur.
+   */
+  id: z.string().optional(),
   kind: answerReviewKindSchema,
   /** Öğretilen İngilizce karşılık — `correct` ve `too_short`'ta boş dize. */
   corrected: z.string(),

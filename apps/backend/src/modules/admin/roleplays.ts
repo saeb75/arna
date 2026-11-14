@@ -63,7 +63,7 @@ interface StatRow {
 async function attemptStats(): Promise<Map<string, StatRow>> {
   const rows = await sql<StatRow[]>`
     with a as (
-      select r.roleplay_id, s.started_at, s.ended_at,
+      select r.roleplay_id, s.started_at, s.ended_at, (s.state->>'abandoned') is not null as abandoned,
         jsonb_array_length(ra.active_objective_ids) as total,
         (select count(distinct h->>'objectiveId') from jsonb_array_elements(ra.objective_hits) h
           where ra.active_objective_ids ? (h->>'objectiveId')) as done
@@ -76,7 +76,7 @@ async function attemptStats(): Promise<Map<string, StatRow>> {
     select roleplay_id,
       count(*)::int as attempts_total,
       count(*) filter (where started_at > now() - interval '30 days')::int as attempts_30d,
-      avg(case when ended_at is not null and total > 0 then done::float / total end) as avg_completion
+      avg(case when ended_at is not null and not abandoned and total > 0 then done::float / total end) as avg_completion
     from a group by roleplay_id`;
   return new Map(rows.map((r) => [r.roleplay_id, r]));
 }
@@ -145,7 +145,7 @@ async function objectiveStats(roleplayId: string, labels: Map<string, string>) {
       from sessions s
       join roleplay_revisions r on r.id = s.roleplay_revision_id
       join roleplay_attempts ra on ra.session_id = s.id
-      where r.roleplay_id = ${roleplayId} and s.ended_at is not null
+      where r.roleplay_id = ${roleplayId} and s.ended_at is not null and (s.state->>'abandoned') is null
         and exists (select 1 from transcript_turns t where t.session_id = s.id and t.role = 'user')
     ), shown as (
       select jsonb_array_elements_text(ids) as objective_id, hits from a

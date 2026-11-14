@@ -25,6 +25,10 @@ export function AppTabs() {
         <NativeTabs.Trigger.Icon sf={{ default: "theatermasks", selected: "theatermasks.fill" }} md="theater_comedy" />
         <NativeTabs.Trigger.Label>{tr.tabs.roleplay}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="notebook" {...trigger}>
+        <NativeTabs.Trigger.Icon sf={{ default: "chart.bar", selected: "chart.bar.fill" }} md="bar_chart" />
+        <NativeTabs.Trigger.Label>{tr.tabs.notebook}</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile" {...trigger}>
         <NativeTabs.Trigger.Icon sf={{ default: "person", selected: "person.fill" }} md="person" />
         <NativeTabs.Trigger.Label>{tr.tabs.profile}</NativeTabs.Trigger.Label>

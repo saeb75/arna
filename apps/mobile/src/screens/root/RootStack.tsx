@@ -26,6 +26,8 @@ export function RootStack() {
       <Stack.Screen name="lesson/[id]" options={{ gestureEnabled: false }} />
       <Stack.Screen name="checkpoint/[level]/[unit]" options={{ gestureEnabled: false }} />
       <Stack.Screen name="roleplay/[slug]/index" />
+      <Stack.Screen name="notebook/mistakes" />
+      <Stack.Screen name="notebook/words" />
       <Stack.Screen name="roleplay/[slug]/play" options={{ gestureEnabled: false, animation: "fade" }} />
       <Stack.Screen name="auth/login" options={{ ...sheet([0.75, 0.95]), contentStyle: { backgroundColor: colors.canvas } }} />
       <Stack.Screen name="auth/save-progress" options={{ ...sheet([0.8, 0.95]), contentStyle: { backgroundColor: colors.canvas } }} />

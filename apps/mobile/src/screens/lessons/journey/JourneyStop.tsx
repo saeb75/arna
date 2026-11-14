@@ -7,7 +7,7 @@ import { tr } from "../../../i18n/tr";
 import { JOURNEY_CARD_RIGHT, JOURNEY_COLS, journeyLink, journeyRowHeight, type JourneyRow } from "../../../lib/journeyPath";
 import { HapticsService } from "../../../services/HapticsService";
 import { useThemeColors } from "../../../theme/useThemeColors";
-import { GLASS, GlassFill } from "./JourneyGlass";
+import { GLASS, GlassFill } from "../../../components/ui/GlassFill";
 import { lessonIcon } from "../../../domain/lessonIcon";
 
 const ROAD_W = 14;

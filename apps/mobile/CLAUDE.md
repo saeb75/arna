@@ -320,6 +320,8 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
 | `POST /sessions/:id/chat` | sohbet turu |
 | `POST /sessions/:id/tts` · `/stt` | ses |
 | `POST /sessions/:id/translate` · `/review` | çeviri · cevap incelemesi |
+| `GET /me/mistakes` · `DELETE /me/mistakes/:id` | Defter: hatalar · "bunu ben söylemedim" |
+| `POST /words/lookup` · `GET/POST /me/words` · `DELETE /me/words/:word` | kelime anlamı · kaydedilen kelimeler |
 | `POST /sessions/:id/end` | oturum kapat (roleplay'de debrief döner) |
 | `GET /checkpoints/:level/:unitIndex` · `POST` | ünite testi al · sonucu yaz |
 | `GET /roleplays` · `GET /roleplays/:slug` | roleplay listesi · brief |
@@ -369,6 +371,14 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
   görmek Transkript sheet'ine dokunmayı gerektiriyordu. Rıhtım aynı (ortada bas-konuş,
   solda klavye, sağda transkript). `promptMessageId` görev kartının yerini belirler,
   akış kararı DEĞİLDİR.
+- **İNCELEME ROZETİ + DEFTER SEKMESİ (14 Kas 2026):** rol yapmada ve ders kapanışında öğrencinin sözü arka planda incelenir
+  (`NotebookController.review`, contracts `triageAnswer` ön elemesi — "yes/ok" ağa çıkmaz). Balon `components/shared/UserTurn`
+  (balon + `ReviewBadge`); rozete dokununca `ReviewSheet` (duyduğumuz, doğrusu, açıklama, "Bunu ben söylemedim"). Hocanın
+  İngilizce kelimesine dokununca `WordCard` (rıhtımın üstünde: anlam + cümle çevirisi + yer imi) — `RunsText`/`StreamingRunsText`
+  `onWord`. Hepsi YALNIZ GÖSTERİM: ders/rol yapma makinesi bu durumu okumaz. Dördüncü sekme **İlerleme** (rota ve klasör adı `notebook`;
+  kullanıcı düzeni): en üstte SERİ alanı (GlotCast kalıbı — `StatsGrid`: seri + en iyi, dakika/ders/rol yapma; Profil'den kaldırıldı), altında iki büyük alan — Gramer ve Kelimeler
+  (`NotebookTile`, sayılı); dokununca kendi sayfası (`/notebook/mistakes` filtre + sayfalama, `/notebook/words`); ses oturumsuz `/v1/tts` (mikrofon izni İSTEMEZ — `playbackReady`, `init` değil).
+  Durum `useNotebookStore`; oturum ekranından çıkınca rozetler düşer (kayıtlar sunucuda).
 - **Oyun bloğu (drills, 10 Kas 2026):** dersin `drills` beat'inde (`awaiting === "drills"`)
   sohbet akışı + rıhtım yerini `screens/lesson/drills/DrillStage`'e bırakır, avatar küçülür
   (`LessonStage compact`). Akış `LessonDrillController`'da (ses, kayıt, dokun-çevir, senkron);

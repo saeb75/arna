@@ -680,3 +680,58 @@ export const appSettings = pgTable("app_settings", {
   /** Son yazan admin (auth.users.id) — denetim izi */
   updatedBy: uuid("updated_by"),
 });
+
+/**
+ * CEVAP İNCELEMELERİ (14 Kas 2026) — öğrencinin serbest sözünün genel İngilizce
+ * incelemesi (`reviewAnswer`). İki işi var: (1) ÖNBELLEK — aynı oturumda aynı söz
+ * bir kez incelenir (rozet + sheet + yeniden açılış tek LLM çağrısı), (2) HATALARIM
+ * sayfası — `error`/`unnatural` satırları listelenir. `dismissed_at`: öğrenci "bunu
+ * ben söylemedim" dedi (STT yanlış duydu) → listeden düşer, satır önbellek için kalır.
+ * Kaynak başlığı (ders adı / senaryo adı) yazım anında dondurulur: liste join'siz okunur.
+ */
+export const answerReviews = pgTable(
+  "answer_reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => sessions.id, { onDelete: "cascade" }),
+    /** sha256(söz) — bağlam anahtara girmez: aynı söz aynı oturumda tek satır */
+    textHash: text("text_hash").notNull(),
+    text: text("text").notNull(),
+    kind: text("kind").notNull(), // correct | error | unnatural | other_language
+    corrected: text("corrected").notNull().default(""),
+    explanation: text("explanation").notNull().default(""),
+    /** Açıklamanın dili: l1 (ana dil) | en — etiketi sunucu koyar, model değil */
+    explanationLang: text("explanation_lang").notNull(),
+    originKind: text("origin_kind").notNull(), // lesson | roleplay
+    originTitle: text("origin_title").notNull().default(""),
+    /** Katalog ders kimliği ya da roleplay slug'ı — listeden kaynağa bağlantı */
+    originRef: text("origin_ref"),
+    dismissedAt: timestamp("dismissed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("answer_reviews_session_text_idx").on(t.sessionId, t.textHash),
+    index("answer_reviews_user_idx").on(t.userId, t.createdAt),
+  ],
+);
+
+/**
+ * KAYDEDİLEN KELİMELER (14 Kas 2026) — dokunulan İngilizce kelime + ana dildeki
+ * karşılığı + görüldüğü cümle. Kelime küçük harfle anahtarlanır (kullanıcı başına tek).
+ */
+export const savedWords = pgTable(
+  "saved_words",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    word: text("word").notNull(),
+    translation: text("translation").notNull(),
+    targetLang: text("target_lang").notNull(),
+    sentence: text("sentence"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("saved_words_user_word_idx").on(t.userId, t.word)],
+);

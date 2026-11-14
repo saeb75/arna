@@ -3,6 +3,7 @@ import { Text, View } from "react-native";
 import Animated, { useAnimatedScrollHandler, useSharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Info, Languages } from "lucide-react-native";
+import { NoticeBar } from "../../components/shared/NoticeBar";
 import { RoleplayArt } from "../../components/shared/RoleplayArt";
 import { CtaButton } from "../../components/ui/CtaButton";
 import { LoadFailed } from "../../components/ui/LoadFailed";
@@ -32,6 +33,8 @@ export function RoleplayBriefScreen({ slug }: { slug: string }) {
   const brief = useRoleplayStore((s) => s.briefs[slug]);
   const briefError = useRoleplayStore((s) => s.briefError);
   const opening = useRoleplaySessionStore((s) => s.phase === "opening");
+  // "Başla" oturumu açamadı (ağ, sunucu) — sessizce geri dönmek yerine söylenir
+  const startFailed = useRoleplaySessionStore((s) => s.phase === "idle" && !!s.error && s.slug === slug);
   // Rol yapmada karakteri öğretmen kendi adıyla oynar (sunucu persona'yı yeniden adlandırır)
   const tutorName = useTutorName();
   const scrollY = useSharedValue(0);
@@ -117,6 +120,11 @@ export function RoleplayBriefScreen({ slug }: { slug: string }) {
       </Animated.ScrollView>
 
       <View className="border-t border-border bg-background px-5 pt-3" style={{ paddingBottom: insets.bottom + 12 }}>
+        {startFailed ? (
+          <View className="-mx-5 pb-1">
+            <NoticeBar text={tr.roleplay.brief.startFailed} />
+          </View>
+        ) : null}
         <CtaButton label={tr.roleplay.brief.start} busy={opening} onPress={() => void RoleplaySessionController.start(slug)} breathe />
       </View>
       <TopBar title={brief.title} scrollY={scrollY} titleAfter={HERO_H - 60} />

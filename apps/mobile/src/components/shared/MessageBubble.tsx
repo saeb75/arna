@@ -11,6 +11,8 @@ interface MessageBubbleProps {
   points?: RichText[];
   /** Tamamı İngilizce sohbet (rol yapma) — `en` vurgusu yok */
   plain?: boolean;
+  /** Hoca balonunda İngilizce kelimeye dokunma (anlamı gösterilir) */
+  onWord?: (word: string, sentence: string) => void;
 }
 
 const rise = FadeInDown.duration(260).easing(Easing.out(Easing.cubic));
@@ -21,7 +23,7 @@ const rise = FadeInDown.duration(260).easing(Easing.out(Easing.cubic));
  * gradyanın açık ucu beyaz gövde metniyle ~2.8:1 kalıyor (GlotCast kuralı:
  * metin taşıyan dolu yüzey `primary`, gradyan yalnız CTA/mikrofon/hero).
  */
-export function MessageBubble({ role, text, runs, points, plain = false }: MessageBubbleProps) {
+export function MessageBubble({ role, text, runs, points, plain = false, onWord }: MessageBubbleProps) {
   const isUser = role === "user";
   return (
     <Animated.View
@@ -37,12 +39,12 @@ export function MessageBubble({ role, text, runs, points, plain = false }: Messa
           {points.map((p, i) => (
             <View key={i} className="flex-row gap-2.5">
               <View className={`mt-2.5 size-1.5 rounded-full ${isUser ? "bg-primary-foreground" : "bg-brand"}`} />
-              <RunsText runs={p} onPrimary={isUser} plain={plain} className="flex-1" />
+              <RunsText runs={p} onPrimary={isUser} plain={plain} onWord={onWord} className="flex-1" />
             </View>
           ))}
         </View>
       ) : runs?.length ? (
-        <RunsText runs={runs} onPrimary={isUser} plain={plain} />
+        <RunsText runs={runs} onPrimary={isUser} plain={plain} onWord={onWord} />
       ) : (
         <Text className={`text-[16px] leading-6 ${isUser ? "text-primary-foreground" : "text-foreground"}`}>{text}</Text>
       )}

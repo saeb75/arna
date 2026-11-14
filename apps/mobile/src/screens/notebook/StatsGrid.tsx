@@ -1,6 +1,5 @@
 import { View } from "react-native";
 import { Clock, Drama, GraduationCap } from "lucide-react-native";
-import { SectionHeader } from "../../components/ui/SectionHeader";
 import { Skeleton } from "../../components/ui/Skeleton";
 import { tr } from "../../i18n/tr";
 import { useMeStore } from "../../stores/useMeStore";
@@ -8,13 +7,15 @@ import { useThemeColors } from "../../theme/useThemeColors";
 import { StatTile } from "./StatTile";
 import { StreakTile } from "./StreakTile";
 
-/** İlerleme: seri (+ en iyi), sonra toplam dakika, biten dersler, rol yapmalar. */
+/**
+ * İlerleme: seri (+ en iyi), sonra toplam dakika, biten dersler, rol yapmalar (GlotCast
+ * kalıbı). Yalnız İlerleme sekmesinde (Profil'den 14 Kas 2026'da kaldırıldı).
+ */
 export function StatsGrid() {
   const colors = useThemeColors();
   const stats = useMeStore((s) => s.stats);
   return (
     <View className="gap-3">
-      <SectionHeader title={tr.profile.stats} />
       {!stats ? (
         <>
           <Skeleton className="h-[90px] rounded-3xl" />

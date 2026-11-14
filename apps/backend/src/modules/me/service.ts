@@ -2,7 +2,9 @@ import type { MeProfile, MeStats } from "@glotmate/contracts";
 import { and, eq, sql as dsql } from "drizzle-orm";
 import { db, sql } from "../../db/client.js";
 import {
+  answerReviews,
   lessonCores,
+  savedWords,
   lessonLocales,
   lessonProgress,
   lessonSceneSets,
@@ -114,6 +116,7 @@ export async function getStats(userId: string, tzIn: string | undefined): Promis
   const [roleplays] = await sql<{ n: number }[]>`
     select count(*)::int as n from sessions s
     where s.user_id = ${userId}::uuid and s.session_kind = 'roleplay' and s.ended_at is not null
+      and (s.state->>'abandoned') is null
       and exists (select 1 from transcript_turns t where t.session_id = s.id and t.role = 'user')`;
 
   const totalMinutes = rows.reduce((n, r) => n + Number(r.minutes), 0);
@@ -143,6 +146,8 @@ export async function deleteAccount(userId: string): Promise<void> {
   await db.transaction(async (tx) => {
     // sessions → transcript_turns, roleplay_attempts, session_summaries cascade
     await tx.delete(sessions).where(eq(sessions.userId, userId));
+    await tx.delete(answerReviews).where(eq(answerReviews.userId, userId));
+    await tx.delete(savedWords).where(eq(savedWords.userId, userId));
     await tx.delete(sessionSummaries).where(eq(sessionSummaries.userId, userId));
     await tx.delete(memories).where(eq(memories.userId, userId));
     await tx.delete(lessonProgress).where(eq(lessonProgress.userId, userId));

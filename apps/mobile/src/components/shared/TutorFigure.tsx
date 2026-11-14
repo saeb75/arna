@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import { Image } from "expo-image";
-import { GradientFill } from "../../../components/ui/GradientFill";
+import { GradientFill } from "../ui/GradientFill";
 
 /** Süs küreleri — konum/boy kutuya göre (sabit tasarım değerleri) */
 const ORBS = [
@@ -13,12 +13,12 @@ const ORBS = [
 ];
 
 /**
- * Başlık bölümünün sağ üstündeki öğretmen — referanstaki arının yerinde öğrencinin
- * KENDİ öğretmeni. `hero` varsa (şeffaf zeminli, kulaklıklı 3B figür — domain/tutorHero)
+ * Başlık kartının sağındaki öğretmen (yolculuk, rol yap) — referanstaki arının yerinde
+ * öğrencinin KENDİ öğretmeni. `hero` varsa (şeffaf zeminli, kulaklıklı 3B figür — domain/tutorHero)
  * yumuşak marka ışığı önünde yavaşça süzülür; yoksa 2.5D portre yuvarlak çerçevede.
  * Etrafta küçük gradyan küreler. Yalnız süs; dokunuş yok. Hareket "azalt" ayarına uyar.
  */
-export function JourneyPortrait({ hero, portrait }: { hero: number | null; portrait: number | null }) {
+export function TutorFigure({ hero, portrait }: { hero: number | null; portrait: number | null }) {
   const reduceMotion = useReducedMotion();
   const float = useSharedValue(0);
   useEffect(() => {

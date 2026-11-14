@@ -7,6 +7,11 @@ import { AvatarStage } from "../../components/shared/AvatarStage";
 import { InputDock } from "../../components/shared/InputDock";
 import { MessageBubble } from "../../components/shared/MessageBubble";
 import { NoticeBar } from "../../components/shared/NoticeBar";
+import { Skeleton } from "../../components/ui/Skeleton";
+import { ReviewSheet } from "../../components/shared/ReviewSheet";
+import { UserTurn } from "../../components/shared/UserTurn";
+import { WordCard } from "../../components/shared/WordCard";
+import { NotebookController } from "../../controllers/NotebookController";
 import { RoleplaySessionController } from "../../controllers/RoleplaySessionController";
 import { tr } from "../../i18n/tr";
 import { useRoleplaySessionStore } from "../../stores/useRoleplaySessionStore";
@@ -40,7 +45,21 @@ export function RoleplayPlayScreen({ slug }: { slug: string }) {
     if (s.phase === "idle" && !s.session) router.replace(`/roleplay/${slug}`);
   }, [s.phase, s.session, slug]);
 
-  if (!s.session) return <View className="flex-1 bg-canvas" />;
+  if (!s.session) {
+    // "Tekrar oyna": yeni oturum açılırken aynı ekranda kısa bekleme
+    return (
+      // Güvenli alan ÇALIŞMA ZAMANI değeri — gerekçeli inline stil
+      <View className="flex-1 gap-4 bg-canvas px-5" style={{ paddingTop: insets.top + 24 }}>
+        {s.phase === "opening" ? (
+          <>
+            <Skeleton className="h-10 w-2/3 rounded-xl" />
+            <Skeleton className="h-56 rounded-3xl" />
+            <Skeleton className="h-16 w-4/5 rounded-3xl" />
+          </>
+        ) : null}
+      </View>
+    );
+  }
 
   const objectives = s.session.objectives.map((o) => ({ ...o, done: !!s.done[o.id] }));
   const doneCount = objectives.filter((o) => o.done).length;
@@ -90,9 +109,17 @@ export function RoleplayPlayScreen({ slug }: { slug: string }) {
         className="flex-1"
         contentContainerClassName="gap-2.5 px-4 pb-4 pt-2"
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => <MessageBubble role={item.role} text={item.text} runs={item.runs} plain />}
+        renderItem={({ item }) =>
+          item.role === "user" ? (
+            <UserTurn messageId={item.id} text={item.text} />
+          ) : (
+            // Karakterin sözünde kelimeye dokununca anlamı rıhtımın üstündeki kartta
+            <MessageBubble role="teacher" text={item.text} runs={item.runs} plain onWord={(w, sentence) => void NotebookController.lookup(w, sentence)} />
+          )
+        }
       />
 
+      <WordCard />
       {s.notice && <NoticeBar text={s.notice} />}
 
       <InputDock
@@ -103,6 +130,8 @@ export function RoleplayPlayScreen({ slug }: { slug: string }) {
         onPressMic={() => void RoleplaySessionController.pressMic()}
         onReleaseMic={() => void RoleplaySessionController.releaseMic()}
       />
+
+      <ReviewSheet />
 
       {s.phase === "ending" ? (
         <Animated.View entering={FadeIn.duration(200)} className="absolute inset-0 items-center justify-center gap-3 bg-canvas/90">

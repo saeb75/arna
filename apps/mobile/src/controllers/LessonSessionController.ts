@@ -15,6 +15,7 @@ import {
 import { Alert } from "react-native";
 import { router } from "expo-router";
 import { api, errorCode } from "../api";
+import { NotebookController } from "./NotebookController";
 import { tutorOfAvatarResponse } from "../domain/tutors";
 import { tr } from "../i18n/tr";
 import { useMeStore } from "../stores/useMeStore";
@@ -153,8 +154,10 @@ export class LessonSessionController {
     return m.id;
   }
 
-  private static pushUser(text: string): void {
-    this.store().pushMessage({ id: nextId(), role: "user", text });
+  private static pushUser(text: string): string {
+    const id = nextId();
+    this.store().pushMessage({ id, role: "user", text });
+    return id;
   }
 
   /** Ekrandaki son hoca sözü — araya girmede hocanın NE söylerken kesildiği */
@@ -485,6 +488,7 @@ export class LessonSessionController {
     this.store().set({ stopped: true, fastForward: false, pendingInput: null });
     this.dropPending();
     VoiceService.stopAll();
+    NotebookController.resetSession();
   }
 
   /**
@@ -658,7 +662,15 @@ export class LessonSessionController {
     if (held && !awaiting) return void this.interject(text);
     // SÖZ KESME: hoca hâlâ konuşuyor (`awaiting === null`) — bkz. interrupt
     if (!awaiting) return this.interrupt(text);
-    this.pushUser(text);
+    // Bağlam balondan ÖNCE okunur: hocanın az önce söylediği (parça cevap hata sayılmasın)
+    const said = this.lastTeacherText();
+    const messageId = this.pushUser(text);
+    // SERBEST KONUŞMA incelenir (rol yapma + kapanış): balonun yanına rozet düşer,
+    // hatalar Defter'e yazılır. Akışa dokunmaz — bu sonucu hiçbir karar okumaz.
+    // Anlatım/alıştırma cevapları incelenmez: onlar öğretilen yapıyla zaten ölçülüyor.
+    if (s.sessionId && (awaiting === "practice" || awaiting === "wrapup")) {
+      NotebookController.review(s.sessionId, messageId, text, said);
+    }
     s.set({ hint: null });
     const beat = lesson.lecture.beats[beatIndex];
     const ack = (t: string) => classifyAck(t, lesson.ui.ack);

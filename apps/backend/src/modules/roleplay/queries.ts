@@ -109,6 +109,7 @@ export async function lastAttemptsByRoleplay(
     join roleplay_revisions r on r.id = s.roleplay_revision_id
     join roleplay_attempts a on a.session_id = s.id
     where s.user_id = ${userId}::uuid and s.session_kind = 'roleplay' and s.ended_at is not null
+      and (s.state->>'abandoned') is null
       and exists (select 1 from transcript_turns t where t.session_id = s.id and t.role = 'user')
     order by r.roleplay_id, s.ended_at desc`;
   const out = new Map<string, { done: number; total: number; at: string }>();
