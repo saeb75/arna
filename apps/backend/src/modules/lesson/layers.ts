@@ -18,7 +18,7 @@ import {
   type Track,
 } from "@glotmate/contracts";
 import { buildEnglishLexicon, refineWithLexicon } from "../tts/inlineEnglish.js";
-import { and, asc, eq, gt } from "drizzle-orm";
+import { and, asc, eq, gt, lt } from "drizzle-orm";
 import { db } from "../../db/client.js";
 import { catalogLessons, lessonCores, lessonLocales, lessonSceneSets, userProfiles } from "../../db/schema.js";
 import { getChrome } from "../../i18n/index.js";
@@ -133,6 +133,19 @@ export async function getPublishedSceneSet(coreId: string) {
 // Dil paketi — lazy, claim korumalı
 // ---------------------------------------------------------------------------
 
+/**
+ * Bir dil paketi çağrısının tavanı. Çağrı derse giren öğrencinin önünde koşar;
+ * ölçülen süre 4–14 sn (gpt-4.1). Zaman aşımı yoksa SDK 10 dk × 3 bekliyordu.
+ */
+const LOCALE_CALL_TIMEOUT_MS = 40_000;
+/**
+ * Bu kadar süredir dokunulmamış "generating" satırı SAHİPSİZDİR (süreç öldü ya
+ * da istek askıda kaldı) ve devralınır. Üretim her denemede satırı tazeler; en
+ * kötü deneme (zaman aşımı + 1 yeniden deneme + şema onarımı) bunun altında kalır.
+ * 11 Kas 2026 canlı hata: takılı satır, o dersi açan herkese kalıcı 409 döndürüyordu.
+ */
+const LOCALE_STALE_MS = 3 * 60_000;
+
 interface LocaleKey {
   coreId: string;
   sceneSetId: string;
@@ -195,9 +208,20 @@ export async function getOrGenerateLocale(opts: {
 
   if (claimed.length === 0) {
     for (let i = 0; i < 10; i++) {
-      await new Promise((r) => setTimeout(r, 1500));
       const [row] = await db.select().from(lessonLocales).where(localeWhere(key)).limit(1);
       if (row?.status === "ready" && row.pack) return { localeId: row.id, pack: row.pack as LessonLocalePack };
+      // Sahipsiz üretim: atomik devral (yalnız BİR istek kazanır), yeniden üret
+      if (row?.status === "generating" && Date.now() - row.updatedAt.getTime() > LOCALE_STALE_MS) {
+        const cutoff = new Date(Date.now() - LOCALE_STALE_MS);
+        const taken = await db
+          .update(lessonLocales)
+          .set({ updatedAt: new Date() })
+          .where(
+            and(eq(lessonLocales.id, row.id), eq(lessonLocales.status, "generating"), lt(lessonLocales.updatedAt, cutoff)),
+          )
+          .returning({ id: lessonLocales.id });
+        if (taken.length > 0) return await generateLocaleInto(row.id, key, opts);
+      }
       if (row?.status === "failed") {
         await db
           .update(lessonLocales)
@@ -205,6 +229,7 @@ export async function getOrGenerateLocale(opts: {
           .where(eq(lessonLocales.id, row.id));
         return await generateLocaleInto(row.id, key, opts);
       }
+      await new Promise((r) => setTimeout(r, 1500));
     }
     throw new LayerError("locale_in_progress", "Dil paketi üretimi başka bir istekte sürüyor");
   }
@@ -222,6 +247,8 @@ async function generateLocaleInto(
     let pack: LessonLocalePack | null = null;
 
     for (let attempt = 0; attempt < 2; attempt++) {
+      // Yaşıyorum sinyali — bekleyen istekler bu satırı sahipsiz sanıp devralmasın
+      await db.update(lessonLocales).set({ updatedAt: new Date() }).where(eq(lessonLocales.id, rowId));
       const { system, user } = buildLocalePrompt({
         language: key.language,
         cefrLevel: opts.cefrLevel,
@@ -244,6 +271,7 @@ async function generateLocaleInto(
         userId: opts.userId ?? undefined,
         maxTokens: 2200,
         temperature: 0.3,
+        timeoutMs: LOCALE_CALL_TIMEOUT_MS,
       });
 
       report = lintLocale(pack, opts.core, { forbidden: [], language: key.language });

@@ -8,4 +8,4 @@ export const LEGAL = {
 } as const;
 
 /** Destek adresi */
-export const SUPPORT_EMAIL = process.env.EXPO_PUBLIC_SUPPORT_EMAIL ?? "support@glotmate.com";
+export const SUPPORT_EMAIL = process.env.EXPO_PUBLIC_SUPPORT_EMAIL ?? "saeb@imtiyaz.io";

@@ -8,6 +8,7 @@ import {
 import { Alert } from "react-native";
 import { router } from "expo-router";
 import { api, errorCode } from "../api";
+import { AttributionController } from "./AttributionController";
 import { tutorOfAvatarResponse } from "../domain/tutors";
 import { tr } from "../i18n/tr";
 import { useMeStore } from "../stores/useMeStore";
@@ -209,6 +210,8 @@ export class RoleplaySessionController {
       const res = await api.post(`/v1/sessions/${session.sessionId}/end`, { outcome: "completed" });
       const parsed = endSessionResponseSchema.parse(res.data);
       this.store().set({ phase: "debrief", debrief: parsed.debrief ?? null });
+      const { slug } = this.store();
+      if (slug) AttributionController.roleplayCompleted(slug);
       if ((parsed.debrief?.progress.done ?? 0) > 0) HapticsService.success();
     } catch {
       // Debrief gelmedi — yine de sonuç ekranı (canlı listeden) gösterilir

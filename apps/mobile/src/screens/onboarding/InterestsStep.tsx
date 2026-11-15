@@ -9,9 +9,11 @@ import { tr } from "../../i18n/tr";
 import { HapticsService } from "../../services/HapticsService";
 import { useOnboardingStore } from "../../stores/useOnboardingStore";
 import { useThemeColors } from "../../theme/useThemeColors";
+import { withAlpha } from "../../../colors";
+import { GLASS, GlassFill } from "../../components/ui/GlassFill";
 import { QuestionShell, rise, type ShellProps } from "./QuestionShell";
 
-/** İlgi alanları — iki sütun karo, 1–8 seçim (sözleşme sınırı). */
+/** İlgi alanları — iki sütun karo (iOS 26'da cam), 1–8 seçim (sözleşme sınırı). */
 export function InterestsStep({ shell }: { shell: ShellProps }) {
   const colors = useThemeColors();
   const picked = useOnboardingStore((s) => s.interests);
@@ -35,8 +37,11 @@ export function InterestsStep({ shell }: { shell: ShellProps }) {
                   HapticsService.selection();
                   OnboardingController.toggleInterest(key);
                 }}
-                className={`h-[92px] justify-between rounded-2xl border-2 p-3 active:opacity-80 ${on ? "border-brand bg-brand/10" : "border-border bg-card"}`}
+                className={`h-[92px] justify-between rounded-2xl border-2 p-3 active:opacity-80 ${
+                  GLASS ? (on ? "border-brand" : "border-transparent") : on ? "border-brand bg-brand/10" : "border-border bg-card"
+                }`}
               >
+                <GlassFill radius={16} interactive tint={on ? withAlpha(colors.brand, 0.16) : undefined} />
                 <View className="flex-row items-start justify-between">
                   <View className={`size-9 items-center justify-center rounded-xl ${on ? "bg-brand" : "bg-muted"}`}>
                     <Icon color={on ? colors["on-brand"] : colors.brand} size={18} />

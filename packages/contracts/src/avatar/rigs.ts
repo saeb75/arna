@@ -13,7 +13,7 @@
 // görselinden türetildi: ~/Desktop/imtiyaz/raven-avatar/scripts; Kai/Lena/Theo hattı
 // ~/Desktop/imtiyaz/sprite-avatar/scripts.
 import type { AvatarId } from "../avatars.js";
-import { KAI_ATLAS, KAI_EYES, LENA_ATLAS, LENA_EYES, RAVEN_ATLAS, RAVEN_EYES, THEO_ATLAS, THEO_EYES } from "./rigData.js";
+import { KAI_ATLAS, KAI_EXPR, KAI_EYES, KAI_GRID, LENA_ATLAS, LENA_EYES, RAVEN_ATLAS, RAVEN_EYES, THEO_ATLAS, THEO_EYES } from "./rigData.js";
 
 /** Timeline şekil ailesi — "F" (f/v: üst dişler alt dudakta) atlasında FV pozu olmayan rig'de yayvana düşer */
 export type MouthShape = "REST" | "M" | "A" | "E" | "O" | "talk" | "smile" | "F";
@@ -33,6 +33,31 @@ export interface MouthAtlasGeometry {
    * üstüne karışır; `press` (M/B/P) ve varsa `fv` (F/V) tek kare.
    */
   axes: { neutral: string[]; round: string[]; spread: string[]; press: string; fv?: string };
+  /**
+   * ŞEKİL IZGARASI (ops., ayrı atlas dosyası — kare ölçüsü ve `roi` aynı): satır = açıklık
+   * (nötr eksenin kareleri, `n0`…`n<rows>`), sütun = şekle doğru kademe (`o<satır>:<k>` /
+   * `e<satır>:<k>`, k = 1…levels; ara kademeler optik akış karesi). Varsa çizici O/E şeklini
+   * nötr ağzın üstüne SAYDAM bindirmez, ızgarada komşu kareler arasında gezer (`gridFrames`).
+   * Sebep (14 Kas 2026): saydam bindirmede konuşmanın %84'ünde iki ayrı ağız üst üste görünüyordu.
+   * Hat: sprite-avatar/scripts/mouth_grid.py. `press`/`fv` kareleri de bu atlastadır.
+   */
+  grid?: { file: string; slots: Record<string, number[]>; rows: number; levels: number };
+}
+
+/**
+ * İFADE YAMASI (ops.) — kaş kaldırma, göz kapağı, gülümseme. Native çizicide yüz ağı yok
+ * (WebGL/Skia ister); ifade de ağız gibi ATLAS KARESİYLE gelir. Eksenin UÇLARI CANLIDIR:
+ * konum 0 = yama yok (alttaki canlı katmanlar görünür), kareler aradaki durumlardır
+ * (`exprFrames`). Kareler tek satır, alfa karede gömülü. Hat: sprite-avatar/scripts/expr_atlas.py.
+ */
+export interface ExprAtlasGeometry {
+  file: string;
+  /** [x0, y0, x1, y1] tuval pikseli */
+  roi: number[];
+  tileSize: number[];
+  slots: Record<string, number[]>;
+  /** kareler, dinlenmeden uca doğru */
+  axis: string[];
 }
 
 export interface SpriteEyeGeometry {
@@ -67,6 +92,14 @@ export interface SpriteRigGeometry {
    * olarak salınır. Dosyalar: layer_bg.jpg, layer_neck/head/body.webp.
    */
   layers?: { head: number[]; body: number[]; neck: number[] };
+  /**
+   * İfade yamaları (ops.): `brow` kaş kaldırma (taban görselin akışla bükülmüş kareleri —
+   * göz katmanına dokunmaz), `lids` göz kırpmanın ara kareleri (açık → yarı → kapalı; yoksa
+   * göz tek karede kapanır), `smile` kapalı ağız gülümsemesi (yalnız konuşmazken).
+   */
+  expr?: { brow?: ExprAtlasGeometry; lids?: ExprAtlasGeometry; smile?: ExprAtlasGeometry };
+  /** Kaş ekseninde en uzak konum (0..1, vars. 0.85) */
+  browMax?: number;
   /** Yüz ağı çapaları (tuval pikseli) */
   motion: {
     /** baş eğiminin dönme noktası (boyun) */
@@ -173,12 +206,16 @@ const KAI: SpriteRigGeometry = {
   height: 1024,
   scleraRect: [367, 268, 308, 110],
   eyes: eyesOf(KAI_EYES),
-  mouth: { file: "mouth_atlas.webp", ...KAI_ATLAS },
+  mouth: { file: "mouth_atlas.webp", ...KAI_ATLAS, grid: KAI_GRID },
   focus: { x: 0.5, y: 0.39 },
   // o75'e kadar tutarlı açıklık serisi var — Raven'dan biraz daha geniş açılabilir
   mouthAmplitude: 0.85,
   // kalın kirpik irisin üstüne yapışık: büyük kaymada üst kenarda iz kalıyor
   gazeScale: 0.6,
+  // İfade yamaları (14 Kas 2026): Gemini ile TABANDAN üretilen üç poz (kaş kaldırma, yarı kapalı
+  // göz, gülümseme; hizalama ölçeği 1.000, kayma <1 px) → expr_atlas.py. Kaş pozunda gözler de
+  // açılmıştı: yama gözün ÜSTÜNDE biter, kaş taban görselin bükülmesiyle taşınır.
+  expr: KAI_EXPR,
   // Katmanlar (5 Kas 2026): kişi maskesi birefnet-portrait, baş/gövde sınırı yaka ve tişört
   // yakası boyunca elle ölçüldü (sprite-avatar/scripts/layers_kai.py) — ek yeri giysinin arkasında
   layers: { head: [293, 9, 434, 703], body: [9, 565, 1001, 475], neck: [367, 556, 308, 172] },

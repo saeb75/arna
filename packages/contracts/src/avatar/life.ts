@@ -7,6 +7,10 @@
 // Katmanlar: (1) sürekli gezinme + nefes, (2) etkinliğe göre duruş (dinlerken
 // öne eğik + baş sallama, düşünürken bakış yukarı-yana), (3) boşta seyrek
 // olaylar (merakla eğilip bakma, derin nefes, yavaş onay), (4) konuşma vuruşları.
+// (5) gülümseme: dinlerken ve söz bitince — yüz konuşmadığı anda donuk kalmasın.
+// (6) gövde: düzensiz nefes (derinlik/periyot her solukta değişir, nefes sonu kısa duraklama,
+// söze başlarken hızlı nefes alma), ağırlık aktarma (birkaç saniyede bir yeni duruşa yumuşak
+// geçiş) ve vurguda gövdenin başı hafif gecikmeyle izlemesi.
 // Duruş değişimleri yumuşak yaklaşır — durumlar arası sıçrama yok.
 //
 // Ölçüler tuval pikseli ve radyandır; bakış sınırları göz katmanlarının
@@ -29,6 +33,18 @@ export interface LifePose {
   gazeY: number;
   /** büyük bakış sıçramasına eşlik eden göz kırpma isteği (tek kare) */
   blink: boolean;
+  /**
+   * Kapalı ağız gülümsemesi 0..1 — YALNIZ konuşmazken (dinlerken ilgili, söz bitince kısa
+   * bir sıcaklık, boşta hafif). Konuşma başlayınca hızla söner: ağız yığınıyla çakışmaz.
+   */
+  smile: number;
+  /**
+   * GÖVDE (katmanlı çizici — body.ts `bodyPose`): ağırlık aktarma + yavaş salınım. Eğim kalça
+   * pivotundan (rad, + = saat yönü), kayma ve dikey vuruş tuval pikseli (+ = aşağı).
+   */
+  bodyLean: number;
+  bodyShift: number;
+  bodyBob: number;
 }
 
 export interface Life {
@@ -55,6 +71,15 @@ function envelope(age: number, rise: number, hold: number, fall: number): number
   if (age < rise + hold) return 1;
   const k = (age - rise - hold) / fall;
   return k >= 1 ? 0 : 1 - ss(k);
+}
+
+const smooth = (x: number) => x * x * (3 - 2 * x);
+
+/** Nefes dalgası (faz 0..1 → 0..1): alma %36, verme %44, sonunda %20 duraklama */
+function breathWave(phase: number): number {
+  if (phase < 0.36) return smooth(phase / 0.36);
+  if (phase < 0.8) return 1 - smooth((phase - 0.36) / 0.44);
+  return 0;
 }
 
 const GAZE_X = 5;
@@ -102,6 +127,23 @@ export function createLife(rand: () => number = Math.random): Life {
   let ty = 0;
   let nextSaccade = 0.8 + rand() * 1.5;
   let asideUntil = -1;
+  // gülümseme
+  let smile = 0;
+  let glow = 0; // söz bitince / onay sallamasında gelen, kendiliğinden sönen sıcaklık
+  let quiet = 0; // konuşma bittiğinden beri (sn) — klipler arası kısa boşlukta gülümseme başlamasın
+  // gövde
+  let breathPhase = rand() * 0.8;
+  let breathPeriod = pick(3.8, 4.8);
+  let breathDepth = pick(0.8, 1);
+  let breathOut = 0;
+  let postureLean = 0; // ağırlık aktarma hedefi (rad) ve kritik sönümlü takipçisi
+  let postureX = 0;
+  let leanS = 0;
+  let leanV = 0;
+  let shiftS = 0;
+  let shiftV = 0;
+  let nextShift = pick(3, 6);
+  let bob = 0;
 
   const startEpisode = (blinkOut: { v: boolean }) => {
     const r = rand();
@@ -116,6 +158,7 @@ export function createLife(rand: () => number = Math.random): Life {
     } else {
       // yavaş onay: iki sakin baş sallama
       nods.push({ at: t, amp: 2.4, roll: 0, tau: 0.22 }, { at: t + 0.55, amp: 1.8, roll: 0, tau: 0.22 });
+      glow = 0.7; // onaylarken gülümser
     }
     nextEpisode = t + pick(7, 14);
   };
@@ -190,6 +233,40 @@ export function createLife(rand: () => number = Math.random): Life {
         ty = pick(-0.4, 0.2);
         asideUntil = -1;
       }
+      // ---- nefes: her soluk biraz farklı; söze başlarken çabuk bir nefes alınır
+      if (speaking && !wasSpeaking && breathPhase > 0.3) {
+        breathPhase = 0;
+        breathPeriod = 2.3;
+        breathDepth = 1;
+      }
+      breathPhase += dt / breathPeriod;
+      if (breathPhase >= 1) {
+        breathPhase -= 1;
+        breathPeriod = speaking ? pick(2.8, 3.6) : pick(3.8, 5.0);
+        breathDepth = speaking ? pick(0.6, 0.85) : pick(0.75, 1);
+      }
+      breathOut = approach(breathOut, breathDepth * breathWave(breathPhase), 7, dt);
+
+      // ---- ağırlık aktarma: birkaç saniyede bir yeni duruş; geçiş yumuşak başlar, yumuşak biter
+      nextShift -= dt;
+      if (nextShift <= 0) {
+        postureLean = pick(-1, 1) * 0.0034;
+        postureX = pick(-1, 1) * 1.8;
+        nextShift = speaking ? pick(4, 8) : pick(6, 13);
+      }
+      const om = 2.2; // kritik sönüm: ~1,8 sn'de yerleşir, sıçrama ve aşım yok
+      leanV += (om * om * (postureLean - leanS) - 2 * om * leanV) * dt;
+      leanS += leanV * dt;
+      shiftV += (om * om * (postureX - shiftS) - 2 * om * shiftV) * dt;
+      shiftS += shiftV * dt;
+
+      // ---- gülümseme: söz bitince kısa bir sıcaklık, dinlerken ilgili, düşünürken yok
+      if (wasSpeaking && !speaking) glow = 0.8;
+      quiet = speaking ? 0 : quiet + dt;
+      glow *= Math.exp(-dt / 2.4);
+      const rest = thinking ? 0 : listening ? 0.45 : 0.2;
+      const smileTo = speaking || quiet < 0.35 ? 0 : Math.min(1, rest + (thinking ? 0 : 0.6 * glow));
+      smile = approach(smile, smileTo, smileTo > smile ? 2.4 : speaking ? 18 : 3, dt);
       wasSpeaking = speaking;
 
       // ---- ses vurgusu → baş sallama (+ ara sıra kaş)
@@ -288,7 +365,9 @@ export function createLife(rand: () => number = Math.random): Life {
       const roll = 0.011 * live * wobble(t * 0.55, 1.3) + beatRoll + tilt + epRoll;
       const nod = 1.0 * live * wobble(t * 0.7, 4.1) + beatNod + lean + epNod;
       const yaw = 2.6 * wobble(t * 0.42, 7.7) + 0.6 * gx + epYaw + turn;
-      const breath = 0.9 * (0.5 - 0.5 * Math.cos((t * 2 * Math.PI) / 4.4)) + epBreath;
+      const breath = breathOut + epBreath;
+      // gövde vurguda başı hafif gecikmeyle izler (baş sallanırken omuzlar taş gibi durmasın)
+      bob = approach(bob, 0.3 * Math.max(0, beatNod), 9, dt);
 
       return {
         roll,
@@ -299,6 +378,10 @@ export function createLife(rand: () => number = Math.random): Life {
         gazeX: Math.max(-GAZE_X, Math.min(GAZE_X, gx)),
         gazeY: Math.max(GAZE_UP, Math.min(GAZE_DOWN, gy)),
         blink: blinkOut.v,
+        smile,
+        bodyLean: leanS + 0.0016 * live * wobble(t * 0.31, 11.3),
+        bodyShift: shiftS + 1.2 * wobble(t * 0.23, 5.9),
+        bodyBob: bob,
       };
     },
   };

@@ -17,7 +17,7 @@ import { tr } from "../../i18n/tr";
 import { useRoleplaySessionStore } from "../../stores/useRoleplaySessionStore";
 import { useThemeColors } from "../../theme/useThemeColors";
 import { DebriefView } from "./DebriefView";
-import { ObjectiveChip } from "./ObjectiveChip";
+import { ObjectiveChip } from "../../components/shared/ObjectiveChip";
 import { PlayTopBar } from "./PlayTopBar";
 
 /**

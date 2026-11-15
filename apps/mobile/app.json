@@ -2,7 +2,7 @@
   "expo": {
     "name": "GlotMate",
     "slug": "glotmate",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/brand/icon.png",
     "scheme": "glotmate",
@@ -15,7 +15,11 @@
       },
       "bundleIdentifier": "com.imtiyaz.glotmate",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "GlotMate uses the microphone so you can speak your answers to your English tutor. It records only while you hold the talk button.",
+        "NSUserTrackingUsageDescription": "This lets us measure which ads bring people to GlotMate. Your lessons work the same either way.",
+        "NSAdvertisingAttributionReportEndpoint": "https://appsflyer-skadnetwork.com/",
+        "CFBundleAllowMixedLocalizations": true
       },
       "usesAppleSignIn": true
     },
@@ -54,14 +58,26 @@
           }
         }
       ],
-      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "GlotMate uses the microphone so you can speak your answers to your English tutor. It records only while you hold the talk button."
+        }
+      ],
       "expo-apple-authentication",
       [
         "expo-notifications",
         {
           "color": "#b94d17"
         }
-      ]
+      ],
+      [
+        "expo-tracking-transparency",
+        {
+          "userTrackingPermission": "This lets us measure which ads bring people to GlotMate. Your lessons work the same either way."
+        }
+      ],
+      "react-native-appsflyer"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -78,6 +94,9 @@
     },
     "updates": {
       "url": "https://u.expo.dev/689a6aee-3f58-43f8-858c-7c1a704a15b0"
+    },
+    "locales": {
+      "tr": "./locales/tr.json"
     }
   }
 }

@@ -30,6 +30,8 @@ RIGS = ROOT / "packages/contracts/src/avatar/rigs.ts"
 # İris kayma payı (tuval pikseli): bakış ±5 px × gazeScale, + kenar yumuşatma
 MARGIN = 8
 LAYER_FILES = ["layer_bg.jpg", "layer_neck.webp", "layer_head.webp", "layer_body.webp"]
+# İfade yamaları (ops.): rig'de `expr` varsa ve dosya web'de duruyorsa aynen kopyalanır
+EXPR_KINDS = ["brow", "lids", "smile"]
 
 rig_data = RIG_DATA.read_text()
 rigs_src = RIGS.read_text()
@@ -94,7 +96,15 @@ for rid in ["raven", "kai", "lena", "theo"]:
     if layered:
         for f in LAYER_FILES:
             shutil.copy(src / f, dst / f)
-    entries.append((rid, atlas, frames, layered))
+    # 5) ifade yamaları (varsa): kaş / göz kapağı / gülümseme atlasları — aynen
+    expr = [k for k in EXPR_KINDS if (src / f"expr_{k}.webp").exists()]
+    for k in expr:
+        shutil.copy(src / f"expr_{k}.webp", dst / f"expr_{k}.webp")
+    # 6) ağız şekil ızgarası (varsa): O/E geçişinin ara kareleri — aynen
+    grid = (src / "mouth_grid.webp").exists()
+    if grid:
+        shutil.copy(src / "mouth_grid.webp", dst / "mouth_grid.webp")
+    entries.append((rid, atlas, frames, layered, expr, grid))
 
 lines = [
     "// ÜRETİLMİŞ — elle düzenleme: scripts/sprite-avatars/build.py yeniden üretir.",
@@ -109,11 +119,15 @@ lines = [
     "  eyes: Record<\"L\" | \"R\", { iris: number; shadow: number; frame: number; /** [x, y, w, h] tuval pikseli */ frameRect: [number, number, number, number] }>;",
     "  /** katmanlı beden (rig.layers kutularıyla) — yoksa portre bütün salınır */",
     "  layers?: { bg: number; neck: number; head: number; body: number };",
+    "  /** ağız şekil ızgarası (rig.mouth.grid) — varsa ağız yığını bundan çizilir */",
+    "  grid?: number;",
+    "  /** ifade yamaları (rig.expr kutularıyla) — yoksa o ifade çizilmez */",
+    "  expr?: { brow?: number; lids?: number; smile?: number };",
     "}",
     "",
     "export const SPRITE_ASSETS: Partial<Record<AvatarId, SpriteAssetSet>> = {",
 ]
-for rid, atlas, frames, layered in entries:
+for rid, atlas, frames, layered, expr, grid in entries:
     p = f"../../assets/avatars/{rid}"
     lines += [
         f"  {rid}: {{",
@@ -133,7 +147,11 @@ for rid, atlas, frames, layered in entries:
             f'    layers: {{ bg: require("{p}/layer_bg.jpg"), neck: require("{p}/layer_neck.webp"), '
             f'head: require("{p}/layer_head.webp"), body: require("{p}/layer_body.webp") }},'
         )
+    if grid:
+        lines.append(f'    grid: require("{p}/mouth_grid.webp"),')
+    if expr:
+        lines.append("    expr: { " + ", ".join(f'{k}: require("{p}/expr_{k}.webp")' for k in expr) + " },")
     lines.append("  },")
 lines += ["};", ""]
 MAP.write_text("\n".join(lines))
-print("ok:", ", ".join(e[0] + (" (katmanlı)" if e[3] else "") for e in entries))
+print("ok:", ", ".join(e[0] + (" (katmanlı)" if e[3] else "") + (f" (ifade: {'/'.join(e[4])})" if e[4] else "") for e in entries))

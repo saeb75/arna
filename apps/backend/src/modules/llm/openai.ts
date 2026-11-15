@@ -55,7 +55,10 @@ export const openaiProvider: LLMProvider = {
       ],
       response_format: { type: "json_object" },
       ...tuning(req.model, req.maxTokens ?? 8000, req.temperature ?? 0.7, req.reasoningEffort),
-    } as Parameters<typeof client.chat.completions.create>[0]) as OpenAI.Chat.Completions.ChatCompletion;
+    } as Parameters<typeof client.chat.completions.create>[0],
+      // Kullanıcı beklerken koşan çağrı ASKIDA KALMASIN: SDK varsayılanı 10 dk × 3 deneme
+      req.timeoutMs ? { timeout: req.timeoutMs, maxRetries: 1 } : undefined,
+    ) as OpenAI.Chat.Completions.ChatCompletion;
 
     const text = res.choices[0]?.message?.content ?? "";
     return {

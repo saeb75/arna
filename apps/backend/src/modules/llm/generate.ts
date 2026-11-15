@@ -54,6 +54,8 @@ export interface GenerateJsonRequest<T> {
   temperature?: number;
   /** Verilmezse modelin tablodaki düzeyi kullanılır */
   reasoningEffort?: ReasoningEffort;
+  /** Tek API isteğinin zaman aşımı (bkz. JsonRequest.timeoutMs) */
+  timeoutMs?: number;
   /** Her sağlayıcı çağrısından sonra (onarım denemesi dahil) — loglama kancası */
   onCall?: (result: ProviderResult, latencyMs: number) => Promise<void> | void;
 }
@@ -77,6 +79,7 @@ export async function generateJson<T>(req: GenerateJsonRequest<T>): Promise<T> {
       maxTokens: req.maxTokens,
       temperature: req.temperature,
       reasoningEffort: effort,
+      timeoutMs: req.timeoutMs,
     });
     await req.onCall?.(result, Date.now() - startedAt);
 

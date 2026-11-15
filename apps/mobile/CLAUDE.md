@@ -22,6 +22,8 @@ buradaki desene uyar. Desen tartışılacaksa önce bu dosya güncellenir, sonra
 | react-native-purchases | 10.x | RevenueCat — yalnız `services/PurchasesService` |
 | expo-notifications | SDK | günlük YEREL hatırlatıcı — yalnız `services/NotificationsService` |
 | expo-apple-authentication | SDK | Sign in with Apple — yalnız `services/AppleAuthService` |
+| expo-tracking-transparency | SDK | iOS izleme izni (ATT) — yalnız `services/TrackingService` |
+| react-native-appsflyer | **6.x** | kurulum ölçümü — yalnız `services/AttributionService`; 7.x tamamen yeni API, GlotCast 6.18'de |
 
 **Native bağımlılık = yeni build.** Ekleme/çıkarma kullanıcıya SORULMADAN
 yapılmaz (12 Eki 2026'da dördü onayla eklendi).
@@ -40,6 +42,11 @@ bağlanmaya çalışır, her istek "Bağlanamadık" olur. İki sebep, ikisi de b
 `--environment production` (EAS değişkenleri) ve `--clear-cache` (Metro `EXPO_PUBLIC_*`
 değerlerini önbellekte tutuyor; ölçüldü: doğru değer verilse bile önbellekle localhost
 girdi, `--clear` ile doğru adres girdi).
+
+**OTA AÇILIŞTA UYGULANIR** (14 Kas 2026, kullanıcı kararı): `UpdatesController.applyOnLaunch`
+açılış kapısından ÖNCE, splash ekrandayken koşar — güncelleme varsa indirir ve hemen yeniden
+başlatır (kontrol 2,5 sn, indirme 8 sn ile sınırlı; aşılırsa mevcut bundle'la açılır, güncelleme
+arka planda iner ve sekme kabuğunda kart çıkar). Eskiden güncelleme ancak ikinci açılışta görünüyordu.
 
 **Marka varlıkları** `assets/brand/` (GlotCast deseni): `icon.png` (kaynak),
 `icon-dark`/`icon-tinted` (iOS), `splash-mark.png` (gradyan, şeffaf), `adaptive-*`
@@ -279,6 +286,20 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
 
 **Dosya başına TEK bileşen.** Yardımcı alt bileşen bile ayrı dosyaya çıkar.
 
+## Kurulum ölçümü + izleme izni (14 Kas 2026, kullanıcı kararı; GlotCast deseni)
+
+- `AttributionController.start()` (AppRoot) AppsFlyer'ı oturum okununca başlatır; müşteri kimliği
+  Supabase kimliği (misafir dahil), RevenueCat AppsFlyer kimliğini alır (`PurchasesService.linkAppsFlyer`).
+  Anahtarlar `EXPO_PUBLIC_APPSFLYER_DEV_KEY` + `EXPO_PUBLIC_APPSFLYER_APP_ID` (iOS'ta ikisi de yoksa
+  SDK hiç başlamaz); geliştirme derlemesinde kapalı.
+- iOS izleme sorusu onboarding'den SONRA, sekme kabuğu ilk göründüğünde (`AppTabs` →
+  `askTrackingOnce`, 800 ms sonra); AppsFlyer ilk açılış olayını cevaba kadar (≤60 sn) bekletir.
+- Olaylar: `af_tutorial_completion` (onboarding), `af_complete_registration` / `af_login`,
+  `lesson_completed`, `roleplay_completed`. SATIN ALMA loglanmaz (RevenueCat sunucudan bildirir).
+- Hiçbir akış kararı buna bağlı değildir; her çağrı sessizce düşebilir.
+- İzin metinleri `app.json` (İngilizce) + `locales/tr.json` (Türkçe): mikrofon ve izleme.
+- Bu iki paket native → sürüm 1.0.1'e çıktı; 1.0.0 derlemeleri bu koddan OTA ALAMAZ.
+
 ## Auth — MİSAFİR ÖNCE (12 Eki 2026 kararı)
 
 - İlk açılışta Supabase **anonim** oturum açılır (`AuthController.boot`):
@@ -499,7 +520,33 @@ iki+ ekranda kullanılıyorsa `components/shared/`, tasarım sistemi parçasıys
   Arka plan az kayar, gövde nefesle kalkar, baş boyundan tam genlikle döner; gövde başın
   ÜSTÜNDE çizilir → ek yeri yaka/tişört yakasının arkasında. Skia GEREKMEDİ (OTA ile gider).
   Sebep: tek parça salınımda yalnız ağız/göz canlı görünüyordu ("robotik"). Katmansız rig
-  portreyi bütün olarak ölçülü salar. Kaş esnetmesi hâlâ yok (WebGL/Skia ister).
+  portreyi bütün olarak ölçülü salar. **İFADE YAMALARI** (14 Kas 2026, Kai; `rig.expr` +
+  `assets.expr`, çizim `SpritePatch`): yüz ağı native'de yok (WebGL/Skia ister) → ifade de ağız
+  gibi ATLAS KARESİYLE gelir. Kaş (vurgu, cümle başı, dinleme/düşünme — taban görselin akışla
+  bükülmüş kareleri, göz katmanına dokunmaz), göz kapağı (kırpma tek karede değil kapak inerek:
+  açık → yarı → kapalı, contracts `blinkLid`), gülümseme (yalnız konuşmazken: dinlerken, söz
+  bitince; `LifePose.smile`). Eksenin uçları canlıdır — konum 0'da yama çizilmez (contracts
+  `exprFrames`). Pozlar Gemini ile TABANDAN üretilir (`sprite-avatar/scripts/gemini_pose.py` →
+  `expr_atlas.py`, Kai: `characters/kai/expr_build.sh`). Yaması olmayan rig eski davranışta.
+  **AĞIZ ŞEKİL IZGARASI** (14 Kas 2026, Kai; `rig.mouth.grid` + `assets.grid`): O/E şekli nötr
+  ağzın üstüne ağırlık kadar SAYDAM biniyordu — ölçüldü: konuşma karelerinin %84'ünde iki ayrı
+  ağız üst üste (kullanıcı: "ağız geçişlerinde fade'ler çok göze batıyor"). Izgarada ağız iki
+  eksende gezer (satır = açıklık, sütun = şekle doğru kademe; ara kademeler optik akış karesi,
+  `sprite-avatar/scripts/mouth_grid.py`), her karışım birbirine çok yakın iki kare arasındadır
+  (contracts `gridFrames`). O ile E birlikte ağırlık taşıyorsa fark alınır (ağız nötrden geçerek
+  döner); tahmini şekilde F/V yayvana katılır. Izgarasız rig eski saydam bindirmede kalır —
+  yeni karakterde ızgara da üretilir. Şekil katmanını saydamlıkla karıştırmaya GERİ DÖNME.
+  **GÖVDE HAREKETİ** (14 Kas 2026, katmanlı rig; contracts `avatar/body.ts` `bodyPose`): eskiden
+  gövde ±1,6 px kayıp 1 px kalkıyordu — ders kartında (ölçek ≈ 0,18) ekranın yarım pikselinin
+  altında ("dümdüz duruyor, resim gibi") ve baş sallama kafanın bütün olarak aşağı kaymasıydı
+  (çene yakaya girip çıkıyordu). Şimdi gövde nefesle alt-ortadan genişleyip yükselir (her soluk
+  biraz farklı, söze başlarken çabuk nefes), kalça pivotundan ağırlık aktarır (birkaç saniyede bir
+  yeni duruş, kritik sönümlü geçiş), baş boyunla taşınır ve nefesin %60'ını alır (yaka boyunda
+  kayar). **BAŞIN BOYUTU ASLA DEĞİŞMEZ:** baş sallamayı boyundan dikey ölçekle, dinlemeyi
+  yakınlaşmayla yapmak denendi — "kafası küçülüp büyüyor, eskisinden kötü" (reddedildi). Baş
+  yalnız ötelenir/döner; sallama eski kaymanın kısılmışı, vurgunun bir kısmını gövde taşır.
+  Gövde öteleme genlikleri kutu ölçeğiyle büyür (`motionGain`: kart ×2, büyük sahne ×1);
+  AÇIYA kazanç uygulanmaz. Yeni beden hareketi `LifePose` + `bodyPose`'a eklenir, bileşene değil.
   Yeni 2.5D avatar: web'e varlık + contracts `rigs.ts`'e geometri, sonra betik.
 - **3D avatar WebView ile** (kök CLAUDE.md kararı; native Three.js ayrı faz —
   expo-gl'de draco/postprocessing/52-morph desteği güvenilmez). Kurulum:

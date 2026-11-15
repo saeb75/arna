@@ -10,4 +10,6 @@ export * from "./alignment.js";
 export * from "./rigs.js";
 export * from "./mouth.js";
 export * from "./life.js";
+export * from "./expr.js";
+export * from "./body.js";
 export * from "./estimate.js";

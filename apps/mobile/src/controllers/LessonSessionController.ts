@@ -15,6 +15,7 @@ import {
 import { Alert } from "react-native";
 import { router } from "expo-router";
 import { api, errorCode } from "../api";
+import { AttributionController } from "./AttributionController";
 import { NotebookController } from "./NotebookController";
 import { tutorOfAvatarResponse } from "../domain/tutors";
 import { tr } from "../i18n/tr";
@@ -514,11 +515,12 @@ export class LessonSessionController {
 
   /** TEK BİTİRİCİ — wrapup'taki "Dersi Bitir" butonu (kök kural: ders kendiliğinden bitmez). */
   static async finish(): Promise<void> {
-    const { sessionId } = this.store();
+    const { sessionId, catalogLessonId } = this.store();
     this.store().set({ phase: "done", awaiting: null, stopped: true, fastForward: false, pendingInput: null });
     this.dropPending();
     VoiceService.stopAll();
     if (sessionId) await api.post(`/v1/sessions/${sessionId}/end`, {}).catch(() => undefined);
+    if (catalogLessonId) AttributionController.lessonCompleted(catalogLessonId);
     router.back();
   }
 

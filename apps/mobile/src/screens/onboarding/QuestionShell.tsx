@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronLeft } from "lucide-react-native";
 import { ProgressBar } from "../../components/ui/ProgressBar";
 import { RoundIconButton } from "../../components/ui/RoundIconButton";
+import { ScreenGlow } from "../../components/ui/ScreenGlow";
 import { tr } from "../../i18n/tr";
 import { useThemeColors } from "../../theme/useThemeColors";
 
@@ -19,7 +20,8 @@ export interface ShellProps {
 
 /**
  * Bir sorunun sayfası: üstte geri + sorular boyunca ilerleme, soru, cevaplar
- * (çocuklar, gerekirse kayar) ve altta sayfanın eylemi.
+ * (çocuklar, gerekirse kayar) ve altta sayfanın eylemi. Zemin ana sayfanınki (canvas + marka
+ * ışığı); HER soru "Devam" ile geçilir — dokunuş yalnız seçer (15 Kas 2026).
  */
 export function QuestionShell({
   progress,
@@ -36,6 +38,7 @@ export function QuestionShell({
   return (
     // Güvenli alan ÇALIŞMA ZAMANI değeri — gerekçeli inline stil
     <View className="flex-1 bg-canvas" style={{ paddingTop: insets.top + 6 }}>
+      <ScreenGlow height={420} />
       <View className="h-12 flex-row items-center gap-3 px-4">
         <View className="w-10">
           {onBack ? (

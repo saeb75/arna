@@ -1,14 +1,15 @@
 import { useEffect } from "react";
-import { View } from "react-native";
+import { BackHandler, View } from "react-native";
 import Animated, { Easing, FadeIn, FadeOut, SlideInRight, SlideOutLeft, useReducedMotion } from "react-native-reanimated";
 import { OnboardingController, questionSteps } from "../../controllers/OnboardingController";
 import { TutorController } from "../../controllers/TutorController";
+import { useMeStore } from "../../stores/useMeStore";
 import { useOnboardingStore } from "../../stores/useOnboardingStore";
 import { useTutorsStore } from "../../stores/useTutorsStore";
 import { BuildingStep } from "./BuildingStep";
 import { GoalStep } from "./GoalStep";
 import { InterestsStep } from "./InterestsStep";
-import { IntroFlip } from "./IntroFlip";
+import { IntroPager } from "./IntroPager";
 import { LevelStep } from "./LevelStep";
 import { NameStep } from "./NameStep";
 import { NotifyStep } from "./NotifyStep";
@@ -19,8 +20,8 @@ import { TrackStep } from "./TrackStep";
 import { TutorStep } from "./TutorStep";
 
 /**
- * İLK AÇILIŞ, baştan sona: tanıtım sayfaları (nokta çevirmesi) → sorular
- * (kayan sayfalar + ilerleme) → plan hazırlanıyor → plan (üstünde paywall) →
+ * İLK AÇILIŞ, baştan sona: tanıtım sayfaları ("Devam" ile) → sorular
+ * (kayan sayfalar + ilerleme) → plan hazırlanıyor → plan →
  * hatırlatıcı → dersler. Adım store'da, cihazda kalıcı.
  */
 export function OnboardingScreen() {
@@ -30,13 +31,26 @@ export function OnboardingScreen() {
   const backwards = useOnboardingStore((s) => s.backwards);
   // Öğretmen listesi tanıtım sürerken yüklenir — boş gelirse seçim adımı hiç görünmez
   const hasTutors = useTutorsStore((s) => (s.tutors?.length ?? 0) > 0);
+  const hasProfile = useMeStore((s) => Boolean(s.me?.profile));
   useEffect(() => {
     void TutorController.load();
   }, []);
+  useEffect(() => {
+    OnboardingController.repair(hasProfile);
+  }, [hasProfile]);
+  // Android geri tuşu: sorularda bir önceki soru (aksi hâlde uygulamadan çıkar)
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (!questionSteps(true).includes(step)) return false;
+      OnboardingController.back();
+      return true;
+    });
+    return () => sub.remove();
+  }, [step]);
 
   if (step === "intro") {
     return (
-      <IntroFlip
+      <IntroPager
         onDone={() => OnboardingController.next()}
         onHaveAccount={() => OnboardingController.haveAccount()}
       />

@@ -10,6 +10,7 @@ import { useCurriculumStore } from "../stores/useCurriculumStore";
 import { useMeStore } from "../stores/useMeStore";
 import { useOnboardingStore } from "../stores/useOnboardingStore";
 import { useRoleplayStore } from "../stores/useRoleplayStore";
+import { AttributionController } from "./AttributionController";
 import { MeController } from "./MeController";
 import { NotificationController } from "./NotificationController";
 import { ProController } from "./ProController";
@@ -107,6 +108,7 @@ export class AuthController {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (error || !data.session) return this.store().set({ error: codeOf(error) });
+      AttributionController.signedIn("email", false);
       HapticsService.success();
       await this.restart(data.session);
       ToastController.success(tr.auth.signedIn);
@@ -122,6 +124,7 @@ export class AuthController {
       if (!apple) return;
       const { data, error } = await supabase.auth.signInWithIdToken({ provider: "apple", token: apple.token });
       if (error || !data.session) return this.store().set({ error: codeOf(error) });
+      AttributionController.signedIn("apple", false);
       HapticsService.success();
       await this.restart(data.session);
       ToastController.success(tr.auth.signedIn);
@@ -145,6 +148,7 @@ export class AuthController {
       const { data, error } = await supabase.auth.updateUser({ email: email.trim(), password });
       if (error) return this.store().set({ error: codeOf(error) });
       if (data.user?.email && !data.user.is_anonymous) {
+        AttributionController.signedIn("email", true);
         await this.afterLink();
       } else {
         this.store().set({ pendingEmail: email.trim() });
@@ -162,6 +166,7 @@ export class AuthController {
       if (!apple) return;
       const { error } = await supabase.auth.linkIdentity({ provider: "apple", token: apple.token });
       if (error) return this.store().set({ error: codeOf(error) });
+      AttributionController.signedIn("apple", true);
       await this.afterLink();
     } catch {
       this.store().set({ error: "generic" });

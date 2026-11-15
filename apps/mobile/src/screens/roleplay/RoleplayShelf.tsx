@@ -1,7 +1,7 @@
 import { ScrollView, View } from "react-native";
 import type { RoleplayListItem } from "@glotmate/contracts";
 import { SectionHeader } from "../../components/ui/SectionHeader";
-import { RoleplayCard } from "./RoleplayCard";
+import { RoleplayCard } from "../../components/shared/RoleplayCard";
 
 /** Başlıklı yatay raf — kart genişliği + 12 boşlukla yapışarak kayar. */
 export function RoleplayShelf({

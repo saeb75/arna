@@ -47,6 +47,7 @@ export async function completeJson<T>(opts: CompleteJsonOptions<T>): Promise<T> 
       schema: opts.schema,
       maxTokens: opts.maxTokens,
       temperature: opts.temperature,
+      timeoutMs: opts.timeoutMs,
       onCall: async (result, latencyMs) => {
         await db.insert(llmCalls).values({
           userId: opts.userId,

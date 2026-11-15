@@ -8,11 +8,13 @@ import { tr } from "../../i18n/tr";
 import { HapticsService } from "../../services/HapticsService";
 import { useOnboardingStore } from "../../stores/useOnboardingStore";
 import { useThemeColors } from "../../theme/useThemeColors";
+import { withAlpha } from "../../../colors";
+import { GLASS, GlassFill } from "../../components/ui/GlassFill";
 import { QuestionShell, rise, type ShellProps } from "./QuestionShell";
 
 /**
  * Seviye — A1–C2 kartları, seçilende "Kulağa şöyle gelir" örneği açılır.
- * Yerleştirme testi YOK (MVP kararı); ayarlardan her zaman değişir.
+ * Yerleştirme testi YOK (MVP kararı); ayarlardan her zaman değişir. iOS 26'da cam kart.
  */
 export function LevelStep({ shell }: { shell: ShellProps }) {
   const colors = useThemeColors();
@@ -37,8 +39,11 @@ export function LevelStep({ shell }: { shell: ShellProps }) {
                   HapticsService.tap();
                   OnboardingController.answer({ level: key });
                 }}
-                className={`gap-3 rounded-2xl border-2 px-4 py-3.5 active:opacity-80 ${selected ? "border-brand bg-brand/10" : "border-border bg-card"}`}
+                className={`gap-3 rounded-2xl border-2 px-4 py-3.5 active:opacity-80 ${
+                  GLASS ? (selected ? "border-brand" : "border-transparent") : selected ? "border-brand bg-brand/10" : "border-border bg-card"
+                }`}
               >
+                <GlassFill radius={16} interactive tint={selected ? withAlpha(colors.brand, 0.16) : undefined} />
                 <View className="flex-row items-center gap-3">
                   <View className={`h-8 min-w-11 items-center justify-center rounded-lg px-2 ${selected ? "bg-brand" : "bg-muted"}`}>
                     <Text className={`text-sm font-extrabold ${selected ? "text-on-brand" : "text-foreground"}`}>{key}</Text>

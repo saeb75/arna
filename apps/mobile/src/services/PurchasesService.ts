@@ -39,6 +39,29 @@ export class PurchasesService {
     return true;
   }
 
+  /**
+   * AppsFlyer kurulum kimliği + cihaz kimlikleri (reklam kimliği yalnız izleme izni varsa)
+   * müşteriye yazılır: RevenueCat deneme/satın almaları AppsFlyer'a bunlarla yollar. Asla fırlatmaz.
+   */
+  static async linkAppsFlyer(appsFlyerId: string): Promise<void> {
+    if (!configured) return;
+    try {
+      await Purchases.collectDeviceIdentifiers();
+      await Purchases.setAppsflyerID(appsFlyerId);
+    } catch {
+      // yoksay
+    }
+  }
+
+  static async collectDeviceIdentifiers(): Promise<void> {
+    if (!configured) return;
+    try {
+      await Purchases.collectDeviceIdentifiers();
+    } catch {
+      // yoksay
+    }
+  }
+
   /** Başka bir hesaba geçildi (mevcut hesapla giriş) — satın almalar o kimliğe bağlanır */
   static async logIn(appUserId: string): Promise<CustomerInfo | null> {
     if (!configured) return null;

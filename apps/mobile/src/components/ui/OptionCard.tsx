@@ -1,13 +1,16 @@
 import type { ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Check } from "lucide-react-native";
+import { withAlpha } from "../../../colors";
 import { HapticsService } from "../../services/HapticsService";
 import { useThemeColors } from "../../theme/useThemeColors";
+import { GLASS, GlassFill } from "./GlassFill";
 
 /**
  * Tek cevap kartı: ikon karosu, başlık + alt satır, sağda radyo/onay kutusu.
  * Seçilince marka çerçevesi ve tonu. Onboarding, ayar sheet'leri ve ders içi
- * çoktan seçmeli şıkların ortak dili.
+ * çoktan seçmeli şıkların ortak dili. `glass`: iOS 26'da Liquid Glass zemin (onboarding — ana
+ * sayfanın cam kartlarıyla aynı dil); cam yoksa ya da değerlendirme tonu varsa dolu kart.
  */
 export function OptionCard({
   title,
@@ -19,6 +22,7 @@ export function OptionCard({
   multi = false,
   disabled = false,
   tone,
+  glass = false,
 }: {
   title: string;
   subtitle?: string;
@@ -31,10 +35,15 @@ export function OptionCard({
   disabled?: boolean;
   /** Değerlendirme sonrası renk (test): doğru/yanlış */
   tone?: "positive" | "negative";
+  glass?: boolean;
 }) {
   const colors = useThemeColors();
-  const frame =
-    tone === "positive"
+  const onGlass = glass && GLASS && !tone;
+  const frame = onGlass
+    ? selected
+      ? "border-brand"
+      : "border-transparent"
+    : tone === "positive"
       ? "border-positive bg-positive/10"
       : tone === "negative"
         ? "border-negative bg-negative/10"
@@ -54,7 +63,8 @@ export function OptionCard({
       }}
       className={`flex-row items-center gap-3.5 rounded-2xl border-2 px-4 py-3.5 active:opacity-80 ${frame}`}
     >
-      {icon ? <View className="size-11 items-center justify-center rounded-xl bg-muted">{icon}</View> : null}
+      {onGlass ? <GlassFill radius={16} interactive tint={selected ? withAlpha(colors.brand, 0.16) : undefined} /> : null}
+      {icon ? <View className={`size-11 items-center justify-center rounded-xl ${onGlass ? "bg-brand/10" : "bg-muted"}`}>{icon}</View> : null}
       <View className="flex-1 gap-0.5">
         <Text className="text-[17px] font-semibold text-foreground">{title}</Text>
         {subtitle ? <Text className="text-sm leading-snug text-muted-foreground">{subtitle}</Text> : null}

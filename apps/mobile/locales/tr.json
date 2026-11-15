@@ -1,0 +1,4 @@
+{
+  "NSMicrophoneUsageDescription": "GlotMate, İngilizce öğretmenine cevaplarını sesli söyleyebilmen için mikrofonu kullanır. Yalnızca konuşma düğmesini basılı tuttuğunda kayıt yapar.",
+  "NSUserTrackingUsageDescription": "Bu izin, hangi reklamların GlotMate'e kullanıcı getirdiğini ölçmemizi sağlar. Derslerin iki durumda da aynı şekilde çalışır."
+}

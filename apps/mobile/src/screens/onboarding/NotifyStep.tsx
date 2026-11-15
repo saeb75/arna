@@ -2,11 +2,14 @@ import { useState } from "react";
 import { Text, View } from "react-native";
 import Animated, { Easing, FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Image } from "expo-image";
 import { Bell, GraduationCap } from "lucide-react-native";
 import { CtaButton } from "../../components/ui/CtaButton";
+import { GLASS, GlassFill } from "../../components/ui/GlassFill";
 import { ScreenGlow } from "../../components/ui/ScreenGlow";
 import { TextButton } from "../../components/ui/TextButton";
 import { OnboardingController } from "../../controllers/OnboardingController";
+import { useDraftTutorArt } from "../../hooks/useDraftTutorArt";
 import { useDraftTutorName } from "../../hooks/useTutorName";
 import { tr } from "../../i18n/tr";
 import { useOnboardingStore } from "../../stores/useOnboardingStore";
@@ -19,6 +22,7 @@ export function NotifyStep() {
   const insets = useSafeAreaInsets();
   const goal = useOnboardingStore((s) => s.dailyGoal ?? 10);
   const tutorName = useDraftTutorName();
+  const { portrait } = useDraftTutorArt();
   const [busy, setBusy] = useState(false);
   return (
     // Güvenli alan ÇALIŞMA ZAMANI değeri — gerekçeli inline stil
@@ -32,11 +36,18 @@ export function NotifyStep() {
         </Animated.View>
         <Animated.View
           entering={FadeInDown.delay(500).duration(520).easing(Easing.out(Easing.cubic))}
-          className="w-full flex-row items-center gap-3 rounded-2xl border border-border bg-card p-3.5"
+          className={`w-full flex-row items-center gap-3 overflow-hidden rounded-2xl p-3.5 ${GLASS ? "" : "border border-border bg-card"}`}
           style={{ shadowColor: colors.scrim, shadowOpacity: 0.12, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } }}
         >
-          <View className="size-10 items-center justify-center rounded-xl bg-primary">
-            <GraduationCap color={colors["primary-foreground"]} size={20} />
+          <GlassFill radius={16} />
+          {/* Bildirimin "uygulama ikonu" yerinde öğretmenin portresi (yoksa ikon) */}
+          <View className="size-10 items-center justify-center overflow-hidden rounded-xl bg-primary">
+            {portrait !== null ? (
+              // expo-image NativeWind sınıfı almaz — ölçü style ile
+              <Image source={portrait} contentFit="cover" contentPosition="top" transition={0} style={{ width: "100%", height: "100%" }} />
+            ) : (
+              <GraduationCap color={colors["primary-foreground"]} size={20} />
+            )}
           </View>
           <View className="flex-1">
             <Text className="text-[15px] font-bold text-foreground">{tr.onboarding.notify.previewTitle(goal)}</Text>

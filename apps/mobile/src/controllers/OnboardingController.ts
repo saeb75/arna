@@ -6,6 +6,7 @@ import { HapticsService } from "../services/HapticsService";
 import { useCurriculumStore } from "../stores/useCurriculumStore";
 import { useOnboardingStore, type OnboardingStep } from "../stores/useOnboardingStore";
 import { useTutorsStore } from "../stores/useTutorsStore";
+import { AttributionController } from "./AttributionController";
 import { MeController } from "./MeController";
 import { NotificationController } from "./NotificationController";
 
@@ -30,7 +31,7 @@ function hasTutors(): boolean {
 
 /**
  * İLK AÇILIŞ — tanıtım → 7–8 soru → plan hazırlanıyor (POST /v1/onboarding) →
- * plan → PAYWALL → hatırlatıcı izni → dersler. LLM çağrısı YOK (katalog sabit).
+ * plan → hatırlatıcı izni → dersler. LLM çağrısı YOK (katalog sabit).
  * Taslak cihazda kalıcı: uygulama kapanırsa kaldığı adımdan döner.
  */
 export class OnboardingController {
@@ -46,6 +47,15 @@ export class OnboardingController {
     const { interests } = this.store();
     if (interests.includes(key)) this.store().set({ interests: interests.filter((i) => i !== key) });
     else if (interests.length < 8) this.store().set({ interests: [...interests, key] });
+  }
+
+  /**
+   * Kalıcı taslak "plan"/"hatırlatıcı" adımında kalmış ama profil YOK (oturum düşüp yeni
+   * misafir açıldı): profil yazılmadan derslere geçilemez → kayıt adımına dön.
+   */
+  static repair(hasProfile: boolean): void {
+    const { step } = this.store();
+    if (!hasProfile && (step === "plan" || step === "notify")) this.store().set({ step: "building", backwards: false });
   }
 
   static next(): void {
@@ -100,6 +110,7 @@ export class OnboardingController {
       });
       useCurriculumStore.getState().setCurriculum(curriculumResponseSchema.parse(res.data));
       await MeController.load();
+      if (!o.submitted) AttributionController.onboardingCompleted();
       this.store().set({ submitted: true });
       return true;
     } catch {

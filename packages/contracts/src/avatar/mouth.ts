@@ -203,6 +203,45 @@ export function axisFrames(axis: readonly string[], pos: number): [string, strin
   return [axis[i]!, axis[i + 1]!, u - i];
 }
 
+// ---- Şekil ızgarası: O/E geçişi saydamlıkla değil ARA KAREYLE ----
+// Eksen çifti + ağırlık kadar SAYDAM şekil katmanı, konuşmanın çoğunda iki farklı ağzı üst üste
+// gösteriyordu ("fade'ler göze batıyor"). Izgarada ağız iki eksende gezer: açıklık (satır) ve
+// şekle doğru kademe (sütun); her karışım birbirine çok yakın iki kare arasındadır.
+
+export interface GridPick {
+  /** alt çift (açıklık yönünde komşu iki satır): A opak, B `rowMix` opaklıkta */
+  baseA: string;
+  baseB: string;
+  rowMix: number;
+  /** üst çift = bir sonraki şekil kademesi; grup opaklığı `overMix` (0 ise çizilmez) */
+  overA: string | null;
+  overB: string | null;
+  overMix: number;
+}
+
+/**
+ * `open` nötr eksen konumu (0..1), `shape` işaretli şekil: − yuvarlak (O) … 0 nötr … + yayvan (E).
+ * O ile E aynı anda ağırlık taşıyorsa (geçiş) fark alınır — ağız nötrden GEÇEREK döner.
+ */
+export function gridFrames(rows: number, levels: number, open: number, shape: number): GridPick {
+  const u = Math.max(0, Math.min(1, open)) * rows;
+  const i = Math.min(rows - 1, Math.floor(u));
+  const v = Math.min(1, Math.abs(shape)) * levels;
+  const j = Math.min(levels - 1, Math.floor(v));
+  const fam = shape < 0 ? "o" : "e";
+  const key = (row: number, col: number) => (row === 0 ? "n0" : col === 0 ? `n${row}` : `${fam}${row}:${col}`);
+  const overMix = v - j;
+  const over = overMix > 0.005;
+  return {
+    baseA: key(i, j),
+    baseB: key(i + 1, j),
+    rowMix: u - i,
+    overA: over ? key(i, j + 1) : null,
+    overB: over ? key(i + 1, j + 1) : null,
+    overMix: over ? overMix : 0,
+  };
+}
+
 export function shapeAt(rows: MouthSpan[], ms: number): MouthShape {
   if (!rows.length || ms < 0) return "REST";
   let lo = 0;

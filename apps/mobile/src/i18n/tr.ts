@@ -132,7 +132,6 @@ export const tr = {
 
   onboarding: {
     haveAccount: "Hesabım var",
-    step: (n: number, total: number) => `${n}. sayfa, toplam ${total}`,
     finish: "Başla",
     questionCount: (n: number, total: number) => `${n}/${total}`,
     intro: {
@@ -154,11 +153,21 @@ export const tr = {
     scenes: {
       emmaAsk: "What did you do last weekend?",
       youSay: "I go to the cinema.",
-      emmaFix: "Nice! Geçmiş için “went” deriz: I went to the cinema.",
+      emmaFix: "Nice! Geçmiş için “went” deriz:",
+      /** Düzeltmenin doğru İngilizce cümlesi — ayrı satır, vurgulu (ders ekranındaki gibi) */
+      emmaFixEn: "I went to the cinema.",
       micHint: "Basılı tut, konuş",
-      rpTitle: "Ordering at a café",
-      rpGoals: ["Selam ver", "Sipariş ver", "Hesabı iste"],
-      pathLabels: ["Kendini tanıt", "Geçen hafta sonu", "Kafede sipariş", "Ünite testi"],
+      /**
+       * Rol yapma karuseli — katalogdaki GERÇEK senaryolar (başlık + hedefler İngilizce, uygulamadaki
+       * gibi). Sıra `RoleplayScene`deki kategori/hedef sayısı tablosuyla birebir.
+       */
+      rpCards: [
+        { title: "Is There Milk in That?", goals: ["Order a hot drink", "Ask what is in a cake or sandwich", "Ask how much it all costs"] },
+        { title: "The Room Next to the Lift", goals: ["Give your name and booking details", "Ask about breakfast or the Wi-Fi", "Ask for a different room"] },
+        { title: "Your First Day at the Office", goals: ["Introduce yourself and say your new job", "Ask where something is in the office", "Ask about lunch or working hours"] },
+      ],
+      /** Mini yol — A1'in ilk üç dersinin kanonik İngilizce adı (sıra `PathScene`deki kimliklerle birebir) */
+      pathTitles: ["Hello, I'm…", "Am, Is, Are", "Are You a Student?"],
     },
     name: {
       title: "Sana nasıl hitap edelim?",
@@ -205,7 +214,7 @@ export const tr = {
       } as Record<5 | 10 | 15, { title: string; body: string }>,
       recommended: "Önerilen",
       reminderTitle: "Ne zaman hatırlatalım?",
-      reminders: { "08:00": "Sabah", "13:00": "Öğlen", "20:00": "Akşam", "22:00": "Gece" } as Record<string, string>,
+      reminders: { "08:00": "Sabah", "13:00": "Öğlen", "20:00": "Akşam" } as Record<string, string>,
       noReminder: "Hatırlatma yok",
     },
     building: {
@@ -218,7 +227,9 @@ export const tr = {
       eyebrow: "PLANIN",
       title: (name: string) => (name ? `${name}, yolun hazır` : "Yolun hazır"),
       body: "Kısa dersler, gerçek sohbetler ve seni hatırlayan bir hoca.",
+      firstLesson: "İlk dersin",
       level: "Seviye",
+      teacher: "Öğretmen",
       goal: "Günlük hedef",
       tutor: "Açıklamalar",
       context: "Konuşma bağlamı",

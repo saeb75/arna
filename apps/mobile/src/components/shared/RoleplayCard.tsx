@@ -1,7 +1,7 @@
 import { Pressable, Text, View } from "react-native";
 import { CircleCheck, Target } from "lucide-react-native";
 import type { RoleplayListItem } from "@glotmate/contracts";
-import { RoleplayArt } from "../../components/shared/RoleplayArt";
+import { RoleplayArt } from "./RoleplayArt";
 import { categoryLook } from "../../domain/roleplayCategories";
 import { tr } from "../../i18n/tr";
 import { HapticsService } from "../../services/HapticsService";

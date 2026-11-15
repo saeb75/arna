@@ -8,6 +8,7 @@ import { tr } from "../../i18n/tr";
 import { HapticsService } from "../../services/HapticsService";
 import { useOnboardingStore } from "../../stores/useOnboardingStore";
 import { useThemeColors } from "../../theme/useThemeColors";
+import { GLASS, GlassFill } from "../../components/ui/GlassFill";
 import { QuestionShell, rise, type ShellProps } from "./QuestionShell";
 
 const GOALS: { min: 5 | 10 | 15; Icon: LucideIcon }[] = [
@@ -33,8 +34,11 @@ export function GoalStep({ shell }: { shell: ShellProps }) {
           HapticsService.selection();
           OnboardingController.answer({ reminderTime: value });
         }}
-        className={`h-10 items-center justify-center rounded-full border px-4 active:opacity-70 ${on ? "border-brand bg-brand" : "border-border bg-card"}`}
+        className={`h-10 items-center justify-center rounded-full border px-4 active:opacity-70 ${
+          on ? "border-brand bg-brand" : GLASS ? "border-transparent" : "border-border bg-card"
+        }`}
       >
+        {on ? null : <GlassFill radius={20} interactive />}
         <Text className={`text-sm font-semibold ${on ? "text-on-brand" : "text-foreground"}`}>{label}</Text>
       </Pressable>
     );
@@ -50,6 +54,7 @@ export function GoalStep({ shell }: { shell: ShellProps }) {
         {GOALS.map(({ min, Icon }, i) => (
           <Animated.View key={min} entering={rise(i + 2)}>
             <OptionCard
+              glass
               title={tr.onboarding.goal.options[min].title}
               subtitle={tr.onboarding.goal.options[min].body}
               icon={<Icon color={colors.brand} size={22} />}

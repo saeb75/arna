@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { NativeTabs } from "expo-router/unstable-native-tabs";
+import { AttributionController } from "../../controllers/AttributionController";
 import { tr } from "../../i18n/tr";
 import { useThemeColors } from "../../theme/useThemeColors";
 
@@ -14,6 +16,10 @@ import { useThemeColors } from "../../theme/useThemeColors";
  */
 export function AppTabs() {
   const colors = useThemeColors();
+  // iOS izleme sorusu: onboarding bitti, uygulama ilk kez ekranda (kurulum başına bir kez)
+  useEffect(() => {
+    void AttributionController.askTrackingOnce();
+  }, []);
   const trigger = { disableAutomaticContentInsets: true, disableTransparentOnScrollEdge: true } as const;
   return (
     <NativeTabs tintColor={colors.brand} disableTransparentOnScrollEdge>

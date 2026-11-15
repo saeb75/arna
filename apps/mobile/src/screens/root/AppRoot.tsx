@@ -3,6 +3,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as SplashScreen from "expo-splash-screen";
 import { ThemeRoot } from "../../components/ui/ThemeRoot";
 import { ToastHost } from "../../components/shared/ToastHost";
+import { AttributionController } from "../../controllers/AttributionController";
 import { AuthController } from "../../controllers/AuthController";
 import { UpdatesController } from "../../controllers/UpdatesController";
 import { useAuthStore } from "../../stores/useAuthStore";
@@ -23,9 +24,14 @@ export function AppRoot() {
   const bootError = useAuthStore((s) => s.bootError);
 
   useEffect(() => {
-    void AuthController.boot();
-    // OTA kontrolü kapının DIŞINDA: açılış güncellemeyi beklemez
-    UpdatesController.start();
+    // Önce güncelleme (splash ekranda, süre sınırlı): varsa uygulanır ve süreç yeniden
+    // başlar; yoksa açılış zinciri sürer. Sonraki kontroller arka planda (kart).
+    void UpdatesController.applyOnLaunch().finally(() => {
+      void AuthController.boot();
+      UpdatesController.start();
+      // Kurulum ölçümü: oturum okununca başlar (açılışı beklemez, bekletmez)
+      AttributionController.start();
+    });
   }, []);
 
   return (

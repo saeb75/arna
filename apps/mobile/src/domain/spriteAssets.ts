@@ -10,6 +10,10 @@ export interface SpriteAssetSet {
   eyes: Record<"L" | "R", { iris: number; shadow: number; frame: number; /** [x, y, w, h] tuval pikseli */ frameRect: [number, number, number, number] }>;
   /** katmanlı beden (rig.layers kutularıyla) — yoksa portre bütün salınır */
   layers?: { bg: number; neck: number; head: number; body: number };
+  /** ağız şekil ızgarası (rig.mouth.grid) — varsa ağız yığını bundan çizilir */
+  grid?: number;
+  /** ifade yamaları (rig.expr kutularıyla) — yoksa o ifade çizilmez */
+  expr?: { brow?: number; lids?: number; smile?: number };
 }
 
 export const SPRITE_ASSETS: Partial<Record<AvatarId, SpriteAssetSet>> = {
@@ -31,6 +35,8 @@ export const SPRITE_ASSETS: Partial<Record<AvatarId, SpriteAssetSet>> = {
       R: { iris: require("../../assets/avatars/kai/iris_R.png"), shadow: require("../../assets/avatars/kai/lidshadow_R.png"), frame: require("../../assets/avatars/kai/eyeframe_R.png"), frameRect: [555, 285, 88, 69] },
     },
     layers: { bg: require("../../assets/avatars/kai/layer_bg.jpg"), neck: require("../../assets/avatars/kai/layer_neck.webp"), head: require("../../assets/avatars/kai/layer_head.webp"), body: require("../../assets/avatars/kai/layer_body.webp") },
+    grid: require("../../assets/avatars/kai/mouth_grid.webp"),
+    expr: { brow: require("../../assets/avatars/kai/expr_brow.webp"), lids: require("../../assets/avatars/kai/expr_lids.webp"), smile: require("../../assets/avatars/kai/expr_smile.webp") },
   },
   lena: {
     base: require("../../assets/avatars/lena/portrait_base.jpg"),

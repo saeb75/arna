@@ -23,6 +23,8 @@ export interface JsonRequest {
   temperature?: number;
   /** Yalnız yeni nesil (gpt-5+/o-serisi) modellerde gönderilir */
   reasoningEffort?: ReasoningEffort;
+  /** Tek API isteğinin zaman aşımı; verilince yeniden deneme 1'e iner (SDK varsayılanı 10 dk × 3) */
+  timeoutMs?: number;
 }
 
 export interface ChatMessage {
@@ -86,4 +88,6 @@ export interface CompleteJsonOptions<T> {
   sessionId?: string;
   maxTokens?: number;
   temperature?: number;
+  /** İstek anında (kullanıcı beklerken) koşan çağrılar için tek API isteğinin zaman aşımı */
+  timeoutMs?: number;
 }
