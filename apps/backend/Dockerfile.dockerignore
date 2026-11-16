@@ -1,0 +1,23 @@
+# apps/backend/Dockerfile için bağlam süzgeci (BuildKit: <Dockerfile>.dockerignore).
+# Bağlam repo köküdür; izin listesi dışındaki her şey (mobil, web, admin kaynağı,
+# docs) dışarıda kalır. scripts/ ve drizzle/ imaja girmez — migration/seed elle koşar.
+# Kökte ortak bir .dockerignore BİLEREK yok — başka build'leri de etkilerdi.
+*
+
+!package.json
+!package-lock.json
+!tsconfig.base.json
+!apps/backend/package.json
+!apps/backend/tsconfig.json
+!apps/backend/openapi.yaml
+!apps/backend/src
+!apps/admin/package.json
+!apps/web/package.json
+!apps/mobile/package.json
+!packages/contracts
+
+**/node_modules
+**/dist
+**/.env*
+**/*.tsbuildinfo
+**/.DS_Store

@@ -23,6 +23,8 @@ import billingRoutes from "./modules/billing/routes.js";
 
 export async function buildApp() {
   const app = Fastify({
+    // Vekil arkasında gerçek istemci IP'si (rate limit anahtarı + loglar); bkz. env.TRUST_PROXY
+    trustProxy: env.TRUST_PROXY > 0 ? env.TRUST_PROXY : false,
     logger: isProd
       ? true
       : { transport: undefined, level: "info" },

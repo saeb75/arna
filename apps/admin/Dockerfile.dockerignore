@@ -1,0 +1,21 @@
+# apps/admin/Dockerfile için bağlam süzgeci (BuildKit: <Dockerfile>.dockerignore).
+# Bağlam repo köküdür; izin listesi dışındaki her şey (mobil, web'in 118 MB
+# avatar varlıkları, docs, backend kaynağı) dışarıda kalır.
+# Kökte ortak bir .dockerignore BİLEREK yok — başka build'leri de etkilerdi.
+*
+
+!package.json
+!package-lock.json
+!tsconfig.base.json
+!apps/admin
+!apps/web/package.json
+!apps/backend/package.json
+!apps/mobile/package.json
+!packages/contracts
+
+**/node_modules
+**/.next
+**/dist
+**/.env*
+**/*.tsbuildinfo
+**/.DS_Store

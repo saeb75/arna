@@ -55,6 +55,15 @@ const envSchema = z.object({
 
   /** Virgülle ayrılmış izinli origin listesi */
   CORS_ORIGINS: z.string().default("http://localhost:6567"),
+
+  /**
+   * Sürecin önündeki GÜVENİLİR ters vekil sayısı: Coolify/Traefik = 1, onun önünde
+   * Cloudflare de varsa 2. 0 = vekil yok, `req.ip` soketin adresidir.
+   * Vekil arkasında 0 kalırsa her istek vekilin IP'sinden gelmiş görünür ve IP
+   * anahtarlı rate limit (global taban + bilet uçları) BÜTÜN kullanıcılara ortak sayar.
+   * Gerçekte olandan büyük yazılırsa istemci `X-Forwarded-For` ile IP uydurabilir.
+   */
+  TRUST_PROXY: z.coerce.number().int().min(0).default(0),
 });
 
 // .env'de "DEGISKEN=" (boş) bırakılan değerler tanımsız sayılır
